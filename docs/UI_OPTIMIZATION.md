@@ -51,6 +51,20 @@
 
 ## 2. 底部状态栏：保留 connected + 版本号，补上 codeg 的其它状态栏功能
 
+> **状态：✅ 已落地（可测子集）**（`src/app/app.go` 的 `viewStatusBar` + `viewStatusMcp/Tasks/Update`）。
+> 保留左下 `connected/connecting` + URL、右下 `YoYoCode v0.1.0`；在右侧区块切换与版本号之间补：
+> - **MCP 健康**（`viewStatusMcp`）：读 `get_codeg_mcp_service_status` → `running` 绿点 / 否则灰点 + `MCP`。
+>   （companion 未内置 → `stopped`，属诚实状态；见点 3）
+> - **待办计数**（`viewStatusTasks`）：读 `work_task_list` → 未 done 的数量，`☑ N` 徽标，点击跳到 To-dos；为 0 时隐藏。
+> - **更新提示**（`viewStatusUpdate`）：读 `check_app_update` → 有新版才显示 `↑ Update`（本构建不自更新 → 恒隐藏，前向兼容）。
+> 测试：`shell_test.go::TestStatusBarIndicators`。
+>
+> **暂缓（需端口暂不具备的信号，已在代码注释）**：
+> - **告警铃** `StatusBarAlerts`：需「未读失败/关注」信号，port 的 `automation_list` 不含 unseen/attention 字段 → 暂不做。
+> - **计算机使用指示** `StatusBarComputer`：port 的 `computer_*` 是 refused 桩，恒不可用 → 恒隐藏（上游未开启时同样不渲染）。
+> - **命令启动器** `CommandDropdown`、**quick-actions** `QuickActionsDropdown`、**StatusBarStats**：交互式菜单/客户端 task-context 统计，
+>   非纯状态展示，端口无对应 store → 暂缓。
+
 ### 现状
 我们端口 `viewStatusBar`（`src/app/app.go`）目前只有：
 - 左下：`● connected`（绿点）/ `connecting` + 后端地址 URL

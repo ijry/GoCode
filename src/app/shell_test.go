@@ -124,3 +124,36 @@ func TestSidebarSegmentedSwitcher(t *testing.T) {
 		t.Errorf("folders tab must hide conversations; texts = %v", tt.Texts())
 	}
 }
+
+func TestStatusBarIndicators(t *testing.T) {
+	s := shellForTest(t)
+	s.cache["status-mcp"] = json.RawMessage(`{"state":"stopped"}`)
+	s.cache["status-appupdate"] = json.RawMessage(`{"currentVersion":"0.34.0","update":null}`)
+	s.cache["status-worktasks"] = json.RawMessage(`[{"id":1,"title":"a","status":"todo"},{"id":2,"title":"b","status":"in_progress"},{"id":3,"title":"c","status":"done"}]`)
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	// MCP health always shows (stopped here); the liveness dot + version stay.
+	if !tt.HasText("MCP") {
+		t.Errorf("MCP health indicator missing; texts = %v", tt.Texts())
+	}
+	if !tt.HasText("connecting") && !tt.HasText("connected") {
+		t.Errorf("liveness indicator must remain; texts = %v", tt.Texts())
+	}
+	if !tt.HasText("YoYoCode v0.1.0") {
+		t.Errorf("version must remain bottom-right; texts = %v", tt.Texts())
+	}
+	// To-dos badge shows the 2 OPEN tasks (done excluded), update badge hidden.
+	if !tt.HasText("\u2611 2") {
+		t.Errorf("to-dos badge should show 2 open; texts = %v", tt.Texts())
+	}
+	if tt.HasText("Update") {
+		t.Errorf("update badge should be hidden when no update is available; texts = %v", tt.Texts())
+	}
+	// Clicking the to-dos badge jumps to the To-dos workbench.
+	if err := tt.Click("\u2611 2"); err != nil {
+		t.Fatalf("click to-dos badge: %v", err)
+	}
+	if s.workbench != "tasks" {
+		t.Fatalf("workbench = %q, want tasks", s.workbench)
+	}
+}

@@ -11,6 +11,7 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -319,6 +320,67 @@ func (s *Shell) viewStatusBar(c *ui.Context) {
 				s.section = item.id
 			}
 		}
+		ui.Divider(c)
+		s.viewStatusMcp(c)
+		s.viewStatusTasks(c)
+		s.viewStatusUpdate(c)
 		ui.Text(c, "YoYoCode v0.1.0").FontSize(11).TextColor(t.TextMuted)
 	})
+}
+
+// viewStatusMcp is the yoyocode-mcp companion health indicator (upstream
+// StatusBarMcp). Reflects get_codeg_mcp_service_status: green dot when running,
+// muted otherwise (stopped until the companion + broker ship — see UI doc 点 3).
+func (s *Shell) viewStatusMcp(c *ui.Context) {
+	t := c.Theme()
+	state := ""
+	if m := asObj(s.ensure("status-mcp", "get_codeg_mcp_service_status", nil)); m != nil {
+		state = str(m, "state")
+	}
+	dot := t.TextMuted
+	if state == "running" {
+		dot = t.Success
+	}
+	ui.Row(c.Key("sb-mcp")).Gap(4).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, "\u25CF").FontSize(8).TextColor(dot)
+		ui.Text(c, "MCP").FontSize(11).TextColor(t.TextMuted)
+	})
+}
+
+// viewStatusTasks is the open to-do count (upstream StatusBarTasks). Counts
+// work tasks not yet done; clicking jumps to the To-dos workbench. Hidden when
+// nothing is open.
+func (s *Shell) viewStatusTasks(c *ui.Context) {
+	open := 0
+	for _, tk := range asList(s.ensure("status-worktasks", "work_task_list", nil)) {
+		switch str(tk, "status") {
+		case "done", "completed", "cancelled", "archived":
+		default:
+			open++
+		}
+	}
+	if open == 0 {
+		return
+	}
+	if ui.Button(c.Key("sb-tasks"), fmt.Sprintf("\u2611 %d", open)).Clicked() {
+		s.section = "workspace"
+		s.workbench = "tasks"
+	}
+}
+
+// viewStatusUpdate is the update-available badge (upstream StatusBarUpdate).
+// check_app_update reports a newer version only when one exists; this build does
+// not self-update, so it stays hidden until update discovery is enabled.
+func (s *Shell) viewStatusUpdate(c *ui.Context) {
+	var upd any
+	if m := asObj(s.ensure("status-appupdate", "check_app_update", nil)); m != nil {
+		upd = m["update"]
+	}
+	if upd == nil {
+		return
+	}
+	if ui.PrimaryButton(c.Key("sb-update"), "\u2191 Update").Clicked() {
+		s.section = "settings"
+		s.settingsPage = "general"
+	}
 }
