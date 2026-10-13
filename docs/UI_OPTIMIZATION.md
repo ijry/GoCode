@@ -109,6 +109,18 @@
 
 ## 3. 对应一个 `yoyocode-mcp`（上游为 `codeg-mcp`）
 
+> **状态：🟡 最小可用版已落地**（`src-go/mcp/companion.go` + `cmd/yoyocode-mcp`）。
+> 一个真实可跑的 MCP stdio server（JSON-RPC 2.0）：`initialize` / `tools/list` / `tools/call`；
+> 暴露同一套 6 个 workbench 工具，名字归一化 `mcp__yoyocode-mcp__X / yoyocode-mcp/X → X`。
+> `create_automation`/`create_work_task` **代理到真后端**（loopback `/api`，env: `YOYOCODE_API`/`TOKEN`/
+> `FOLDER_ID`/`AGENT_TYPE`/`SESSION_ID`）；`get_session_info`/`task_progress`/`task_complete` 回 ack；
+> `resume_delegation` 诚实报 not-supported（委派引擎未移植）。
+> 测试：`src-go/mcp/companion_test.go`（握手/列表/归一化/代理/暂缓/错误）全绿。
+>
+> **未完成（后续）**：① 应用侧为 agent 启动 companion 并注入 session 上下文（MCP 配置写入 / sidecar 打包）；
+> ② mygo 侧等价 `CodegMcpToolCard` 的会话内工具卡片渲染（含 `findArgs` 的 arguments 包装键 peel +
+> running/ok/err）。以下为设计记录：
+
 ### 上游是什么
 `codeg-mcp` 是随 codeg 分发的**独立 companion MCP server 二进制**（不是前端模块）：
 
