@@ -40,11 +40,12 @@ type transcriptItem struct {
 // toolCard is one tool call's live rendered state, updated in place as
 // tool_call_update events arrive.
 type toolCard struct {
-	id     string
-	title  string
-	kind   string
-	status string // pending | running | success | failed | rejected
-	output string
+	id       string
+	title    string
+	kind     string
+	status   string // pending | running | success | failed | rejected
+	output   string
+	rawInput string // raw tool arguments (JSON string) — for companion cards
 }
 
 // buildTranscript folds a connection's flat ACP event stream into render rows.
@@ -78,10 +79,11 @@ func buildTranscript(events []map[string]any) []transcriptItem {
 		case "tool_call":
 			flush()
 			tc := &toolCard{
-				id:     str(ev, "tool_call_id"),
-				title:  firstNonEmpty(str(ev, "title"), str(ev, "kind"), "Tool"),
-				kind:   str(ev, "kind"),
-				status: str(ev, "status"),
+				id:       str(ev, "tool_call_id"),
+				title:    firstNonEmpty(str(ev, "title"), str(ev, "kind"), "Tool"),
+				kind:     str(ev, "kind"),
+				status:   str(ev, "status"),
+				rawInput: firstNonEmpty(str(ev, "raw_input"), str(ev, "input"), str(ev, "arguments")),
 			}
 			items = append(items, transcriptItem{kind: "tool", tool: tc})
 			if tc.id != "" {
@@ -94,6 +96,12 @@ func buildTranscript(events []map[string]any) []transcriptItem {
 				}
 				if v := str(ev, "status"); v != "" {
 					items[i].tool.status = v
+				}
+				if v := firstNonEmpty(str(ev, "raw_input"), str(ev, "input"), str(ev, "arguments")); v != "" {
+					items[i].tool.rawInput = v
+				}
+				if v := firstNonEmpty(str(ev, "output"), str(ev, "result"), str(ev, "content")); v != "" {
+					items[i].tool.output = v
 				}
 			}
 		case "turn_complete":
@@ -234,6 +242,12 @@ func proseSpans(text string, t *ui.Theme) []ui.Span {
 // so it is never hidden behind a click (upstream's AgentCapsule defaultOpen).
 func (s *Shell) viewToolCard(c *ui.Context, key string, tc *toolCard) {
 	t := c.Theme()
+	// yoyocode-mcp workbench companion tools get a purpose-built one-liner card
+	// (upstream CodegMcpToolCard) instead of the generic tool shell.
+	if model, ok := codegMcpModelFor(tc); ok {
+		s.viewCodegMcpCard(c, key, tc, model)
+		return
+	}
 	failed := tc.status == "failed" || tc.status == "rejected"
 	open := s.toolIsOpen(tc.id, failed)
 
@@ -264,6 +278,56 @@ func (s *Shell) viewToolCard(c *ui.Context, key string, tc *toolCard) {
 			ui.Column(c).FillWidth().Padding(12, 12, 12, 12).Gap(6).Children(func() {
 				ui.Text(c, firstNonEmpty(tc.output, tc.kind, "No output recorded.")).
 					FontSize(12).TextColor(t.TextMuted).Wrap()
+			})
+		}
+	})
+}
+
+// viewCodegMcpCard renders a yoyocode-mcp workbench companion tool as a one-line
+// card stating the single argument the call is about; the expanded body adds the
+// peeled result text, plus the audited prompt (authoring) / verdict / reason.
+func (s *Shell) viewCodegMcpCard(c *ui.Context, key string, tc *toolCard, m codegMcpModel) {
+	t := c.Theme()
+	failed := m.IsError
+	open := s.toolIsOpen(tc.id, failed)
+	// The collapsed line: "<tool> · <detail>" (just the tool when detail empty).
+	line := m.Tool
+	if m.Detail != "" {
+		line = m.Tool + " · " + m.Detail
+	}
+	ui.Column(c.Key(key)).FillWidth().Radius(6).Border(1, t.Border.Alpha(0.7)).Children(func() {
+		head := ui.Row(c).FillWidth().Padding(8, 12, 8, 12).Gap(8).AlignItems(ui.Center)
+		head.Children(func() {
+			ui.Icon(c, iconWrench).Width(15).Height(15).TextColor(t.TextMuted)
+			ui.Text(c, line).FontSize(14).Bold().MaxLines(1).TextColor(condColor(failed, t.Danger, t.Text))
+			ui.Spacer(c)
+			ui.Row(c).Radius(999).Background(t.SurfaceHover).Padding(2, 8, 2, 8).
+				Gap(5).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, toolGlyph(tc.status)).Width(12).Height(12).TextColor(toolStatusColor(t, tc.status))
+				ui.Text(c, toolStatusLabel(tc.status)).FontSize(11).TextColor(toolStatusColor(t, tc.status))
+			})
+			ui.Icon(c, chevronGlyph(open)).Width(14).Height(14).TextColor(t.TextMuted)
+		})
+		if head.Clicked() {
+			s.toggleTool(tc.id, failed)
+		}
+		if open {
+			ui.Divider(c)
+			ui.Column(c).FillWidth().Padding(12, 12, 12, 12).Gap(6).Children(func() {
+				if m.Verdict != "" {
+					ui.Text(c, "verdict: "+m.Verdict).FontSize(12).TextColor(t.TextMuted)
+				}
+				if m.Prompt != "" {
+					ui.Text(c, "prompt: "+m.Prompt).FontSize(12).TextColor(t.TextMuted).Wrap()
+				}
+				if m.Reason != "" {
+					ui.Text(c, "reason: "+m.Reason).FontSize(12).TextColor(t.TextMuted).Wrap()
+				}
+				if m.ResultText != "" {
+					ui.Text(c, m.ResultText).FontSize(12).TextColor(t.Text).Wrap()
+				} else if m.Verdict == "" && m.Prompt == "" && m.Reason == "" {
+					ui.Text(c, "No output recorded.").FontSize(12).TextColor(t.TextMuted)
+				}
 			})
 		}
 	})
