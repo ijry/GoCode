@@ -15,15 +15,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
+	"yoyocode/src-go/backup"
 	"yoyocode/src-go/web"
 )
 
@@ -33,6 +38,13 @@ const (
 	// backupUploadTmpDir is where restore uploads land (upstream UPLOAD_TMP_DIR
 	// ".codeg-restore-upload", rebranded).
 	backupUploadTmpDir = ".yoyocode-restore-upload"
+	// backupAppVersion is recorded in the archive manifest.
+	backupAppVersion = "0.1.0"
+	// backupExportReap is the grace period before an undownloaded export archive
+	// is reaped (upstream EXPORT_REAP_SECS).
+	backupExportReap = 120 * time.Second
+	// backupTicketTTL bounds how long a download ticket is honored.
+	backupTicketTTL = 5 * time.Minute
 )
 
 // errBackupUploadTooLarge flags an upload that crossed the optional cap so the
@@ -134,6 +146,135 @@ func RegisterBackup(reg *Registry) {
 	})
 
 	reg.Register("backup_upload", backupUpload)
+	backupTickets := newBackupTicketStore()
+	reg.Register("backup_create_ticket", func(c *web.Context) (any, error) {
+		return backupCreateTicket(c, backupTickets)
+	})
+	reg.RegisterRaw("/backup_download/", func(w http.ResponseWriter, req *http.Request) {
+		backupDownload(w, req, backupTickets)
+	})
+}
+
+// backupTicket is a single-use download ticket for a built export archive.
+// root scopes consumption to the backup temp dir (a workspace ticket seeded
+// into this store must never stream an arbitrary file).
+type backupTicket struct {
+	targetPath string
+	root       string
+	filename   string
+	expiresAt  time.Time
+}
+
+type backupTicketStore struct {
+	mu      sync.Mutex
+	tickets map[string]backupTicket
+}
+
+func newBackupTicketStore() *backupTicketStore {
+	return &backupTicketStore{tickets: map[string]backupTicket{}}
+}
+
+func (s *backupTicketStore) issue(target, root, filename string) (string, int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	id := newChatUUID()
+	exp := time.Now().Add(backupTicketTTL)
+	s.tickets[id] = backupTicket{targetPath: target, root: root, filename: filename, expiresAt: exp}
+	return id, exp.Unix()
+}
+
+func (s *backupTicketStore) consume(id string) (backupTicket, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.tickets[id]
+	if !ok {
+		return backupTicket{}, false
+	}
+	delete(s.tickets, id)
+	if time.Now().Before(t.expiresAt) {
+		return t, true
+	}
+	return backupTicket{}, false
+}
+
+// backupCreateTicket builds an export archive and returns a single-use download
+// ticket (upstream BackupTicketResult): {ticket, url, filename, expires_at,
+// degradedSqlite}. Encrypted + external-inclusive backups are not yet ported
+// (CreateBackup rejects them cleanly).
+func backupCreateTicket(c *web.Context, store *backupTicketStore) (any, error) {
+	d, err := requireDB(c)
+	if err != nil {
+		return nil, err
+	}
+	dataDir := appDataDir(c)
+	tmpDir := filepath.Join(dataDir, backup.BackupExportTmpDir)
+	if mkErr := os.MkdirAll(tmpDir, 0o700); mkErr != nil {
+		return nil, web.ErrIO("Failed to create backup temp dir: " + mkErr.Error())
+	}
+	ext := "yoyocode.zip" // passphrase (encrypted) rejected below
+	dest := filepath.Join(tmpDir, newChatUUID()+"."+ext)
+	opID := newChatUUID()
+	manifest, cerr := backup.CreateBackup(
+		d.Conn, opID, dataDir, backupAppVersion, backupLiveRoots(c),
+		backup.Options{
+			IncludeExternalTranscripts: GetBool(c, "includeExternalTranscripts", "include_external_transcripts"),
+			Passphrase:                 GetString(c, "passphrase"),
+		},
+		dest, func(p backup.Progress) { Emit(c, backup.BackupProgressEvent, p) },
+	)
+	if cerr != nil {
+		_ = os.Remove(dest)
+		return nil, web.ErrTaskExecution("Backup failed").WithDetail(cerr.Error())
+	}
+	downloadName := fmt.Sprintf("yoyocode-backup-%s.%s", time.Now().UTC().Format("20060102-150405"), ext)
+	ticket, expiresAt := store.issue(dest, tmpDir, downloadName)
+	// Reap the temp archive after the TTL whether or not it was downloaded (the
+	// download stream does not delete it).
+	go func() { time.Sleep(backupExportReap); _ = os.Remove(dest) }()
+
+	degraded := manifest.DegradedSqlite
+	if degraded == nil {
+		degraded = []backup.DegradedSqlite{}
+	}
+	return map[string]any{
+		"ticket":         ticket,
+		"url":            "/backup_download/" + ticket,
+		"filename":       downloadName,
+		"expires_at":     expiresAt,
+		"degradedSqlite": degraded,
+	}, nil
+}
+
+// backupDownload streams a built export archive via a single-use ticket
+// (public route; scoped to the backup temp dir).
+func backupDownload(w http.ResponseWriter, req *http.Request, store *backupTicketStore) {
+	id := strings.TrimSuffix(strings.TrimPrefix(req.URL.Path, "/backup_download/"), "/")
+	t, ok := store.consume(id)
+	if !ok || !withinRoot(t.targetPath, t.root) {
+		web.WritePlain(w, http.StatusNotFound, "Download ticket is invalid or expired")
+		return
+	}
+	info, err := os.Stat(t.targetPath)
+	if err != nil || info.IsDir() {
+		web.WritePlain(w, http.StatusNotFound, "Backup archive does not exist")
+		return
+	}
+	f, oerr := os.Open(t.targetPath)
+	if oerr != nil {
+		web.WritePlain(w, http.StatusInternalServerError, "Failed to open backup archive")
+		return
+	}
+	defer f.Close()
+	streamFileToWriter(w, f, info.Size(), t.filename)
+}
+
+// withinRoot reports p is inside root (same volume, path-segment bounded).
+func withinRoot(p, root string) bool {
+	if root == "" {
+		return false
+	}
+	rel, err := filepath.Rel(root, p)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) && !filepath.IsAbs(rel)
 }
 
 // backupUpload streams a multipart `file` field into <data_dir>/.yoyocode-restore-upload/
@@ -234,4 +375,41 @@ func copyWithUploadCap(dst io.Writer, src io.Reader, cap int64) error {
 			return rerr
 		}
 	}
+}
+
+// backupHome is the YoYoCode home root (YOYOCODE_HOME / YOYOCODE_DATA_DIR /
+// ~/.yoyocode), the port's convention for data sections.
+func backupHome() string {
+	if v := strings.TrimSpace(os.Getenv("YOYOCODE_HOME")); v != "" {
+		return v
+	}
+	if v := strings.TrimSpace(os.Getenv("YOYOCODE_DATA_DIR")); v != "" {
+		return v
+	}
+	return filepath.Join(skillHomeDir(), ".yoyocode")
+}
+
+// backupLiveRoots resolves each managed section to where THIS port actually
+// writes it, so a backup never silently packs an empty tree. Mirrors the port's
+// per-section writers (uploads/pets/env, backgrounds+tokens under DataDir,
+// skills under ~/.yoyocode/skills, the rest under the home root).
+func backupLiveRoots(c *web.Context) backup.LiveRoots {
+	home := backupHome()
+	dataDir := appDataDir(c)
+	return backup.NewLiveRoots(func(id string) string {
+		switch id {
+		case "uploads":
+			return yoyocodeUploadsRoot()
+		case "pets":
+			return petsRoot()
+		case "backgrounds":
+			return filepath.Join(dataDir, "backgrounds")
+		case "skills":
+			return filepath.Join(skillHomeDir(), ".yoyocode", "skills")
+		case "tokens.json":
+			return filepath.Join(dataDir, "tokens.json")
+		default: // acp-transcripts, turn-timings, preferences.json
+			return filepath.Join(home, id)
+		}
+	})
 }
