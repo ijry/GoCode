@@ -78,3 +78,49 @@ func TestStatusBarSwitchesSections(t *testing.T) {
 		t.Errorf("workspace not restored; texts = %v", tt.Texts())
 	}
 }
+
+func TestSidebarSegmentedSwitcher(t *testing.T) {
+	s := shellForTest(t)
+	s.selectedFolder = "1"
+	s.cache["convs:1"] = json.RawMessage(`[{"id":10,"title":"Recent Chat","agent_type":"claude_code","status":"idle"},{"id":11,"title":"Pinned Chat","agent_type":"claude_code","status":"idle","pinned":true}]`)
+	s.cache["folders"] = json.RawMessage(`[{"id":1,"name":"proj","path":"/tmp/proj"}]`)
+	s.cache["agents"] = json.RawMessage(`[]`)
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	// All three segments render; the recent tab lists only the recent chat.
+	for _, want := range []string{"Recent", "Pinned", "Folders"} {
+		if !tt.HasText(want) {
+			t.Fatalf("segmented switcher missing %q; texts = %v", want, tt.Texts())
+		}
+	}
+	if !tt.HasText("Recent Chat") {
+		t.Fatalf("recent tab missing the recent chat; texts = %v", tt.Texts())
+	}
+	if tt.HasText("Pinned Chat") {
+		t.Errorf("recent tab must hide the pinned chat (no vertical stacking); texts = %v", tt.Texts())
+	}
+
+	// Switch to Pinned → only the pinned chat.
+	if err := tt.Click("Pinned"); err != nil {
+		t.Fatalf("click Pinned: %v", err)
+	}
+	tt = ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Pinned Chat") || tt.HasText("Recent Chat") {
+		t.Errorf("pinned tab must show only the pinned chat; texts = %v", tt.Texts())
+	}
+
+	// Switch to Folders → the folder list replaces the conversations.
+	if err := tt.Click("Folders"); err != nil {
+		t.Fatalf("click Folders: %v", err)
+	}
+	if s.sidebarTab != "folders" {
+		t.Fatalf("sidebarTab = %q, want folders", s.sidebarTab)
+	}
+	tt = ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("proj") {
+		t.Errorf("folders tab missing the folder; texts = %v", tt.Texts())
+	}
+	if tt.HasText("Recent Chat") || tt.HasText("Pinned Chat") {
+		t.Errorf("folders tab must hide conversations; texts = %v", tt.Texts())
+	}
+}

@@ -59,6 +59,7 @@ type Shell struct {
 	settingsPage   string // general | web-service | quick-messages | …
 	selectedFolder string
 	selectedConv   string
+	sidebarTab     string // workspace sidebar segmented tab: recent | pinned | folders
 	composer       string
 	newAgent       string
 	toolOpen       map[string]bool // conversation detail: tool card id → expanded
@@ -101,6 +102,7 @@ func New(b *Backend) *Shell {
 		section:        "workspace",
 		settingsPage:   "general",
 		appearanceMode: "system",
+		sidebarTab:     "recent",
 		cache:          map[string]json.RawMessage{},
 		inflight:       map[string]bool{},
 		errs:           map[string]string{},

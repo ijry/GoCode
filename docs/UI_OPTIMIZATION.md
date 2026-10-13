@@ -9,6 +9,12 @@
 
 ## 1. 侧栏「空间 / 最近 / 置顶」改成切换形式，不要垂直堆叠
 
+> **状态：✅ 已落地**（`src/app/workspace.go` 的 `sidebarSegmented` + `viewWorkspace`）。
+> 侧栏中间区改为顶部分段切换 `Recent | Pinned | Folders`，同一时刻只渲染选中项的一个滚动列表，
+> 彻底消除三块垂直堆叠的长滚动。文件夹从底部固定区移入「Folders」tab；会话的新建/agent 选择器
+> 在 Recent/Pinned 下显示，Folders 下显示「Open folder…/⟳」。`sidebarTab` 默认 `recent`。
+> 测试：`shell_test.go` 的 `TestSidebarSegmentedSwitcher`（切换只显当前项）。
+
 ### 现状（上游 codeg 的痛点）
 上游侧栏把三个分组**垂直堆叠**在同一列里：
 

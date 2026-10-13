@@ -81,12 +81,23 @@ func TestConversationDetailRenders(t *testing.T) {
 		"Read main.go",              // tool card title
 		"Completed",                 // tool status badge
 		"Send",                      // composer action
-		"demo",                      // folder row
 	} {
 		if !tt.HasText(want) {
 			t.Errorf("frame is missing %q; texts = %v", want, tt.Texts())
 		}
 	}
+	// Folders live behind the Folders segment now (not stacked by default).
+	if err := tt.Click("Folders"); err != nil {
+		t.Fatalf("click Folders: %v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("demo") {
+		t.Errorf("folders segment missing the folder; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Recent"); err != nil {
+		t.Fatalf("click Recent: %v", err)
+	}
+	tt.Frame()
 	dumpFrame(t, tt, "conversation-light")
 	lightBg := tt.Image().RGBAAt(700, 420)
 
