@@ -18,7 +18,8 @@ import (
 	"yoyocode/src-go/web"
 )
 
-// RegisterOpencodePlugins wires opencode_list_plugins.
+// RegisterOpencodePlugins wires opencode_list_plugins plus the install /
+// uninstall operations (opencode_plugins.rs).
 func RegisterOpencodePlugins(reg *Registry) {
 	reg.Register("opencode_list_plugins", func(c *web.Context) (any, error) {
 		// opencode_list_plugins_core passes no project root.
@@ -28,6 +29,8 @@ func RegisterOpencodePlugins(reg *Registry) {
 		}
 		return summary, nil
 	})
+	reg.Register("opencode_install_plugins", opencodeInstallPlugins)
+	reg.Register("opencode_uninstall_plugin", opencodeUninstallPlugin)
 }
 
 func ocXDGConfigHome() string {
@@ -301,7 +304,7 @@ func checkOpencodePlugins(projectRoot string) (map[string]any, string) {
 	}
 
 	seen := map[string]bool{}
-	plugins := []map[string]any{}
+	plugins := []any{}
 	for _, item := range pluginArr {
 		specStr, ok := item.(string)
 		if !ok {
