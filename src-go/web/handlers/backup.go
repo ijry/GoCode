@@ -153,6 +153,9 @@ func RegisterBackup(reg *Registry) {
 	reg.RegisterRaw("/backup_download/", func(w http.ResponseWriter, req *http.Request) {
 		backupDownload(w, req, backupTickets)
 	})
+	reg.Register("backup_prepare_source", backupPrepareSource)
+	reg.Register("backup_release_source", backupReleaseSource)
+	reg.Register("backup_scan_external_conflicts", backupScanExternalConflicts)
 }
 
 // backupTicket is a single-use download ticket for a built export archive.
@@ -412,4 +415,75 @@ func backupLiveRoots(c *web.Context) backup.LiveRoots {
 			return filepath.Join(home, id)
 		}
 	})
+}
+
+// ── restore source prepare / release / scan ────────────────────────────────
+
+// backupResolveUpload resolves an upload_id to its temp file, rejecting anything
+// that is not a bare 32-char hex id (defends the join against traversal).
+func backupResolveUpload(c *web.Context, uploadID string) (string, error) {
+	if !isBackupHexID(uploadID) {
+		return "", web.ErrInvalidInput("Invalid upload id")
+	}
+	p := filepath.Join(appDataDir(c), backupUploadTmpDir, uploadID+".bin")
+	if fi, err := os.Stat(p); err != nil || fi.IsDir() {
+		return "", web.ErrNotFound("Uploaded backup not found")
+	}
+	return p, nil
+}
+
+func isBackupHexID(s string) bool {
+	if len(s) != 32 {
+		return false
+	}
+	for _, ch := range s {
+		if !((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f')) {
+			return false
+		}
+	}
+	return true
+}
+
+// backupPrepareSource decrypts-if-needed once and hands back a reusable handle +
+// preview (web flow: the upload is a transient temp file, so take ownership).
+func backupPrepareSource(c *web.Context) (any, error) {
+	uploadID := GetString(c, "uploadId", "upload_id")
+	src, err := backupResolveUpload(c, uploadID)
+	if err != nil {
+		return nil, err
+	}
+	prepared, perr := backup.PrepareSource(src, appDataDir(c), GetString(c, "passphrase"), true)
+	if perr != nil {
+		return nil, web.ErrTaskExecution("Prepare backup source failed").WithDetail(perr.Error())
+	}
+	return prepared, nil
+}
+
+// backupReleaseSource drops a prepared source (idempotent). Invalid id → 400.
+func backupReleaseSource(c *web.Context) (any, error) {
+	ok, rerr := backup.ReleaseSource(appDataDir(c), GetString(c, "sourceId", "source_id"))
+	if rerr != nil {
+		if errors.Is(rerr, backup.ErrInvalidSourceID) {
+			return nil, web.ErrInvalidInput(rerr.Error())
+		}
+		return nil, web.ErrIO(rerr.Error())
+	}
+	return ok, nil
+}
+
+// backupScanExternalConflicts reports external transcript collisions. External
+// packing is deferred, so archives carry no external entries → always [].
+func backupScanExternalConflicts(c *web.Context) (any, error) {
+	zip, err := backup.ResolvePreparedZip(appDataDir(c), GetString(c, "sourceId", "source_id"))
+	if err != nil {
+		if errors.Is(err, backup.ErrInvalidSourceID) {
+			return nil, web.ErrInvalidInput(err.Error())
+		}
+		return nil, web.ErrNotFound("Prepared backup source not found")
+	}
+	conflicts, serr := backup.ScanExternalConflicts(zip)
+	if serr != nil {
+		return nil, web.ErrTaskExecution("Scan external conflicts failed").WithDetail(serr.Error())
+	}
+	return conflicts, nil
 }
