@@ -18,7 +18,7 @@
 - [x] `/health` **[P0]**
 - [x] `/ws/events` `get`
 
-## acp — 68/75 · P0 17/17
+## acp — 70/75 · P0 17/17
 
 - [x] `/acp_get_agent_status` **[P0]**
 - [x] `/acp_list_agents` **[P0]**
@@ -93,8 +93,8 @@
 - [x] `/codex_bundled_catalog`
 - [x] `/opencode_install_plugins`
 - [x] `/opencode_uninstall_plugin`
-- [ ] `/codex_request_device_code`
-- [ ] `/codex_poll_device_code`
+- [x] `/codex_request_device_code`
+- [x] `/codex_poll_device_code`
 
 ## app_update — 4/4
 
@@ -679,13 +679,13 @@
 
 ## 汇总
 
-- 全部路由：501/523
+- 全部路由：503/523
 - P0（mcode-app 依赖）：128/128
 
 | 模块 | 已实现 | P0 进度 |
 |---|---|---|
 | (inline) | 2/2 | 1/1 |
-| acp | 68/75 | 17/17 |
+| acp | 70/75 | 17/17 |
 | app_update | 4/4 | — |
 | automation | 11/11 | — |
 | background | 6/6 | — |

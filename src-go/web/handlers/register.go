@@ -59,6 +59,7 @@ func RegisterAll(reg *Registry) {
 	RegisterACPSkills(reg)
 	RegisterACPCustomAgents(reg)
 	RegisterOpencodePlugins(reg)
+	RegisterACPCodexOAuth(reg)
 	RegisterChatSettings(reg)
 	RegisterConfigSync(reg)
 	RegisterComputer(reg)
