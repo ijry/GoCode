@@ -156,6 +156,9 @@ func RegisterBackup(reg *Registry) {
 	reg.Register("backup_prepare_source", backupPrepareSource)
 	reg.Register("backup_release_source", backupReleaseSource)
 	reg.Register("backup_scan_external_conflicts", backupScanExternalConflicts)
+	reg.Register("backup_restore_stage", backupRestoreStage)
+	reg.Register("backup_rollback", backupRollback)
+	reg.Register("backup_discard_pending", backupDiscardPending)
 }
 
 // backupTicket is a single-use download ticket for a built export archive.
@@ -396,10 +399,10 @@ func backupHome() string {
 // writes it, so a backup never silently packs an empty tree. Mirrors the port's
 // per-section writers (uploads/pets/env, backgrounds+tokens under DataDir,
 // skills under ~/.yoyocode/skills, the rest under the home root).
-func backupLiveRoots(c *web.Context) backup.LiveRoots {
+// backupSectionRoots resolves each managed section for a given data dir.
+func backupSectionRoots(dataDir string) func(string) string {
 	home := backupHome()
-	dataDir := appDataDir(c)
-	return backup.NewLiveRoots(func(id string) string {
+	return func(id string) string {
 		switch id {
 		case "uploads":
 			return yoyocodeUploadsRoot()
@@ -414,7 +417,17 @@ func backupLiveRoots(c *web.Context) backup.LiveRoots {
 		default: // acp-transcripts, turn-timings, preferences.json
 			return filepath.Join(home, id)
 		}
-	})
+	}
+}
+
+func backupLiveRoots(c *web.Context) backup.LiveRoots {
+	return backup.NewLiveRoots(backupSectionRoots(appDataDir(c)))
+}
+
+// ApplyPendingRestoreAtStartup applies a staged restore before the DB is
+// reopened (the swap's real trigger). Safe to call every boot.
+func ApplyPendingRestoreAtStartup(dataDir string) (backup.RestoreApplied, error) {
+	return backup.ApplyPendingRestore(dataDir, backup.NewLiveRoots(backupSectionRoots(dataDir)))
 }
 
 // ── restore source prepare / release / scan ────────────────────────────────
@@ -486,4 +499,72 @@ func backupScanExternalConflicts(c *web.Context) (any, error) {
 		return nil, web.ErrTaskExecution("Scan external conflicts failed").WithDetail(serr.Error())
 	}
 	return conflicts, nil
+}
+
+// ── restore stage / rollback / discard ───────────────────────────────────────
+
+// backupRestartDelayMs mirrors upstream CODEG_RESTART_DELAY_MS (rebranded),
+// default 2000ms — the relaunch delay after a staged restore.
+func backupRestartDelayMs() int {
+	if v := strings.TrimSpace(os.Getenv("YOYOCODE_RESTART_DELAY_MS")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 2000
+}
+
+// backupRestoreStage stages a prepared archive (extract + verify + pending
+// marker); the actual swap applies on the next launch. External transcript
+// dispatch is skipped (external packing deferred).
+func backupRestoreStage(c *web.Context) (any, error) {
+	dataDir := appDataDir(c)
+	sourceID := GetString(c, "sourceId", "source_id")
+	zip, err := backup.ResolvePreparedZip(dataDir, sourceID)
+	if err != nil {
+		if errors.Is(err, backup.ErrInvalidSourceID) {
+			return nil, web.ErrInvalidInput(err.Error())
+		}
+		return nil, web.ErrNotFound("Prepared backup source not found")
+	}
+	opID := newChatUUID()
+	staged, serr := backup.StageRestore(zip, dataDir, opID, func(path string, processed uint64) {
+		Emit(c, backup.BackupProgressEvent, backup.Progress{OpID: opID, Phase: backup.PhaseExtracting, ProcessedBytes: processed})
+	})
+	if serr != nil {
+		if errors.Is(serr, backup.ErrAlreadyPending) {
+			return nil, web.ErrAlreadyExists("A restore is already pending")
+		}
+		return nil, web.ErrTaskExecution("Stage restore failed").WithDetail(serr.Error())
+	}
+	_, _ = backup.ReleaseSource(dataDir, sourceID)
+	return map[string]any{
+		"needsRestart":   true,
+		"restartDelayMs": backupRestartDelayMs(),
+		"staged":         staged,
+	}, nil
+}
+
+// backupRollback commits a pending marker pointing at a safety snapshot; it
+// applies (reverting the data) on the next launch, like a normal restore.
+func backupRollback(c *web.Context) (any, error) {
+	snapshotID := GetString(c, "snapshotId", "snapshot_id")
+	path, err := backup.RollbackToSnapshot(appDataDir(c), snapshotID)
+	if err != nil {
+		return nil, web.ErrTaskExecution("Rollback failed").WithDetail(err.Error())
+	}
+	return map[string]any{
+		"needsRestart":   true,
+		"restartDelayMs": backupRestartDelayMs(),
+		"snapshotPath":   path,
+	}, nil
+}
+
+// backupDiscardPending drops a staged-but-unapplied restore (marker + staging).
+func backupDiscardPending(c *web.Context) (any, error) {
+	ok, err := backup.DiscardPendingRestore(appDataDir(c))
+	if err != nil {
+		return nil, web.ErrIO(err.Error())
+	}
+	return ok, nil
 }

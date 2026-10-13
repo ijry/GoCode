@@ -41,6 +41,13 @@ func bootBackend() (*app.Backend, error) {
 	if env := os.Getenv("YOYOCODE_DATA_DIR"); env != "" {
 		dataDir = env
 	}
+	// Apply a staged backup restore BEFORE opening the DB: the swap replaces the
+	// DB file + managed sections, so it must land ahead of the connection.
+	if applied, aerr := handlers.ApplyPendingRestoreAtStartup(dataDir); aerr != nil {
+		log.Printf("[yoyocode] apply pending restore: %v", aerr)
+	} else if applied.Applied {
+		log.Printf("[yoyocode] staged restore applied; prior data preserved at %s", applied.SafetySnapshot)
+	}
 	database, err := db.Open(dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("db init: %w", err)

@@ -84,6 +84,8 @@ const (
 	PhaseSnapshotting BackupPhase = "snapshotting"
 	PhaseArchiving    BackupPhase = "archiving"
 	PhaseEncrypting   BackupPhase = "encrypting"
+	PhaseExtracting   BackupPhase = "extracting"
+	PhaseVerifying    BackupPhase = "verifying"
 	PhaseDone         BackupPhase = "done"
 	PhaseCancelled    BackupPhase = "cancelled"
 	PhaseError        BackupPhase = "error"
