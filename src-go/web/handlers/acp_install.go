@@ -8,7 +8,9 @@ package handlers
 // on the taskId channel so the settings UI can show status.
 
 import (
+	"bufio"
 	"context"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -19,6 +21,16 @@ import (
 )
 
 const agentInstallTimeout = 10 * time.Minute
+
+// NpmBinary is the npm launcher the pi install/uninstall routes shell out to.
+// It is a package-level hook so tests (and embedded runtimes) can point it at a
+// fake/alternate binary without touching PATH.
+var NpmBinary = "npm"
+
+// piCodingAgentPackage is the upstream PI_CODING_AGENT_PACKAGE: the third-party
+// `@earendil-works/pi-coding-agent` npm package, installed globally as `pi`.
+// It is a literal dependency (not a YoYoCode brand string), so it is NOT rebranded.
+const piCodingAgentPackage = "@earendil-works/pi-coding-agent"
 
 func RegisterACPInstall(reg *Registry) {
 	reg.Register("acp_prepare_npx_agent", func(c *web.Context) (any, error) {
@@ -81,6 +93,45 @@ func RegisterACPInstall(reg *Registry) {
 			return nil, web.ErrExternalCommand("uv tool install failed").WithDetail(runErr.Error())
 		}
 		emitAgentTask(c, taskID, "pi", "done", "")
+		return nil, nil
+	})
+
+	// acp_install_pi_binary: npm-global install of the pi coding agent (upstream
+	// PI_CODING_AGENT_PACKAGE). Streams npm output as agent-task log events so
+	// the settings panel shows the live install log.
+	reg.Register("acp_install_pi_binary", func(c *web.Context) (any, error) {
+		taskID := strVal(c.Body["taskId"], c.Body["task_id"])
+		if !lookPathOK(NpmBinary) {
+			return nil, web.ErrDependencyMissing("npm (Node.js) is not installed")
+		}
+		emitAgentTask(c, taskID, "pi", "running", "")
+		ctx, cancel := context.WithTimeout(context.Background(), agentInstallTimeout)
+		defer cancel()
+		if err := runNpmGlobal(ctx, c, taskID, "pi", "install", "-g", piCodingAgentPackage); err != nil {
+			emitAgentTask(c, taskID, "pi", "error", err.Error())
+			return nil, web.ErrExternalCommand("npm install -g " + piCodingAgentPackage + " failed").WithDetail(err.Error())
+		}
+		emitAgentTask(c, taskID, "pi", "done", "pi installed successfully")
+		return nil, nil
+	})
+
+	// acp_uninstall_pi_binary: npm-global uninstall of the pi coding agent.
+	// Mirrors upstream's envelope: Started → Log(`$ npm uninstall -g …`) →
+	// Completed/Failed.
+	reg.Register("acp_uninstall_pi_binary", func(c *web.Context) (any, error) {
+		taskID := strVal(c.Body["taskId"], c.Body["task_id"])
+		if !lookPathOK(NpmBinary) {
+			return nil, web.ErrDependencyMissing("npm (Node.js) is not installed")
+		}
+		emitAgentTask(c, taskID, "pi", "running", "")
+		emitAgentTask(c, taskID, "pi", "running", "$ npm uninstall -g "+piCodingAgentPackage)
+		ctx, cancel := context.WithTimeout(context.Background(), agentInstallTimeout)
+		defer cancel()
+		if err := runNpmGlobal(ctx, c, taskID, "pi", "uninstall", "-g", piCodingAgentPackage); err != nil {
+			emitAgentTask(c, taskID, "pi", "error", err.Error())
+			return nil, web.ErrExternalCommand("npm uninstall -g " + piCodingAgentPackage + " failed").WithDetail(err.Error())
+		}
+		emitAgentTask(c, taskID, "pi", "done", "pi uninstalled successfully")
 		return nil, nil
 	})
 
@@ -168,4 +219,45 @@ func emitAgentTask(c *web.Context, taskID, agentType, status, detail string) {
 	Emit(c, "acp-agent-task://"+taskID, map[string]any{
 		"task_id": taskID, "agent_type": agentType, "status": status, "detail": detail,
 	})
+}
+
+// runNpmGlobal runs `npm <args...>` (a global install/uninstall), streaming each
+// merged stdout/stderr line as an agent-task progress event so the settings
+// panel shows the live npm log. Matches upstream
+// install_npm_global_package_streaming's Started → Log* → Completed/Failed
+// envelope (uninstall collects via .output(), rendered as a single Log line
+// plus the result). The command is bounded by ctx's deadline.
+func runNpmGlobal(ctx context.Context, c *web.Context, taskID, agentType string, args ...string) error {
+	cmd := exec.CommandContext(ctx, NpmBinary, args...)
+	// Merge stderr into stdout via a single pipe so both streams surface in the
+	// same ordered log. We assign an *os.File directly (not StdoutPipe), so Go's
+	// (*Cmd).Wait() will NOT close it for us — we must close our copy after Wait
+	// returns, otherwise the reader below never sees EOF and deadlocks.
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		return err
+	}
+	cmd.Stdout = pw
+	cmd.Stderr = pw
+	if err := cmd.Start(); err != nil {
+		pw.Close()
+		return err
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		scanner := bufio.NewScanner(pr)
+		scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+		for scanner.Scan() {
+			line := strings.TrimRight(scanner.Text(), "\r")
+			if line != "" {
+				emitAgentTask(c, taskID, agentType, "running", line)
+			}
+		}
+	}()
+	waitErr := cmd.Wait()
+	// Child has released its copy of the write end; closing ours EOFs the reader.
+	pw.Close()
+	<-done
+	return waitErr
 }
