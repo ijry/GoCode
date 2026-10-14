@@ -132,8 +132,8 @@ func TestBuildTranscript(t *testing.T) {
 	}
 }
 
-func TestProseSpans(t *testing.T) {
-	spans := proseSpans("run `go test` now", themeLight)
+func TestInlineCodeSpan(t *testing.T) {
+	spans := mdInlineSpans("run `go test` now", themeLight)
 	if len(spans) != 3 {
 		t.Fatalf("spans = %d, want 3: %+v", len(spans), spans)
 	}

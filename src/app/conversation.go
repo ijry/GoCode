@@ -164,7 +164,7 @@ func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string) {
 		ui.Row(c.Key(key)).FillWidth().Justify(ui.End).Children(func() {
 			ui.Column(c).MaxWidthPercent(88).Radius(8).Background(t.SurfaceHover).
 				Padding(12, 16, 12, 16).Children(func() {
-				viewProse(c, text, t)
+				viewMarkdown(c, key+"-md", text, t)
 			})
 		})
 	case "system":
@@ -174,7 +174,7 @@ func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string) {
 		})
 	default:
 		ui.Column(c.Key(key)).FillWidth().Children(func() {
-			viewProse(c, text, t)
+			viewMarkdown(c, key+"-md", text, t)
 		})
 	}
 }
@@ -200,38 +200,6 @@ func (s *Shell) viewNoteRow(c *ui.Context, key, note string) {
 		ui.Text(c, firstNonEmpty(note, "The agent reported an error.")).
 			FontSize(13).TextColor(t.Danger).Wrap()
 	})
-}
-
-// viewProse renders message text, tinting `inline code` runs. upstream renders
-// markdown through Streamdown; the native build styles the one inline form that
-// carries real meaning in agent output.
-func viewProse(c *ui.Context, text string, t *ui.Theme) {
-	if strings.TrimSpace(text) == "" {
-		return
-	}
-	ui.RichText(c, proseSpans(text, t)...).FontSize(14).LineHeight(1.5).Wrap()
-}
-
-// proseSpans splits text on backticks: even runs are body text, odd runs are
-// inline code (monospace, tinted) — the upstream `inline code` look.
-func proseSpans(text string, t *ui.Theme) []ui.Span {
-	parts := strings.Split(text, "`")
-	spans := make([]ui.Span, 0, len(parts))
-	for i, p := range parts {
-		if p == "" {
-			continue
-		}
-		if i%2 == 1 {
-			spans = append(spans, ui.Span{
-				Text:       p,
-				Font:       "Consolas, Menlo, monospace",
-				Background: t.SurfacePressed,
-			})
-			continue
-		}
-		spans = append(spans, ui.Span{Text: p})
-	}
-	return spans
 }
 
 // ─── tool-call cards ───────────────────────────────────────────────────────
