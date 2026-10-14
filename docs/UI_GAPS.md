@@ -6,6 +6,18 @@
 > 按对「可用」的影响排序，供后续逐项补齐。上游前端参考：`_upstream/ref/src/components/`
 > （settings 117 文件 / message 98 / layout 77 / chat 62 …）。
 
+## 已修复（2026-10-14 续）
+
+- **后端错误裸 JSON 泄漏**：连不上 agent 时，聊天区直接显示
+  `connect failed: acp_connect: {"code":"dependency_missing",...}`。现在 `apiError`
+  解析后端 `{code,message,detail}`，渲染成红色横幅 + 可操作提示（如「Open Settings → Agents」）。
+- **agent 起不来**：默认 agent `claude_code` 走 `npx` 拉包；本机 **node 无法派生子进程**（npx 挂死 150s+），
+  故连接 60s 超时。修复：① `ResolveSpawn` 的 binary 分支在下载缓存缺失时**回退到 PATH 上已安装的二进制**
+  （`opencode` 已装 → 直接可用，实测 connect 成功、冷启动 ~32s）；② 握手超时 60s→120s（`YOYOCODE_ACP_HANDSHAKE_TIMEOUT_MS`）。
+- **agent 列表恒 available=false**：`acp_list_agents` 现在按「启动器是否可解析」打 `available`。
+- **默认 agent 不智能**：`pickDefaultAgent` 优先选「可用且是直接二进制」的 agent（本机 → OpenCode），
+  无则首个可用，再退首个。普通机器上等价于上游的「首个」。
+
 ## 现状（已具备）
 
 - **聊天**：用户/助手气泡、thinking、工具卡（含 yoyocode-mcp 工作台卡）、composer（Send/Stop）、

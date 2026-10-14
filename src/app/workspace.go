@@ -463,6 +463,34 @@ func (s *Shell) sideRow(c *ui.Context, key string, icon *ui.SVG, title, subtitle
 	}
 }
 
+// pickDefaultAgent chooses the initially-selected agent. It prefers an agent
+// whose launcher is a direct binary (installed by the user, no package runner)
+// and is available — that starts fastest and most reliably — then the first
+// available agent, then the first listed. On a machine with only npx agents
+// this reduces to upstream's "first listed" default.
+func pickDefaultAgent(agents []map[string]any, options []string) string {
+	firstAvailable := ""
+	for _, a := range agents {
+		at := str(a, "agent_type")
+		if at == "" {
+			continue
+		}
+		if avail, _ := a["available"].(bool); !avail {
+			continue
+		}
+		if firstAvailable == "" {
+			firstAvailable = at
+		}
+		if str(a, "distribution_type") == "binary" {
+			return at
+		}
+	}
+	if firstAvailable != "" {
+		return firstAvailable
+	}
+	return options[0]
+}
+
 // viewNewConversation renders the agent picker + Create button beneath the
 // conversation list.
 func (s *Shell) viewNewConversation(c *ui.Context) {
@@ -474,7 +502,7 @@ func (s *Shell) viewNewConversation(c *ui.Context) {
 		}
 	}
 	if s.newAgent == "" && len(options) > 0 {
-		s.newAgent = options[0]
+		s.newAgent = pickDefaultAgent(agents, options)
 	}
 	ui.Row(c).Gap(6).Children(func() {
 		if len(options) > 0 {
@@ -608,9 +636,7 @@ func (s *Shell) viewConversationDetail(c *ui.Context) {
 	// Pending permission / question cards from the live session snapshot.
 	s.viewPendingCards(c, connID, snap)
 
-	if s.actionMsg != "" {
-		ui.Text(c, s.actionMsg).FontSize(12).TextColor(t.TextMuted)
-	}
+	s.viewActionOrError(c)
 
 	// Composer dock: a status strip, then the bordered input with the actions
 	// aligned to the right (upstream-style).
@@ -707,7 +733,7 @@ func (s *Shell) sendPrompt(convID string) {
 		s.setAction("connecting…", svc)
 		craw, err := s.B.raw("acp_connect", map[string]any{"agentType": agent, "folderPath": folderPath, "conversationId": numOrString(convID)})
 		if err != nil {
-			s.setAction("connect failed: "+err.Error(), svc)
+			s.setConnectError(err, svc)
 			return
 		}
 		var ci map[string]any
@@ -728,8 +754,48 @@ func (s *Shell) sendPrompt(convID string) {
 func (s *Shell) setAction(msg string, svc ui.Services) {
 	s.mu.Lock()
 	s.actionMsg = msg
+	if msg != "" { // any fresh status clears a stale error banner
+		s.errorMsg, s.errorHint = "", ""
+	}
 	s.mu.Unlock()
 	svc.Invalidate()
+}
+
+// setConnectError shows a failed connect/prompt as a banner (friendly message +
+// actionable hint) instead of a muted one-liner with a raw JSON body.
+func (s *Shell) setConnectError(err error, svc ui.Services) {
+	s.mu.Lock()
+	s.actionMsg = ""
+	s.errorMsg = err.Error()
+	s.errorHint = ""
+	if ae, ok := err.(*apiError); ok {
+		s.errorHint = ae.hint()
+	}
+	s.mu.Unlock()
+	svc.Invalidate()
+}
+
+// viewActionOrError renders the action line, or — when the last action failed —
+// a red banner carrying the friendly message plus an actionable hint.
+func (s *Shell) viewActionOrError(c *ui.Context) {
+	t := c.Theme()
+	if s.errorMsg != "" {
+		ui.Column(c.Key("error-banner")).FillWidth().Radius(8).
+			Border(1, t.Danger.Alpha(0.4)).Background(t.Danger.Alpha(0.08)).
+			Padding(10, 12, 10, 12).Gap(4).Children(func() {
+			ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
+				ui.Icon(c, iconAlert).Width(14).Height(14).TextColor(t.Danger)
+				ui.Text(c, s.errorMsg).FontSize(13).TextColor(t.Danger).Wrap()
+			})
+			if s.errorHint != "" {
+				ui.Text(c, s.errorHint).FontSize(12).TextColor(t.TextMuted).Wrap()
+			}
+		})
+		return
+	}
+	if s.actionMsg != "" {
+		ui.Text(c, s.actionMsg).FontSize(12).TextColor(t.TextMuted)
+	}
 }
 
 // peek returns a cached raw response without triggering a fetch.

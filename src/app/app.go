@@ -40,14 +40,55 @@ func (b *Backend) raw(cmd string, body map[string]any) (json.RawMessage, error) 
 	defer resp.Body.Close()
 	data, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
-		return nil, &apiError{cmd: cmd, body: string(data)}
+		return nil, newAPIError(cmd, data)
 	}
 	return json.RawMessage(data), nil
 }
 
-type apiError struct{ cmd, body string }
+// apiError is a failed backend command. The backend returns a structured body
+// ({"code","message","detail"?}); we parse it so the UI shows the human message
+// rather than a raw JSON dump.
+type apiError struct {
+	cmd, body       string
+	code, message   string
+	detail          string
+}
 
-func (e *apiError) Error() string { return e.cmd + ": " + e.body }
+func newAPIError(cmd string, body []byte) *apiError {
+	e := &apiError{cmd: cmd, body: string(body)}
+	var p struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+		Detail  string `json:"detail"`
+	}
+	if json.Unmarshal(body, &p) == nil {
+		e.code, e.message, e.detail = p.Code, p.Message, p.Detail
+	}
+	return e
+}
+
+// Error returns the human-readable message (never the raw JSON envelope).
+func (e *apiError) Error() string {
+	if e.message == "" {
+		return e.cmd + ": " + e.body
+	}
+	if e.detail != "" {
+		return e.message + " — " + e.detail
+	}
+	return e.message
+}
+
+// hint is an actionable next step for known error codes ("" when none).
+func (e *apiError) hint() string {
+	switch e.code {
+	case "dependency_missing":
+		return "The agent runtime could not start. Open Settings → Agents to install it, then retry."
+	case "network_error":
+		return "Network error — check your connection, then retry."
+	default:
+		return ""
+	}
+}
 
 // Shell is the root application state: which top-level section and settings
 // sub-page are active, plus an async cache of backend responses keyed by an
@@ -66,6 +107,8 @@ type Shell struct {
 	toolOpen       map[string]bool // conversation detail: tool card id → expanded
 	appearanceMode string          // system | light | dark (from get_appearance_mode)
 	actionMsg      string
+	errorMsg       string // last failed action, shown as a banner ("" = none)
+	errorHint      string // actionable next step for the error
 	renaming       bool
 	renameText     string
 	skillsAgent    string            // Settings → Skills: selected agent wire type

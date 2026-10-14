@@ -2,6 +2,7 @@ package acp
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -156,18 +157,24 @@ func ResolveSpawn(agentType, cwd string, env map[string]string) (SpawnConfig, bo
 		args := []string{"--from", spec.Package, spec.Cmd}
 		args = append(args, spec.Args...)
 		return SpawnConfig{Command: "uvx", Args: args, Env: env, Cwd: cwd}, true
-	default: // binary — resolve the cached download
-		if binaryCacheRoot == "" {
-			return SpawnConfig{}, false
+	default: // binary — prefer the cached download, else a system-installed copy
+		if binaryCacheRoot != "" {
+			if bin := CachedBinaryPath(binaryCacheRoot, agentType, ""); bin != "" {
+				if _, err := os.Stat(bin); err == nil {
+					return SpawnConfig{Command: bin, Args: spec.Args, Env: env, Cwd: cwd}, true
+				}
+			}
 		}
-		bin := CachedBinaryPath(binaryCacheRoot, agentType, "")
-		if bin == "" {
-			return SpawnConfig{}, false
+		// Fall back to a binary the user already installed on PATH (e.g. the
+		// `opencode` CLI). Without this, a machine that has the CLI but not the
+		// app's download cache cannot launch the agent at all — and every
+		// npx/uvx recipe fails where node/uvx cannot spawn a child.
+		if spec.Cmd != "" {
+			if p, err := exec.LookPath(spec.Cmd); err == nil {
+				return SpawnConfig{Command: p, Args: spec.Args, Env: env, Cwd: cwd}, true
+			}
 		}
-		if _, err := os.Stat(bin); err != nil {
-			return SpawnConfig{}, false
-		}
-		return SpawnConfig{Command: bin, Args: spec.Args, Env: env, Cwd: cwd}, true
+		return SpawnConfig{}, false
 	}
 }
 

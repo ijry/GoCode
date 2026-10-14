@@ -12,9 +12,17 @@ import (
 // RegisterACP wires the acp_* command family.
 func RegisterACP(reg *Registry) {
 	reg.web.Register("acp_list_agents", func(c *web.Context) (any, error) {
-		// Faithful AcpAgentInfo rows from the built-in catalog. availability /
-		// installed version are stamped by preflight once the spawn layer lands.
-		return acp.BuiltinAgentInfoList(), nil
+		// Faithful AcpAgentInfo rows from the built-in catalog, with `available`
+		// stamped from whether the agent's launcher resolves on this machine
+		// (npx/uvx runner present, or the binary itself on PATH). Without this
+		// the composer dropdown can't tell which agents will actually start.
+		list := acp.BuiltinAgentInfoList()
+		for _, a := range list {
+			if at, _ := a["agent_type"].(string); at != "" {
+				a["available"] = agentLauncherAvailable(at)
+			}
+		}
+		return list, nil
 	})
 	reg.web.Register("acp_list_connections", func(c *web.Context) (any, error) {
 		st := c.State.(*appstate.AppState)

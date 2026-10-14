@@ -9,6 +9,7 @@ import (
 	"context"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 )
 
@@ -42,8 +43,19 @@ func (m *Manager) SetResolver(fn func(agentType, cwd string, env map[string]stri
 }
 
 // handshakeTimeout bounds initialize + session/new; a hung agent must not wedge
-// the connect call forever.
-const handshakeTimeout = 60 * time.Second
+// the connect call forever. Raised to 120s over upstream's 60s because a cold
+// start of a large binary agent (opencode measured ~32s here) sits too close to
+// the old ceiling. Override with YOYOCODE_ACP_HANDSHAKE_TIMEOUT_MS.
+var handshakeTimeout = envDurationMs("YOYOCODE_ACP_HANDSHAKE_TIMEOUT_MS", 120*time.Second)
+
+func envDurationMs(name string, def time.Duration) time.Duration {
+	if raw := os.Getenv(name); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+			return time.Duration(n) * time.Millisecond
+		}
+	}
+	return def
+}
 
 // ConnectOptions is what acp_connect sends beyond the agent type and working
 // directory, mirroring upstream AcpConnectParams.
