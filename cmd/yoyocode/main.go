@@ -65,6 +65,9 @@ func bootBackend() (*app.Backend, error) {
 	}
 	addr := ln.Addr().(*net.TCPAddr)
 	st.Server.MarkRunning(addr.IP.String(), uint16(addr.Port), token)
+	// Let the ACP engine offer the yoyocode-mcp companion to agents it spawns,
+	// with a working loopback API + bearer token baked into its environment.
+	st.ACP.SetCompanionBackend(fmt.Sprintf("http://%s:%d", addr.IP, addr.Port), token)
 	go func() {
 		srv := &http.Server{Handler: router}
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {

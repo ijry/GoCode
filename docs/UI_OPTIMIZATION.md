@@ -109,7 +109,15 @@
 
 ## 3. 对应一个 `yoyocode-mcp`（上游为 `codeg-mcp`）
 
-> **状态：🟢 companion + 卡片渲染已落地**（`src-go/mcp/companion.go` + `cmd/yoyocode-mcp` + `src/app/codegmcp.go`）。
+> **状态：✅ 已落地**（`src-go/mcp/companion.go` + `cmd/yoyocode-mcp` + `src/app/codegmcp.go` + `src-go/acp/companion.go`）。
+> 应用侧接线已完成：`acp.Manager` 持有 loopback 后端地址 + bearer token（`SetCompanionBackend`，
+> 启动 `MarkRunning` 后注入），`ConnectLive` 在 `session/new` 的 `mcpServers` 里追加
+> `yoyocode-mcp` 的 stdio MCP server 条目（env 注入 `YOYOCODE_API`/`TOKEN`/`AGENT_TYPE`/`SESSION_ID`），
+> agent runtime 据此每会话拉起 companion。二进制解析顺序 `YOYOCODE_MCP_PATH` → 可执行文件同级 → PATH
+> （端口 `locate_codeg_mcp_binary`），缺失则**跳过注入**（不注册幽灵路径，严格 agent 不会因此拒掉整会话）。
+> 测试：`src-go/acp/companion_test.go`（5）+ `src-go/acp` 全量 + `acp_live` 集成回归绿。
+> 打包（见落地点回顾 #3）：本端口是 Go 单二进制桌面应用，无 Tauri sidecar 概念；
+> `yoyocode-mcp` 与 `yoyocode` 同目录（或置于 PATH）即被解析，发布流程 `go build ./cmd/yoyocode-mcp` 一并产出即可。
 > 一个真实可跑的 MCP stdio server（JSON-RPC 2.0）：`initialize` / `tools/list` / `tools/call`；
 > 暴露同一套 6 个 workbench 工具，名字归一化 `mcp__yoyocode-mcp__X / yoyocode-mcp/X → X`。
 > `create_automation`/`create_work_task` **代理到真后端**（loopback `/api`，env: `YOYOCODE_API`/`TOKEN`/
@@ -121,8 +129,15 @@
 > 折叠行显示 `<tool> · <detail>`，展开显示结果/verdict/prompt/reason + running/ok/err。
 > 测试：`src-go/mcp/companion_test.go`（7）+ `src/app/codegmcp_test.go`（5）全绿。
 >
-> **未完成（后续，需应用侧接线）**：① 应用为 agent 启动 companion 并把 `YOYOCODE_*` 上下文注入其 MCP 配置
-> （sidecar 打包进安装包）；这才是让真实 agent 真正连上 `yoyocode-mcp` 的一步。
+> **应用侧接线（已完成）**：`src-go/acp/companion.go`（`ResolveCompanionBinary` /
+> `CompanionMCPServer`）+ `acp.Manager.SetCompanionBackend` / `companionSpec` +
+> `connection.go` 的 `ConnectLive` 把 companion 注入 `session/new` 的 `mcpServers`。
+> 启动期（`cmd/yoyocode/main.go` 与 `cmd/yoyocode-server/main.go` 的 `MarkRunning` 之后）调用
+> `SetCompanionBackend(url, token)` 把 loopback 后端地址 + bearer token 交给引擎；
+> `ConnectLive` 据此构建 stdio MCP server 条目（env 注入 `YOYOCODE_API`/`TOKEN`/`AGENT_TYPE`/
+> `SESSION_ID`），agent runtime 每会话拉起 companion。二进制缺失时优雅跳过（不注册幽灵路径）。
+> 注：`YOYOCODE_FOLDER_ID` 当前留空（companion 的 `create_work_task` 会省略 folder 作用域）；
+> 后续可从 `conversationID` 经 db 解析 folder id 再注入，属增强非必需。
 
 ### 上游是什么
 `codeg-mcp` 是随 codeg 分发的**独立 companion MCP server 二进制**（不是前端模块）：
@@ -174,4 +189,4 @@
 | --- | --- | --- | --- |
 | 1 | `src/app/workspace.go` | 侧栏三块垂直堆叠 | 顶部分段切换，单块可见 |
 | 2 | `src/app/app.go`（`viewStatusBar`） | 仅 connected + 版本号 | 补更新/待办/命令/计算机/mcp 健康/告警 |
-| 3 | 新增 `cmd/yoyocode-mcp` + 原生卡片 + 打包 | 无 | 等价 codeg-mcp 的 Go companion |
+| 3 | 新增 `cmd/yoyocode-mcp` + 原生卡片 + 应用侧注入 | 无 | 等价 codeg-mcp 的 Go companion |

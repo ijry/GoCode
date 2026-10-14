@@ -96,7 +96,15 @@ func (m *Manager) ConnectLive(agentType, folderPath string, conversationID int64
 		_ = proc.Close()
 		return nil, &SpawnError{AgentType: agentType, Err: err, Stderr: proc.StderrTail()}
 	}
-	if _, err := sess.NewSession(ctx, cwd, nil); err != nil {
+	// Offer the yoyocode-mcp workbench companion to the agent. When the
+	// backend is configured and the companion binary is present, it spawns
+	// with the session context injected as env vars; otherwise we connect
+	// without it (the agent stays fully functional minus the workbench tools).
+	servers := []any{}
+	if spec := m.companionSpec(agentType, id); spec != nil {
+		servers = append(servers, spec)
+	}
+	if _, err := sess.NewSession(ctx, cwd, servers); err != nil {
 		cancel()
 		_ = proc.Close()
 		return nil, &SpawnError{AgentType: agentType, Err: err, Stderr: proc.StderrTail()}

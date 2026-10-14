@@ -89,6 +89,13 @@ func main() {
 	localAddr := listener.Addr().(*net.TCPAddr)
 	actualPort := uint16(localAddr.Port)
 	st.Server.MarkRunning(localAddr.IP.String(), actualPort, token)
+	// The companion connects over loopback; when bound to an unspecified
+	// address (0.0.0.0 / ::) point it at 127.0.0.1 so it resolves.
+	companionHost := localAddr.IP.String()
+	if localAddr.IP.IsUnspecified() {
+		companionHost = "127.0.0.1"
+	}
+	st.ACP.SetCompanionBackend(fmt.Sprintf("http://%s:%d", companionHost, actualPort), token)
 	fmt.Fprintf(os.Stderr, "[SERVER] yoyocode-server v0.1.0\n")
 	fmt.Fprintf(os.Stderr, "[SERVER] Data directory: %s\n", dataDir)
 	fmt.Fprintf(os.Stderr, "[SERVER] Token: %s\n", token)

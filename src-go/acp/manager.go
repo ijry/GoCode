@@ -32,6 +32,14 @@ type Manager struct {
 	bc     EventSink
 	seq    uint64
 
+	// companionBackend is the loopback address + bearer token of the running
+	// YoYoCode backend, injected so ConnectLive can offer the yoyocode-mcp
+	// companion to the agent with a working YOYOCODE_API / YOYOCODE_TOKEN. Set
+	// once at startup via SetCompanionBackend; empty means "not configured",
+	// and ConnectLive skips companion injection.
+	companionAPI   string
+	companionToken string
+
 	// Live-session machinery (wired by connection.go). sessions is the shared
 	// registry the WS attach protocol reads; live holds the running agent
 	// process + driver per connection. spawner/resolver are injectable so tests
@@ -75,6 +83,34 @@ func NewManager(database *db.Database, bc EventSink) *Manager {
 		spawner:  SpawnAgent,
 		resolver: ResolveSpawn,
 	}
+}
+
+// SetCompanionBackend records the loopback backend address + bearer token the
+// yoyocode-mcp companion should talk to. Called once at startup after the web
+// server is listening (app_state creates the Manager before the port is known).
+func (m *Manager) SetCompanionBackend(apiBase, token string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.companionAPI = apiBase
+	m.companionToken = token
+}
+
+// companionSpec builds the yoyocode-mcp MCP server entry for a real session, or
+// nil when injection should be skipped (backend not configured, or the
+// companion binary is missing on disk). agentType/sessionID seed the companion's
+// environment so the workbench tools report the right context back to YoYoCode.
+func (m *Manager) companionSpec(agentType, sessionID string) map[string]any {
+	m.mu.RLock()
+	api, token := m.companionAPI, m.companionToken
+	m.mu.RUnlock()
+	if api == "" {
+		return nil
+	}
+	spec, ok := CompanionMCPServer(api, token, "", agentType, sessionID)
+	if !ok {
+		return nil
+	}
+	return spec
 }
 
 func (m *Manager) RegisterAgent(a *AgentInfo) {
