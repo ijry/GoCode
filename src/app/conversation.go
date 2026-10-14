@@ -164,7 +164,7 @@ func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string) {
 		ui.Row(c.Key(key)).FillWidth().Justify(ui.End).Children(func() {
 			ui.Column(c).MaxWidthPercent(88).Radius(8).Background(t.SurfaceHover).
 				Padding(12, 16, 12, 16).Children(func() {
-				viewMarkdown(c, key+"-md", text, t)
+				s.viewMarkdown(c, key+"-md", text, t)
 			})
 		})
 	case "system":
@@ -174,7 +174,7 @@ func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string) {
 		})
 	default:
 		ui.Column(c.Key(key)).FillWidth().Children(func() {
-			viewMarkdown(c, key+"-md", text, t)
+			s.viewMarkdown(c, key+"-md", text, t)
 		})
 	}
 }

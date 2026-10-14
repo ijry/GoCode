@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -128,20 +129,20 @@ func parseMarkdown(text string) []mdBlock {
 }
 
 // viewMarkdown renders markdown text as a column of styled blocks.
-func viewMarkdown(c *ui.Context, key, text string, t *ui.Theme) {
+func (s *Shell) viewMarkdown(c *ui.Context, key, text string, t *ui.Theme) {
 	blocks := parseMarkdown(text)
 	if len(blocks) == 0 {
 		return
 	}
 	ui.Column(c.Key(key)).FillWidth().Gap(8).Children(func() {
 		for i, b := range blocks {
-			viewMDBlock(c, key+"-"+itoa("b", i), b, t)
+			s.viewMDBlock(c, key+"-"+itoa("b", i), b, t)
 		}
 	})
 }
 
 // viewMDBlock renders one block-level element.
-func viewMDBlock(c *ui.Context, key string, b mdBlock, t *ui.Theme) {
+func (s *Shell) viewMDBlock(c *ui.Context, key string, b mdBlock, t *ui.Theme) {
 	switch b.kind {
 	case "heading":
 		size := float32(20 - (b.level-1)*2)
@@ -150,7 +151,7 @@ func viewMDBlock(c *ui.Context, key string, b mdBlock, t *ui.Theme) {
 		}
 		ui.Text(c.Key(key), b.text).FontSize(size).Bold().TextColor(t.Text).Wrap()
 	case "code":
-		langCode(c, key, b, t)
+		s.langCode(c, key, b, t)
 	case "list":
 		ui.Column(c.Key(key)).FillWidth().Gap(4).Children(func() {
 			for i, item := range b.items {
@@ -181,26 +182,59 @@ func viewMDBlock(c *ui.Context, key string, b mdBlock, t *ui.Theme) {
 	}
 }
 
-// langCode renders a fenced code block: a bordered surface with an optional
-// language label and the code lines in monospace. Lines are rendered one widget
-// each so newlines survive.
-func langCode(c *ui.Context, key string, b mdBlock, t *ui.Theme) {
+// langCode renders a fenced code block: a bordered surface with a language
+// label, a copy button, and the code lines highlighted in monospace. Lines are
+// rendered one widget each so newlines survive.
+func (s *Shell) langCode(c *ui.Context, key string, b mdBlock, t *ui.Theme) {
 	ui.Column(c.Key(key)).FillWidth().Radius(6).Border(1, t.Border.Alpha(0.6)).
 		Background(t.Surface).Children(func() {
-		if b.lang != "" {
-			ui.Row(c).FillWidth().Padding(6, 10, 0, 10).Children(func() {
-				ui.Text(c, b.lang).FontSize(11).TextColor(t.TextMuted)
-			})
-		}
+		ui.Row(c).FillWidth().Padding(4, 8, 2, 10).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, b.lang).FontSize(11).TextColor(t.TextMuted)
+			ui.Spacer(c)
+			label := "Copy"
+			if s.codeCopied(key) {
+				label = "Copied"
+			}
+			if ui.Button(c.Key(key+"-copy"), label).Clicked() {
+				c.WriteClipboard(b.text)
+				s.markCodeCopied(key)
+			}
+		})
 		ui.Column(c).FillWidth().Padding(10, 10, 10, 10).Children(func() {
-			for _, line := range strings.Split(b.text, "\n") {
-				if line == "" {
-					line = " " // keep the blank line's height
-				}
-				ui.Text(c, line).Font(monoFont).FontSize(12.5).TextColor(t.Text).Wrap()
+			for i, line := range strings.Split(b.text, "\n") {
+				ui.RichText(c.Key(key+"-"+itoa("l", i)), highlightLine(line, b.lang, t)...).
+					FontSize(12.5).Wrap()
 			}
 		})
 	})
+}
+
+// codeCopied reports whether the copy button for a code block should read
+// "Copied" (set for a moment after a click).
+func (s *Shell) codeCopied(key string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.copiedCode[key]
+}
+
+// markCodeCopied flips a block's copy label to "Copied" and clears it shortly
+// after, repainting both times.
+func (s *Shell) markCodeCopied(key string) {
+	svc := s.svc
+	s.mu.Lock()
+	if s.copiedCode == nil {
+		s.copiedCode = map[string]bool{}
+	}
+	s.copiedCode[key] = true
+	s.mu.Unlock()
+	svc.Invalidate()
+	go func() {
+		time.Sleep(1500 * time.Millisecond)
+		s.mu.Lock()
+		delete(s.copiedCode, key)
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
 }
 
 // mdInlineSpans parses inline markdown (code, bold, italic, links) into styled

@@ -105,6 +105,7 @@ type Shell struct {
 	composer       string
 	newAgent       string
 	toolOpen       map[string]bool // conversation detail: tool card id → expanded
+	copiedCode     map[string]bool // code block key → "Copied" label showing
 	appearanceMode string          // system | light | dark (from get_appearance_mode)
 	actionMsg      string
 	errorMsg       string // last failed action, shown as a banner ("" = none)
