@@ -60,6 +60,7 @@ func RegisterAll(reg *Registry) {
 	RegisterACPCustomAgents(reg)
 	RegisterOpencodePlugins(reg)
 	RegisterACPCodexOAuth(reg)
+	registerACPAntigravity(reg)
 	RegisterChatSettings(reg)
 	RegisterConfigSync(reg)
 	RegisterComputer(reg)

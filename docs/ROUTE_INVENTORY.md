@@ -18,7 +18,7 @@
 - [x] `/health` **[P0]**
 - [x] `/ws/events` `get`
 
-## acp — 70/75 · P0 17/17
+## acp — 71/75 · P0 17/17
 
 - [x] `/acp_get_agent_status` **[P0]**
 - [x] `/acp_list_agents` **[P0]**
@@ -60,7 +60,7 @@
 - [x] `/acp_load_deepseek_model_catalog`
 - [x] `/acp_update_deepseek_model_catalog`
 - [x] `/acp_validate_pi_command`
-- [ ] `/acp_sync_antigravity_settings`
+- [x] `/acp_sync_antigravity_settings`
 - [ ] `/acp_antigravity_login_start`
 - [ ] `/acp_antigravity_login_finish`
 - [ ] `/acp_antigravity_login_cancel`
@@ -679,13 +679,13 @@
 
 ## 汇总
 
-- 全部路由：518/523
+- 全部路由：519/523
 - P0（mcode-app 依赖）：128/128
 
 | 模块 | 已实现 | P0 进度 |
 |---|---|---|
 | (inline) | 2/2 | 1/1 |
-| acp | 70/75 | 17/17 |
+| acp | 71/75 | 17/17 |
 | app_update | 4/4 | — |
 | automation | 11/11 | — |
 | background | 6/6 | — |
