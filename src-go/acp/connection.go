@@ -61,6 +61,12 @@ type ConnectOptions struct {
 // returns the connection. On any failure it tears the child down and returns a
 // typed error (dependency_missing when the agent can't be launched at all).
 func (m *Manager) ConnectLive(agentType, folderPath string, conversationID int64, opts ConnectOptions) (*Connection, error) {
+	// Hold the connection gate shared for the whole connect: LockOutNewConnections
+	// (Antigravity sign-out) takes it exclusively so no session is spawned into
+	// the credential-erasing window.
+	m.connGate.RLock()
+	defer m.connGate.RUnlock()
+
 	m.mu.Lock()
 	resolver := m.resolver
 	spawner := m.spawner

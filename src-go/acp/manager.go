@@ -53,6 +53,12 @@ type Manager struct {
 	// agent type is bounded to one in-flight probe so rapid settings-UI clicks
 	// fan out to a single real CLI process instead of one per click.
 	probeLocks sync.Map
+
+	// connGate is the global connection gate (upstream external_restore_lock):
+	// ConnectLive holds it shared for the whole connect, and LockOutNewConnections
+	// takes it exclusively across a credential-erasing operation (Antigravity
+	// sign-out) so no session can be spawned into that window.
+	connGate sync.RWMutex
 }
 
 // Connection is one live agent session.
@@ -83,6 +89,42 @@ func NewManager(database *db.Database, bc EventSink) *Manager {
 		spawner:  SpawnAgent,
 		resolver: ResolveSpawn,
 	}
+}
+
+// LockOutNewConnections takes the global connection gate exclusively and returns
+// the unlock. Held across a credential-erasing operation so no session can be
+// spawned into the window and inherit the credential being erased. Mirrors
+// upstream ConnectionManager::lock_out_new_connections.
+func (m *Manager) LockOutNewConnections() func() {
+	m.connGate.Lock()
+	return m.connGate.Unlock
+}
+
+// DisconnectByAgentType tears down every live connection for agentType and
+// returns how many it ended. Mirrors upstream
+// ConnectionManager::disconnect_by_agent_type.
+func (m *Manager) DisconnectByAgentType(agentType string) int {
+	m.mu.RLock()
+	ids := make([]string, 0, 4)
+	for id, c := range m.conn {
+		if c.AgentType == agentType {
+			ids = append(ids, id)
+		}
+	}
+	m.mu.RUnlock()
+	for _, id := range ids {
+		m.DisconnectLive(id)
+	}
+	// Drop the (now disconnected) rows so the sweep is idempotent — upstream
+	// removes them from its connections map too.
+	m.mu.Lock()
+	for _, id := range ids {
+		if c, ok := m.conn[id]; ok && c.AgentType == agentType {
+			delete(m.conn, id)
+		}
+	}
+	m.mu.Unlock()
+	return len(ids)
 }
 
 // SetCompanionBackend records the loopback backend address + bearer token the

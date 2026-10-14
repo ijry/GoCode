@@ -16,11 +16,24 @@ package acp
 // needs the real Antigravity binary) is NOT ported; only this settings half is.
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+)
+
+// antigravityLogoutTimeout bounds the spawn+handshake+logout round-trip.
+const antigravityLogoutTimeout = 30 * time.Second
+
+// Injectable seams so the sign-out protocol is testable without the real
+// Antigravity binary (tests inject an in-memory agent).
+var (
+	antigravityResolveSpawn = ResolveSpawn
+	antigravitySpawnAgent   = SpawnAgent
 )
 
 // AntigravityAuthMethods are the four auth.type values Antigravity's ACP server
@@ -147,6 +160,62 @@ func AntigravityEffectiveAuthType(runtimeEnv map[string]string) AntigravityAuthT
 		}
 	}
 	return AntigravityAuthTypeState{Kind: "absent"}
+}
+
+// AntigravitySignOut spawns the Antigravity agent and asks it to log out: ACP
+// `initialize`, check the agent advertises `auth.logout`, then send `logout`.
+// Mirrors upstream acp::antigravity_login::sign_out (minus the login-slot
+// bookkeeping, which this build does not have).
+//
+// Returns *AgentUnavailableError when the Antigravity binary cannot be resolved
+// (the caller maps that to dependency_missing).
+func AntigravitySignOut(runtimeEnv map[string]string) error {
+	cfg, ok := antigravityResolveSpawn("antigravity", os.TempDir(), runtimeEnv)
+	if !ok {
+		return &AgentUnavailableError{AgentType: "antigravity"}
+	}
+	proc, err := antigravitySpawnAgent(cfg)
+	if err != nil {
+		return err
+	}
+	defer proc.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), antigravityLogoutTimeout)
+	defer cancel()
+	res, err := proc.Peer.Call(ctx, "initialize", map[string]any{
+		"protocolVersion":    ACPProtocolVersion,
+		"clientCapabilities": map[string]any{},
+	})
+	if err != nil {
+		return err
+	}
+	if !antigravityAdvertisesLogout(res) {
+		return errors.New("this version of Google Antigravity cannot sign out. Update it in " +
+			"Agent Settings, or delete its stored credential yourself.")
+	}
+	if _, err := proc.Peer.Call(ctx, "logout", map[string]any{}); err != nil {
+		return fmt.Errorf("Antigravity refused to sign out: %v", err)
+	}
+	return nil
+}
+
+// antigravityAdvertisesLogout reports whether the agent's `initialize` answer
+// offers the ACP `logout` method. Peer.Call returns the response's `result`
+// value (not the full JSON-RPC envelope), so this reads
+// agentCapabilities.auth.logout at the top level.
+func antigravityAdvertisesLogout(result json.RawMessage) bool {
+	var h struct {
+		AgentCapabilities struct {
+			Auth struct {
+				Logout json.RawMessage `json:"logout"`
+			} `json:"auth"`
+		} `json:"agentCapabilities"`
+	}
+	if json.Unmarshal(result, &h) != nil {
+		return false
+	}
+	v := strings.TrimSpace(string(h.AgentCapabilities.Auth.Logout))
+	return v != "" && v != "null"
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
