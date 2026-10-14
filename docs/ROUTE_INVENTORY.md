@@ -126,7 +126,7 @@
 - [x] `/background_market_asset`
 - [x] `/background_market_download`
 
-## backup — 11/12
+## backup — 12/12
 
 - [x] `/backup_create_ticket`
 - [x] `/backup_upload`
@@ -134,7 +134,7 @@
 - [x] `/backup_release_source`
 - [x] `/backup_scan_external_conflicts`
 - [x] `/backup_restore_stage`
-- [ ] `/backup_cancel`
+- [x] `/backup_cancel`
 - [x] `/backup_list_safety_snapshots`
 - [x] `/backup_rollback`
 - [x] `/backup_active_agents`
@@ -679,7 +679,7 @@
 
 ## 汇总
 
-- 全部路由：517/523
+- 全部路由：518/523
 - P0（mcode-app 依赖）：128/128
 
 | 模块 | 已实现 | P0 进度 |
@@ -689,7 +689,7 @@
 | app_update | 4/4 | — |
 | automation | 11/11 | — |
 | background | 6/6 | — |
-| backup | 11/12 | — |
+| backup | 12/12 | — |
 | browser_bridge | 3/3 | — |
 | browser_tools | 2/2 | — |
 | canvas | 12/12 | — |

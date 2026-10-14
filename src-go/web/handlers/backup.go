@@ -101,6 +101,20 @@ func RegisterBackup(reg *Registry) {
 		return []string{}, nil
 	})
 
+	// Cancel an in-flight workspace transfer by op id (upstream
+	// WorkspaceTransferManager::cancel). This build's export/restore run
+	// synchronously and register no cancellable transfer, so this honestly
+	// returns false (nothing to cancel) — the registry is wired so async
+	// transfers added later can be cancelled here.
+	reg.Register("backup_cancel", func(c *web.Context) (any, error) {
+		opID := GetString(c, "opId", "op_id")
+		st, ok := appState(c)
+		if !ok || st == nil || st.Transfers == nil {
+			return false, nil
+		}
+		return st.Transfers.Cancel(opID), nil
+	})
+
 	reg.Register("backup_list_safety_snapshots", func(c *web.Context) (any, error) {
 		root := filepath.Join(appDataDir(c), backupSafetyDir)
 		entries, err := os.ReadDir(root)

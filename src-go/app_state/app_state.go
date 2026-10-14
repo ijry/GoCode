@@ -8,6 +8,7 @@ import (
 	"yoyocode/src-go/db"
 	"yoyocode/src-go/terminal"
 	"yoyocode/src-go/web"
+	"yoyocode/src-go/workspace"
 )
 
 // ServerState tracks the web server lifecycle (port, token, running flag).
@@ -47,6 +48,8 @@ type AppState struct {
 	bc       *web.Broadcaster
 	DataDir  string
 	Terminal *terminal.Manager
+	// Transfers is the in-flight workspace-transfer registry (cancellation).
+	Transfers *workspace.TransferManager
 }
 
 // Broadcaster exposes the shared web event broadcaster (used by web.Router).
@@ -81,5 +84,6 @@ func Init(database *db.Database, dataDir string) *AppState {
 	// events reach WS subscribers.
 	st.ACP.SetSessionRegistry(st.Session)
 	st.Terminal = terminal.NewManager(st.bc)
+	st.Transfers = workspace.NewTransferManager()
 	return st
 }
