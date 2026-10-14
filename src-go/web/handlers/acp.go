@@ -160,7 +160,19 @@ func RegisterACP(reg *Registry) {
 		return map[string]any{"ok": true}, nil
 	})
 	reg.web.Register("acp_set_mode", func(c *web.Context) (any, error) {
-		return map[string]any{"ok": true}, nil
+		st := c.State.(*appstate.AppState)
+		connID := strVal(c.Body["connectionId"], c.Body["connection_id"])
+		modeID := strVal(c.Body["modeId"], c.Body["mode_id"])
+		if connID == "" {
+			return nil, web.ErrInvalidInput("connectionId required")
+		}
+		if modeID == "" {
+			return nil, web.ErrInvalidInput("modeId required")
+		}
+		if err := st.ACP.SetMode(connID, modeID); err != nil {
+			return nil, acpError(err)
+		}
+		return nil, nil
 	})
 	reg.web.Register("acp_respond_permission", func(c *web.Context) (any, error) {
 		st := c.State.(*appstate.AppState)

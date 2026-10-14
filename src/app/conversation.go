@@ -18,6 +18,7 @@ package app
 //     draft input, and a footer row with the actions on the right.
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -429,7 +430,9 @@ func (s *Shell) viewHistoricalTurn(c *ui.Context, key string, m map[string]any) 
 // viewComposerDock renders the composer: upstream's rounded-xl chrome behind a
 // hairline border, the draft input, and a footer row with the actions on the
 // right. When the connection is degraded a status strip is drawn above the
-// chrome (composer-dock-strip).
+// chrome (composer-dock-strip). When the live session advertises modes or a
+// "model" config option, a thin selector row sits between the input and the
+// footer so the user can switch without opening a popover.
 func (s *Shell) viewComposerDock(c *ui.Context, connID, status, statusMsg string) {
 	t := c.Theme()
 	if strip := composerStrip(status, statusMsg); strip != "" {
@@ -445,6 +448,9 @@ func (s *Shell) viewComposerDock(c *ui.Context, connID, status, statusMsg string
 			ui.TextInput(c.Key("composer-input"), &s.composer).
 				FillWidth().Placeholder("Message the agent…")
 		})
+		if connID != "" {
+			s.viewComposerSelectors(c, connID)
+		}
 		ui.Row(c).FillWidth().Padding(0, 8, 8, 8).Gap(8).AlignItems(ui.Center).Children(func() {
 			if hint := composerHint(status); hint != "" {
 				ui.Text(c, hint).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
@@ -491,4 +497,145 @@ func composerStrip(status, msg string) string {
 	default:
 		return ""
 	}
+}
+
+// viewComposerSelectors renders the mode and model pickers (when the live
+// snapshot advertises them) as thin rows between the input and the footer.
+// Both rows share the same pill component and the same dispatch path: a
+// successful set applies an optimistic patch to the cached snapshot so the
+// active pill moves immediately, and the next snapshot event from the agent
+// overwrites it with the authoritative state.
+func (s *Shell) viewComposerSelectors(c *ui.Context, connID string) {
+	snap := asObj(s.cache["snapshot:"+connID])
+	if snap == nil {
+		return
+	}
+	if modes := snapshotModes(snap); modes != nil && len(modes.AvailableModes) > 1 {
+		opts := make([]selectorOption, 0, len(modes.AvailableModes))
+		for _, m := range modes.AvailableModes {
+			id := str(m, "id")
+			if id == "" {
+				continue
+			}
+			opts = append(opts, selectorOption{value: id, label: firstNonEmpty(str(m, "name"), id)})
+		}
+		s.viewSelectorRow(c, "composer-mode", "Mode", modes.CurrentModeID, opts, func(modeID string) {
+			s.dispatchConfig(connID, "acp_set_mode", map[string]any{
+				"connectionId": connID,
+				"modeId":       modeID,
+			}, func(snap map[string]any) {
+				if m, ok := snap["modes"].(map[string]any); ok {
+					m["currentModeId"] = modeID
+				}
+			})
+		})
+	}
+	if model := snapshotModelOption(snap); model != nil && len(model.Options) > 1 {
+		opts := make([]selectorOption, 0, len(model.Options))
+		for _, o := range model.Options {
+			val := str(o, "value")
+			if val == "" {
+				continue
+			}
+			opts = append(opts, selectorOption{value: val, label: firstNonEmpty(str(o, "name"), val)})
+		}
+		s.viewSelectorRow(c, "composer-model", "Model", model.CurrentValue, opts, func(valueID string) {
+			s.dispatchConfig(connID, "acp_set_config_option", map[string]any{
+				"connectionId": connID,
+				"configId":     "model",
+				"valueId":      valueID,
+			}, func(snap map[string]any) {
+				for _, raw := range asListVal(snap["config_options"]) {
+					if str(raw, "id") != "model" {
+						continue
+					}
+					if kind, ok := raw["kind"].(map[string]any); ok {
+						kind["currentValue"] = valueID
+					}
+				}
+			})
+		})
+	}
+}
+
+// snapshotSelectorInfo describes a "model" config option (and any future
+// select option we choose to surface) as a flat list the row renderer can
+// consume without re-walking the snapshot's nested kind union.
+type snapshotSelectorInfo struct {
+	CurrentValue string
+	Options      []map[string]any
+}
+
+// snapshotModelOption is the conventional "model" config option from the
+// snapshot, when the agent advertised one as a select kind. Returns nil if
+// the snapshot has no such option or it's a non-select kind.
+func snapshotModelOption(snap map[string]any) *snapshotSelectorInfo {
+	for _, raw := range asListVal(snap["config_options"]) {
+		if str(raw, "id") != "model" {
+			continue
+		}
+		kind, _ := raw["kind"].(map[string]any)
+		if str(kind, "type") != "select" {
+			return nil
+		}
+		opts := asListVal(kind["options"])
+		if len(opts) == 0 {
+			return nil
+		}
+		return &snapshotSelectorInfo{
+			CurrentValue: str(kind, "currentValue"),
+			Options:      opts,
+		}
+	}
+	return nil
+}
+
+// snapshotModes is the snapshot's Modes block as a flat struct the row
+// renderer can consume, or nil when the agent didn't advertise any.
+type snapshotModesInfo struct {
+	CurrentModeID  string
+	AvailableModes []map[string]any
+}
+
+func snapshotModes(snap map[string]any) *snapshotModesInfo {
+	raw, _ := snap["modes"].(map[string]any)
+	if raw == nil {
+		return nil
+	}
+	current, _ := raw["currentModeId"].(string)
+	avail := asListVal(raw["availableModes"])
+	if len(avail) == 0 {
+		return nil
+	}
+	return &snapshotModesInfo{CurrentModeID: current, AvailableModes: avail}
+}
+
+// dispatchConfig sends a write to the loopback backend (a mode switch or a
+// model/config-option change) and, on success, applies an optimistic patch to
+// the cached snapshot so the active pill moves immediately; the next real
+// snapshot event from the agent overwrites it with the authoritative state.
+// On failure it stores a short error message that the existing red banner
+// renders. We deliberately do NOT delete the snapshot: removing it would make
+// both selector rows vanish for a frame (and, in tests, drop the very button a
+// later click targets).
+func (s *Shell) dispatchConfig(connID, cmd string, body map[string]any, patch func(snap map[string]any)) {
+	svc := s.svc
+	go func() {
+		_, err := s.B.raw(cmd, body)
+		s.mu.Lock()
+		if err != nil {
+			s.errorMsg = cmd + ": " + err.Error()
+		} else if patch != nil {
+			if raw := s.cache["snapshot:"+connID]; len(raw) > 0 {
+				if snap := asObj(raw); snap != nil {
+					patch(snap)
+					if b, e := json.Marshal(snap); e == nil {
+						s.cache["snapshot:"+connID] = b
+					}
+				}
+			}
+		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
 }

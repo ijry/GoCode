@@ -6,6 +6,10 @@
 *.db-wal
 *.db-shm
 
+# mygo UI headless render output (written when MYGO_UI_PNG is set for
+# visual verification — not project source).
+src/app/render-out/
+
 # Go toolchain auto-download
 go.work
 

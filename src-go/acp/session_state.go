@@ -106,6 +106,12 @@ type LiveSessionSnapshot struct {
 	PendingUserMessage  *PendingUserMessage     `json:"pending_user_message,omitempty"`
 	ActiveDelegations   json.RawMessage         `json:"active_delegations,omitempty"`
 	Feedback            json.RawMessage         `json:"feedback,omitempty"`
+	// Modes and ConfigOptions are the agent's advertised selectors (from
+	// `session_modes` / `session_config_options` events) plus their current
+	// values. The snapshot endpoint exposes them so the UI can render mode
+	// and model pickers without a separate probe call.
+	Modes         *SessionModeStateInfo     `json:"modes,omitempty"`
+	ConfigOptions []SessionConfigOptionInfo `json:"config_options"`
 }
 
 // ─── SessionState ─────────────────────────────────────────────────────────
@@ -162,6 +168,10 @@ func (s *SessionState) Snapshot() *LiveSessionSnapshot {
 	defer s.mu.RUnlock()
 	toolCalls := make([]ToolCallState, len(s.ActiveToolCalls))
 	copy(toolCalls, s.ActiveToolCalls)
+	opts := s.ConfigOptions
+	if opts == nil {
+		opts = []SessionConfigOptionInfo{}
+	}
 	return &LiveSessionSnapshot{
 		ConnectionID:       s.ConnectionID,
 		ConversationID:     s.ConversationID,
@@ -173,6 +183,8 @@ func (s *SessionState) Snapshot() *LiveSessionSnapshot {
 		PendingPermission:  s.PendingPermission,
 		PendingQuestion:    s.PendingQuestion,
 		PendingUserMessage: s.PendingUserMessage,
+		Modes:              s.Modes,
+		ConfigOptions:      opts,
 	}
 }
 
