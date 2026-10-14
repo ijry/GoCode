@@ -83,6 +83,7 @@ func RegisterAll(reg *Registry) {
 	RegisterACPLatestRelease(reg)
 	RegisterScience(reg)
 	RegisterOfficeTools(reg)
+	RegisterOfficeWatchProxy(reg)
 	RegisterPet(reg)
 	RegisterPetCodex(reg)
 	RegisterBackground(reg)

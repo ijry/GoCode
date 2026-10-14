@@ -71,6 +71,15 @@ function scanGo(dir) {
           // upstream route cmds carry no leading slash, so normalize.
           out.add(mm[1].replace(/^\/+/, ""));
         }
+        // Prefix routes mounted under /api/ (e.g.
+        // RegisterAPIPrefix("/api/office-watch-proxy/", ...)) serve an upstream
+        // route whose cmd is the mount path minus /api/ and any {params}
+        // (upstream: "/office-watch-proxy/{port}" → "office-watch-proxy").
+        for (const mm of text.matchAll(/RegisterAPIPrefix\(\s*"([^"]+)"/g)) {
+          // Keep the trailing slash: upstream's cmd for these routes is
+          // "office-watch-proxy/" ({port} sits before the final "/").
+          out.add(mm[1].replace(/^\/api\//, "").replace(/\{.*/, ""));
+        }
         // Also commands registered through a helper that takes the command
         // name as a string arg, e.g. registerWorkTaskTransition(reg, "cmd", ...).
         for (const mm of text.matchAll(/register[A-Za-z]*\(\s*reg,\s*"([a-z0-9_]+)"/g)) {

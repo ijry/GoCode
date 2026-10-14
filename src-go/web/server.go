@@ -43,6 +43,11 @@ type Router struct {
 	// rawRoutes are non-/api/ GET-style endpoints that write their own HTTP
 	// response (download tickets, raw file/zip streams). Checked by prefix.
 	rawRoutes []rawRoute
+	// apiPrefixRoutes are unauthenticated, prefix-matched /api/ endpoints that
+	// write their own HTTP response. Used by the office-watch preview proxy,
+	// which the iframe reaches without a Bearer header and which self-validates
+	// via a per-watch `?cap=` capability. Checked before exact-command dispatch.
+	apiPrefixRoutes []apiPrefixRoute
 }
 
 func NewRouter(state any) *Router {
@@ -68,6 +73,22 @@ type rawRoute struct {
 // the full HTTP response itself.
 func (r *Router) RegisterRaw(prefix string, fn func(w http.ResponseWriter, req *http.Request)) {
 	r.rawRoutes = append(r.rawRoutes, rawRoute{prefix: prefix, fn: fn})
+}
+
+// apiPrefixRoute is a prefix-matched /api/ handler that writes its own response
+// and bypasses the Bearer gate (it authenticates itself).
+type apiPrefixRoute struct {
+	prefix string
+	fn     func(w http.ResponseWriter, req *http.Request)
+}
+
+// RegisterAPIPrefix registers an unauthenticated, prefix-matched /api/ endpoint
+// that writes the full HTTP response itself. Mirrors upstream's public_api
+// router entries with path params (e.g. /api/office-watch-proxy/{port}/{*rest}),
+// which the preview iframe reaches without a Bearer header — the handler
+// self-validates a `?cap=` capability instead.
+func (r *Router) RegisterAPIPrefix(prefix string, fn func(w http.ResponseWriter, req *http.Request)) {
+	r.apiPrefixRoutes = append(r.apiPrefixRoutes, apiPrefixRoute{prefix: prefix, fn: fn})
 }
 
 func (r *Router) RegisterPublic(command string, fn HandlerFunc) {
@@ -112,6 +133,14 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// API commands are POST under /api/.
 	if path == "/api/health" || strings.HasPrefix(path, "/api/") {
+		// Public prefix routes self-authenticate and write their own response
+		// (office-watch preview proxy). Checked before exact-command dispatch.
+		for _, pr := range r.apiPrefixRoutes {
+			if strings.HasPrefix(path, pr.prefix) {
+				pr.fn(w, req)
+				return
+			}
+		}
 		cmd := apiCommand(path)
 		r.serveAPI(w, req, cmd)
 		return

@@ -26,3 +26,9 @@ func (reg *Registry) RegisterRaw(prefix string, fn func(w http.ResponseWriter, r
 func (reg *Registry) RegisterPublic(command string, fn web.HandlerFunc) {
 	reg.web.RegisterPublic(command, fn)
 }
+
+// RegisterAPIPrefix registers an unauthenticated, prefix-matched /api/ endpoint
+// that writes its own HTTP response (self-validating; e.g. office-watch proxy).
+func (reg *Registry) RegisterAPIPrefix(prefix string, fn func(w http.ResponseWriter, req *http.Request)) {
+	reg.web.RegisterAPIPrefix(prefix, fn)
+}

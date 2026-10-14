@@ -4,8 +4,9 @@ package handlers
 // an external document-conversion binary; this build does not bundle it, so
 // officecli_detect reports not-installed and the bundled office skill catalog
 // is empty. The skill-link routes reuse the shared central-store link engine
-// (skills_link.go). The heavier office surface (install, sync, render_html,
-// start/stop_office_watch + the office-watch HTTP proxy) is a separate pass.
+// (skills_link.go). The live-preview surface — start/stop_office_watch
+// (office_watch.go, the process pool) and the server-mode reverse proxy
+// (office_watch_proxy.go) — is ported; install/sync remain stubs (not bundled).
 
 import (
 	"os"
@@ -35,6 +36,10 @@ func RegisterOfficeTools(reg *Registry) {
 	})
 
 	reg.Register("officecli_render_html", officecliRenderHTML)
+
+	// Live preview watch pool (upstream commands/office_tools start/stop_office_watch).
+	reg.Register("start_office_watch", startOfficeWatchHandler)
+	reg.Register("stop_office_watch", stopOfficeWatchHandler)
 
 	reg.Register("officecli_list_skills", func(c *web.Context) (any, error) {
 		return []map[string]any{}, nil

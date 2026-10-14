@@ -494,7 +494,7 @@
 - [x] `/update_model_provider` **[P0]**
 - [x] `/delete_model_provider` **[P0]**
 
-## office_tools — 12/14
+## office_tools — 14/14
 
 - [x] `/officecli_detect`
 - [x] `/officecli_install`
@@ -508,14 +508,14 @@
 - [x] `/officecli_skill_apply_links`
 - [x] `/officecli_skill_read_content`
 - [x] `/officecli_render_html`
-- [ ] `/start_office_watch`
-- [ ] `/stop_office_watch`
+- [x] `/start_office_watch`
+- [x] `/stop_office_watch`
 
-## office_watch_proxy — 0/3
+## office_watch_proxy — 3/3
 
-- [ ] `/office-watch-proxy/` `any`
-- [ ] `/office-watch-proxy/` `any`
-- [ ] `/office-watch-proxy/` `any`
+- [x] `/office-watch-proxy/` `any`
+- [x] `/office-watch-proxy/` `any`
+- [x] `/office-watch-proxy/` `any`
 
 ## pet — 19/19 · P0 1/1
 
@@ -679,7 +679,7 @@
 
 ## 汇总
 
-- 全部路由：512/523
+- 全部路由：517/523
 - P0（mcode-app 依赖）：128/128
 
 | 模块 | 已实现 | P0 进度 |
@@ -715,8 +715,8 @@
 | mcp | 8/8 | — |
 | mcp_service | 3/3 | — |
 | model_provider | 4/4 | 4/4 |
-| office_tools | 12/14 | — |
-| office_watch_proxy | 0/3 | — |
+| office_tools | 14/14 | — |
+| office_watch_proxy | 3/3 | — |
 | pet | 19/19 | 1/1 |
 | project_boot | 5/5 | — |
 | question | 2/2 | 2/2 |
