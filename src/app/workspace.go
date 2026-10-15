@@ -317,60 +317,6 @@ func (s *Shell) viewRoutePlaceholder(c *ui.Context, route string) {
 	ui.Text(c, hints[route]).TextColor(t.TextMuted).Wrap()
 }
 
-// viewTasks lists the to-do work-task board for the selected folder
-// (work_task_list), the surface that drives background agent work.
-func (s *Shell) viewTasks(c *ui.Context) {
-	t := c.Theme()
-	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "To-dos").FontSize(22).Bold()
-		ui.Spacer(c)
-		if ui.Button(c.Key("tk-refresh"), "Refresh").Clicked() {
-			if s.selectedFolder != "" {
-				s.invalidate("tasks:" + s.selectedFolder)
-			} else {
-				s.invalidate("tasks:all")
-			}
-		}
-	})
-	ui.Text(c, "The to-do board driving background agent work.").FontSize(12).TextColor(t.TextMuted)
-	var key string
-	var body map[string]any
-	if s.selectedFolder != "" {
-		key = "tasks:" + s.selectedFolder
-		body = map[string]any{"folderId": numOrString(s.selectedFolder)}
-	} else {
-		key = "tasks:all"
-	}
-	list := asList(s.ensure(key, "work_task_list", body))
-	if list == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
-		return
-	}
-	if len(list) == 0 {
-		ui.Text(c, "No to-do tasks.").FontSize(12).TextColor(t.TextMuted)
-		return
-	}
-	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Gap(6).Children(func() {
-			for i, tk := range list {
-				title := firstNonEmpty(str(tk, "title"), str(tk, "prompt"), "(untitled task)")
-				status := str(tk, "status")
-				agent := str(tk, "agent_type")
-				ui.Column(c.Key(itoa("tk", i))).Gap(2).Padding(10).Background(t.Surface).Radius(8).Children(func() {
-					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, title).Bold().MaxLines(1)
-						ui.Spacer(c)
-						ui.Text(c, firstNonEmpty(status, "—")).FontSize(11).TextColor(t.TextMuted)
-					})
-					if agent != "" {
-						ui.Text(c, agent).FontSize(12).TextColor(t.TextMuted)
-					}
-				})
-			}
-		})
-	})
-}
-
 // viewCanvas lists the spatial canvas boards (canvas_list_boards), each with a
 // node/terminal count — upstream's Canvas overview.
 func (s *Shell) viewCanvas(c *ui.Context) {

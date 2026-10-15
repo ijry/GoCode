@@ -51,12 +51,20 @@ func automationsShellForTest(t *testing.T, create bool) (*Shell, string) {
 }
 
 // waitText pumps frames (yielding to the async backend goroutines) until want's
-// presence matches, or the budget runs out.
+// presence matches, or the budget runs out. Note absence is also true on the
+// transient "cache cleared, refetch in flight" frame — wait on a positive
+// condition when you need the list to have settled.
 func waitText(t *testing.T, tt *ui.Tester, want string, present bool) bool {
+	t.Helper()
+	return waitUntil(t, tt, func() bool { return tt.HasText(want) == present })
+}
+
+// waitUntil pumps frames until cond holds, or the budget runs out.
+func waitUntil(t *testing.T, tt *ui.Tester, cond func() bool) bool {
 	t.Helper()
 	for i := 0; i < 300; i++ {
 		tt.Frame()
-		if tt.HasText(want) == present {
+		if cond() {
 			return true
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -127,13 +135,11 @@ func TestAutomationDetailAndRunHistory(t *testing.T) {
 	if err := tt.Click("Cancel"); err != nil {
 		t.Fatalf("click Cancel: %v", err)
 	}
-	// The run row itself must leave "Running" (the title chip alone would pass a
-	// weaker "Cancelled" check, since last_run_status flips independently).
-	if !waitText(t, tt, "Running", false) {
-		t.Fatalf("run row stayed Running after cancel; texts = %v", tt.Texts())
-	}
-	if !tt.HasText("Cancelled") {
-		t.Errorf("run history missing Cancelled; texts = %v", tt.Texts())
+	// Wait for the settled state: the run row has left "Running" AND the
+	// Cancelled chip is back. A bare "Running absent" check would pass on the
+	// transient loading frame (both caches are cleared, then refetched).
+	if !waitUntil(t, tt, func() bool { return tt.HasText("Cancelled") && !tt.HasText("Running") }) {
+		t.Fatalf("cancel did not settle (want Cancelled, no Running); texts = %v", tt.Texts())
 	}
 	dumpFrame(t, tt, "automations-detail")
 }

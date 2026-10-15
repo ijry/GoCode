@@ -121,6 +121,11 @@ type Shell struct {
 	autoSel             string            // Automations: selected automation id ("" = first row)
 	autoEditor          *automationEditor // Automations: open create/edit form (nil = closed)
 	autoConfirm         string            // Automations: id awaiting delete confirmation ("" = none)
+	taskSel             string            // To-dos: selected task id ("" = board)
+	taskEditor          *taskEditor       // To-dos: open create/edit form (nil = closed)
+	taskConfirm         string            // To-dos: id awaiting delete confirmation ("" = none)
+	taskShowCanceled    bool              // To-dos: show canceled cards in the Done column
+	taskShowArchived    bool              // To-dos: show archived cards
 	petTab              string            // Pet section: sessions | sprite
 	fileDir             string            // Files route: current directory (workspace-relative)
 	fileSel             string            // Files route: selected file (workspace-relative)
