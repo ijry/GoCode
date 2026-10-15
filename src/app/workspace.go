@@ -288,8 +288,6 @@ func (s *Shell) navRow(c *ui.Context, key string, icon *ui.SVG, label string, ac
 }
 
 // viewWorkbenchRoute dispatches a non-conversation route to its panel.
-// Automations and To-dos are backed by real data; Repositories/Canvas remain
-// titled placeholders until their panels land.
 func (s *Shell) viewWorkbenchRoute(c *ui.Context, route string) {
 	switch route {
 	case "automations":
@@ -298,6 +296,8 @@ func (s *Shell) viewWorkbenchRoute(c *ui.Context, route string) {
 		s.viewTasks(c)
 	case "canvas":
 		s.viewCanvas(c)
+	case "forge":
+		s.viewForge(c)
 	case "import-sessions":
 		s.viewImportSessions(c)
 	case "project-boot":
@@ -307,14 +307,12 @@ func (s *Shell) viewWorkbenchRoute(c *ui.Context, route string) {
 	}
 }
 
+// viewRoutePlaceholder is the fallback for a workbench route whose panel is not
+// built yet.
 func (s *Shell) viewRoutePlaceholder(c *ui.Context, route string) {
 	t := c.Theme()
-	titles := map[string]string{"forge": "Repositories"}
-	hints := map[string]string{
-		"forge": "Repository / PR panel backed by the forge_* routes (requires a connected GitHub account).",
-	}
-	ui.Text(c, firstNonEmpty(titles[route], route)).FontSize(22).Bold()
-	ui.Text(c, hints[route]).TextColor(t.TextMuted).Wrap()
+	ui.Text(c, route).FontSize(22).Bold()
+	ui.Text(c, "This panel is not built yet.").TextColor(t.TextMuted).Wrap()
 }
 
 // asObjVal converts an already-decoded value into an object, or nil.

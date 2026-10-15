@@ -85,6 +85,10 @@ func (e *apiError) hint() string {
 		return "The agent runtime could not start. Open Settings → Agents to install it, then retry."
 	case "network_error":
 		return "Network error — check your connection, then retry."
+	case "config_missing":
+		return "Connect the matching forge account in Settings → Version Control, then retry."
+	case "auth_failed":
+		return "The forge token was rejected. Re-connect the account in Settings → Version Control."
 	default:
 		return ""
 	}
@@ -130,6 +134,9 @@ type Shell struct {
 	canvasEditor        *canvasEditor     // Canvas: new/rename board form (nil = closed)
 	canvasConfirm       string            // Canvas: board id awaiting delete confirmation ("" = none)
 	canvasSearch        string            // Canvas: board search box
+	forgeTab            string            // Repositories: issues | prs
+	forgeState          string            // Repositories: open | closed | all
+	forgeEditor         *forgeEditor      // Repositories: new-issue form (nil = closed)
 	petTab              string            // Pet section: sessions | sprite
 	fileDir             string            // Files route: current directory (workspace-relative)
 	fileSel             string            // Files route: selected file (workspace-relative)
@@ -158,6 +165,7 @@ type Shell struct {
 	cache    map[string]json.RawMessage
 	inflight map[string]bool
 	errs     map[string]string
+	errHints map[string]string // cache key → actionable hint for its failed fetch
 }
 
 // New builds the root shell.
@@ -171,6 +179,7 @@ func New(b *Backend) *Shell {
 		cache:          map[string]json.RawMessage{},
 		inflight:       map[string]bool{},
 		errs:           map[string]string{},
+		errHints:       map[string]string{},
 		connByConv:     map[string]string{},
 		toolOpen:       map[string]bool{},
 		agentVer:       map[string]string{},
@@ -201,9 +210,13 @@ func (s *Shell) ensure(key, cmd string, body map[string]any) json.RawMessage {
 		s.inflight[key] = false
 		if err != nil {
 			s.errs[key] = err.Error()
+			if ae, ok := err.(*apiError); ok {
+				s.errHints[key] = ae.hint()
+			}
 		} else {
 			s.cache[key] = raw
 			delete(s.errs, key)
+			delete(s.errHints, key)
 		}
 		s.mu.Unlock()
 		svc.Invalidate() // repaint on the UI thread; safe from any goroutine
@@ -222,6 +235,13 @@ func (s *Shell) errFor(key string) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.errs[key]
+}
+
+// errHintFor returns the actionable hint stored for a failed cached fetch.
+func (s *Shell) errHintFor(key string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.errHints[key]
 }
 
 // list / obj decode a cached raw response; nil until the fetch lands.
