@@ -36,7 +36,12 @@
   末尾 Delete 内联确认）；详情视图含事实 + ACTIVITY 事件时间线（`work_task_events`）；
   创建/编辑表单接 `work_task_create`/`work_task_update` 的 `{draft:{folderId,title,config}}` 契约；
   Start all；空态引导。（2026-10-16）
-  **forge / canvas 两个面板的深度仍待补（P1-7 续）。**
+- **P1-7（部分）Canvas 工作台深度**（提交 480bcda）：板列表（颜色点 / 名称 / 描述 /
+  N node(s) · M terminal(s) / edited …）+ 搜索框 + 行右键菜单 Open·Rename·Delete（行内确认）；
+  新建/重命名表单（name/description/colour 12 主题色）接 `canvas_create_board`/`canvas_update_board`；
+  打开板 → `canvas_list_nodes` 节点列表（kind/标题/坐标 + 删节点）+ ← Boards 返回；空态引导。
+  （完整空间画布——平移/缩放/框选/拖拽——未做，节点列表是可检视的最小切片。）（2026-10-16）
+  **forge（Repositories）面板的深度仍待补（P1-7 续）。**
 - **P1-6 侧栏搜索 + 会话右键菜单**（提交 d714778）：侧栏加会话搜索框（标题子串过滤、
   不区分大小写、✕ 清空、无命中提示 "No matches"）；每个会话行挂右键菜单
   `Rename / Pin↔Unpin / Delete`（Delete 走软删），与详情头部动作同源
@@ -77,8 +82,8 @@
 
 5. ~~**无流式打字光标 / 自动滚动到底**。长回复时看不到「正在输出」。~~（已完成 2026-10-15，提交 c6454b8，见「已修复」。）
 6. ~~**侧栏无搜索 / 重命名 / 删除的右键菜单**。~~（已完成 2026-10-15，提交 d714778，见「已修复」。）
-7. **工作台深度**：~~automations~~ / ~~tasks~~ / forge / canvas 多为「列表 + 基本动作」，缺详情/编辑/空态引导。
-   （automations 9a12ea4、tasks 2964bbb 已完成；**forge / canvas 待办**。）
+7. **工作台深度**：~~automations~~ / ~~tasks~~ / ~~canvas~~ / forge 多为「列表 + 基本动作」，缺详情/编辑/空态引导。
+   （automations 9a12ea4、tasks 2964bbb、canvas 480bcda 已完成；**forge 待办**。）
 8. **设置页深度**：16 页里若干只有开关/列表，缺表单校验、状态反馈、帮助文案。
 9. **无 i18n**。上游有 12+ 语言包；现在全英文硬编码。
 
