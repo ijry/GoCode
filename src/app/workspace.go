@@ -631,7 +631,9 @@ func (s *Shell) viewConversationDetail(c *ui.Context) {
 		}
 	}
 
-	s.viewTranscript(c, turns, live)
+	// streaming: a turn is in flight — the transcript pins a blinking caret to
+	// the tail and follows the end (UI_GAPS P1-5).
+	s.viewTranscript(c, turns, live, str(snap, "status") == "prompting")
 
 	// Pending permission / question cards from the live session snapshot.
 	s.viewPendingCards(c, connID, snap)

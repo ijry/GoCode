@@ -135,6 +135,11 @@ type Shell struct {
 	stream     *Stream
 	connByConv map[string]string // conversation id → live ACP connection id
 
+	// transcriptScroll tracks the conversation detail's scroll position so a
+	// streaming turn can follow the end (see viewTranscript). It is UI-thread
+	// state, written by the scroll container and by the view itself.
+	transcriptScroll ui.ScrollState
+
 	mu       sync.Mutex
 	svc      ui.Services
 	cache    map[string]json.RawMessage

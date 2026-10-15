@@ -19,7 +19,9 @@ package app
 
 import (
 	"encoding/json"
+	"math"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -131,17 +133,25 @@ func buildTranscript(events []map[string]any) []transcriptItem {
 // viewTranscript renders the whole transcript column: parsed historical turns
 // (when a parser is available) followed by the live rows, in upstream's bubble and
 // card language. An empty transcript shows a centred hint rather than a blank
-// scroll area.
-func (s *Shell) viewTranscript(c *ui.Context, turns []any, live []transcriptItem) {
+// scroll area. A streaming turn appends upstream's blinking block cursor and
+// keeps the column pinned to its end.
+func (s *Shell) viewTranscript(c *ui.Context, turns []any, live []transcriptItem, streaming bool) {
 	t := c.Theme()
-	if len(turns) == 0 && len(live) == 0 {
+	if len(turns) == 0 && len(live) == 0 && !streaming {
 		ui.Column(c.Key("tr-empty")).Fill().Center().Gap(6).Children(func() {
 			ui.Text(c, "No messages yet").FontSize(15).Bold().TextColor(t.TextMuted)
 			ui.Text(c, "Send a prompt below to start the agent.").FontSize(12).TextColor(t.TextMuted)
 		})
 		return
 	}
-	ui.Scroll(c.Key("transcript")).Grow(1).Children(func() {
+	// Follow the end only while the transcript already sits at it: a user who
+	// scrolled back into history is never yanked forward (upstream's
+	// stick-to-bottom "at bottom" guard). MaxFloat32 is the end, per
+	// ui.ScrollState's contract.
+	if s.transcriptScroll.Y >= s.transcriptScroll.MaxY {
+		s.transcriptScroll.Y = math.MaxFloat32
+	}
+	ui.Scroll(c.Key("transcript")).Grow(1).TrackScroll(&s.transcriptScroll).Children(func() {
 		ui.Column(c).FillWidth().Gap(18).Padding(2).Children(func() {
 			for i, raw := range turns {
 				m, _ := raw.(map[string]any)
@@ -160,8 +170,29 @@ func (s *Shell) viewTranscript(c *ui.Context, turns []any, live []transcriptItem
 					s.viewNoteRow(c, key, it.note)
 				}
 			}
+			if streaming {
+				s.viewStreamingCaret(c)
+			}
 		})
 	})
+}
+
+// viewStreamingCaret draws upstream's blinking block cursor at the tail of the
+// transcript while a turn streams: a thin bar that pulses between full and half
+// opacity on the wall clock and asks for another frame, so it blinks for as
+// long as the turn runs and stops between them. Mirrors the `animate-pulse`
+// caret upstream appends to a streaming message (ai-elements/terminal,
+// content-parts-renderer). The bar carries an accessibility label so it is
+// discoverable by name, not only by pixels.
+func (s *Shell) viewStreamingCaret(c *ui.Context) {
+	t := c.Theme()
+	col := t.Text
+	if (time.Now().UnixMilli()/400)%2 != 0 {
+		col = t.Text.Alpha(0.45)
+	}
+	ui.Box(c).Width(2).Height(16).Background(col).Label("Streaming cursor")
+	// Keep the frame loop alive only while streaming, so the caret blinks.
+	c.After(400 * time.Millisecond)
 }
 
 // viewMessageBubble renders one role-grouped message in upstream's language: the
