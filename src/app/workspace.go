@@ -317,51 +317,6 @@ func (s *Shell) viewRoutePlaceholder(c *ui.Context, route string) {
 	ui.Text(c, hints[route]).TextColor(t.TextMuted).Wrap()
 }
 
-// viewAutomations lists the configured automations (automation_list), with
-// enabled state, trigger kind and agent — upstream's Automations panel.
-func (s *Shell) viewAutomations(c *ui.Context) {
-	t := c.Theme()
-	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Automations").FontSize(22).Bold()
-		ui.Spacer(c)
-		if ui.Button(c.Key("au-refresh"), "Refresh").Clicked() {
-			s.invalidate("automations")
-		}
-	})
-	ui.Text(c, "Scheduled and event-driven agent runs.").FontSize(12).TextColor(t.TextMuted)
-	list := asList(s.ensure("automations", "automation_list", nil))
-	if list == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
-		return
-	}
-	if len(list) == 0 {
-		ui.Text(c, "No automations configured.").FontSize(12).TextColor(t.TextMuted)
-		return
-	}
-	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Gap(6).Children(func() {
-			for i, a := range list {
-				name := firstNonEmpty(str(a, "name"), "(unnamed)")
-				trigger := str(a, "trigger_kind")
-				agent := str(a, "agent_type")
-				enabled := truthy(a["enabled"])
-				ui.Column(c.Key(itoa("au", i))).Gap(2).Padding(10).Background(t.Surface).Radius(8).Children(func() {
-					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, name).Bold()
-						ui.Spacer(c)
-						if enabled {
-							ui.Text(c, "● enabled").FontSize(11).TextColor(t.Success)
-						} else {
-							ui.Text(c, "○ disabled").FontSize(11).TextColor(t.TextMuted)
-						}
-					})
-					ui.Textf(c, "%s · %s", firstNonEmpty(trigger, "trigger?"), firstNonEmpty(agent, "agent?")).FontSize(12).TextColor(t.TextMuted)
-				})
-			}
-		})
-	})
-}
-
 // viewTasks lists the to-do work-task board for the selected folder
 // (work_task_list), the surface that drives background agent work.
 func (s *Shell) viewTasks(c *ui.Context) {

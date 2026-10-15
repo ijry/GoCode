@@ -118,6 +118,9 @@ type Shell struct {
 	skillsAgent         string            // Settings → Skills: selected agent wire type
 	skillsScope         string            // "global" | "project"
 	workbench           string            // "" (conversations) | automations | tasks | forge | canvas | files | …
+	autoSel             string            // Automations: selected automation id ("" = first row)
+	autoEditor          *automationEditor // Automations: open create/edit form (nil = closed)
+	autoConfirm         string            // Automations: id awaiting delete confirmation ("" = none)
 	petTab              string            // Pet section: sessions | sprite
 	fileDir             string            // Files route: current directory (workspace-relative)
 	fileSel             string            // Files route: selected file (workspace-relative)
