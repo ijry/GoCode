@@ -41,7 +41,14 @@
   新建/重命名表单（name/description/colour 12 主题色）接 `canvas_create_board`/`canvas_update_board`；
   打开板 → `canvas_list_nodes` 节点列表（kind/标题/坐标 + 删节点）+ ← Boards 返回；空态引导。
   （完整空间画布——平移/缩放/框选/拖拽——未做，节点列表是可检视的最小切片。）（2026-10-16）
-  **forge（Repositories）面板的深度仍待补（P1-7 续）。**
+- **P1-7（部分）Repositories(forge) 工作台深度**（提交 ac08d04）：从纯占位符升级为
+  文件夹 forge remote 摘要（`folder_forge_remote`，免鉴权：provider + owner/repo + host/url）→
+  无 remote / 不识别 host 的可操作提示 → 未连接时的「Connect a \<provider\> account」卡片
+  （带「Open Version Control」跳设置）→ 已连接时的 identity + Issues/Pull requests 分页 +
+  open/closed/all 过滤 + issue 列表（#号/标题/state/labels/author/comments）+ Close·Reopen
+  + New issue 表单。顺带：`apiError.hint()` 增加 `config_missing`/`auth_failed`，
+  `ensure` 失败时把 hint 存入 `errHints` 供面板渲染。（2026-10-16）
+  **P1-7 四个面板（automations / tasks / canvas / forge）全部完成。**
 - **P1-6 侧栏搜索 + 会话右键菜单**（提交 d714778）：侧栏加会话搜索框（标题子串过滤、
   不区分大小写、✕ 清空、无命中提示 "No matches"）；每个会话行挂右键菜单
   `Rename / Pin↔Unpin / Delete`（Delete 走软删），与详情头部动作同源
@@ -82,8 +89,8 @@
 
 5. ~~**无流式打字光标 / 自动滚动到底**。长回复时看不到「正在输出」。~~（已完成 2026-10-15，提交 c6454b8，见「已修复」。）
 6. ~~**侧栏无搜索 / 重命名 / 删除的右键菜单**。~~（已完成 2026-10-15，提交 d714778，见「已修复」。）
-7. **工作台深度**：~~automations~~ / ~~tasks~~ / ~~canvas~~ / forge 多为「列表 + 基本动作」，缺详情/编辑/空态引导。
-   （automations 9a12ea4、tasks 2964bbb、canvas 480bcda 已完成；**forge 待办**。）
+7. ~~**工作台深度**：automations/tasks/forge/canvas 多为「列表 + 基本动作」，缺详情/编辑/空态引导。~~
+   （已完成 2026-10-15/16：automations 9a12ea4、tasks 2964bbb、canvas 480bcda、forge ac08d04。）
 8. **设置页深度**：16 页里若干只有开关/列表，缺表单校验、状态反馈、帮助文案。
 9. **无 i18n**。上游有 12+ 语言包；现在全英文硬编码。
 
@@ -96,8 +103,8 @@
 
 ## 建议的推进顺序
 
-1. 工作台 / 设置页深度（P1-7、8）。
-2. i18n（P1-9）。
+1. 设置页深度（P1-8）：16 页里若干只有开关/列表，缺表单校验、状态反馈、帮助文案。
+2. i18n（P1-9）：上游有 12+ 语言包，现在全英文硬编码。
 3. 其余 P2 逐项（快捷键、空态/加载态、Toast、虚拟滚动）。
 
 > 注：本文档只列 UI（前端）缺口；后端路由/契约层的剩余项见 `docs/ROUTE_INVENTORY.md`。
