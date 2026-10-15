@@ -8,6 +8,7 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -47,6 +48,19 @@ func (s *Shell) viewWorkspace(c *ui.Context) {
 			})
 			ui.Divider(c)
 			ui.Column(c.Key("ws-convs")).Grow(1).Padding(12).Gap(8).Children(func() {
+				// Conversation search: client-side title filter over the cached
+				// list (UI_GAPS P1-6). Shown for the conversation tabs only —
+				// the Folders tab has no titles to search.
+				if s.sidebarTab != "folders" {
+					ui.Row(c.Key("ws-search-row")).Gap(6).Children(func() {
+						ui.TextInput(c.Key("ws-search"), &s.sidebarSearch).Grow(1).Placeholder("Search chats")
+						if s.sidebarSearch != "" {
+							if ui.Button(c.Key("ws-search-clear"), "✕").Clicked() {
+								s.sidebarSearch = ""
+							}
+						}
+					})
+				}
 				s.sidebarSegmented(c)
 				// Only the selected section's list renders — one scroll region,
 				// so no vertical pile-up of pinned + recent + folders.
@@ -124,6 +138,17 @@ func (s *Shell) convList(c *ui.Context, which string) {
 		return
 	}
 	convs := asList(s.ensure("convs:"+s.selectedFolder, "list_conversations", map[string]any{"folderId": numOrString(s.selectedFolder)}))
+	// Filter by the search box's term (case-insensitive title substring) before
+	// splitting into pinned/rest, so the term narrows both sections at once.
+	if q := strings.TrimSpace(strings.ToLower(s.sidebarSearch)); q != "" {
+		filtered := make([]map[string]any, 0, len(convs))
+		for _, cv := range convs {
+			if strings.Contains(strings.ToLower(str(cv, "title")), q) {
+				filtered = append(filtered, cv)
+			}
+		}
+		convs = filtered
+	}
 	var pinned, rest []map[string]any
 	for _, cv := range convs {
 		if isPinned(cv) {
@@ -137,6 +162,9 @@ func (s *Shell) convList(c *ui.Context, which string) {
 	if which == "pinned" {
 		list = pinned
 		emptyHint = "No pinned chats"
+	}
+	if strings.TrimSpace(s.sidebarSearch) != "" {
+		emptyHint = "No matches"
 	}
 	ui.Column(c).Gap(1).Children(func() {
 		if len(list) == 0 {
@@ -172,12 +200,14 @@ func (s *Shell) foldersList(c *ui.Context, folders []map[string]any) {
 				s.selectedConv = ""
 				s.workbench = ""
 				s.actionMsg = ""
-			})
+			}, nil)
 		}
 	})
 }
 
-// convRow renders one conversation entry in the sidebar list.
+// convRow renders one conversation entry in the sidebar list, with a
+// right-click menu (Rename / Pin↔Unpin / Delete) wired to the same Shell
+// actions the detail header uses (UI_GAPS P1-6).
 func (s *Shell) convRow(c *ui.Context, cv map[string]any) {
 	id := fmt.Sprintf("%v", cv["id"])
 	title := str(cv, "title")
@@ -185,10 +215,31 @@ func (s *Shell) convRow(c *ui.Context, cv map[string]any) {
 		title = "(untitled)"
 	}
 	sub := fmt.Sprintf("%s · %s", str(cv, "agent_type"), str(cv, "status"))
+	pinned := isPinned(cv)
 	s.sideRow(c, "cv"+id, iconChat, title, sub, id == s.selectedConv, func() {
 		s.selectedConv = id
 		s.workbench = ""
 		s.actionMsg = ""
+	}, func(m *ui.Menu) {
+		if m.Item("Rename").Chosen() {
+			// Open the detail header's inline rename for this row.
+			s.selectedConv = id
+			s.renaming = true
+			s.renameText = title
+		}
+		if pinned {
+			if m.Item("Unpin").Chosen() {
+				s.setPinned(id, false)
+			}
+		} else {
+			if m.Item("Pin").Chosen() {
+				s.setPinned(id, true)
+			}
+		}
+		m.Separator()
+		if m.Item("Delete").Chosen() {
+			s.deleteConversation(id)
+		}
 	})
 }
 
@@ -440,8 +491,9 @@ func truthy(v any) bool {
 }
 
 // sideRow renders a selectable sidebar row: an icon, a title and an optional
-// muted subtitle, highlighted when selected.
-func (s *Shell) sideRow(c *ui.Context, key string, icon *ui.SVG, title, subtitle string, selected bool, onClick func()) {
+// muted subtitle, highlighted when selected. onContextMenu, when non-nil,
+// attaches a right-click menu (and the ⋯ affordance the OS shows for one).
+func (s *Shell) sideRow(c *ui.Context, key string, icon *ui.SVG, title, subtitle string, selected bool, onClick func(), onContextMenu func(m *ui.Menu)) {
 	t := c.Theme()
 	row := ui.Row(c.Key(key)).PaddingX(8).PaddingY(5).Gap(8).Radius(6).AlignItems(ui.Center)
 	if selected {
@@ -458,6 +510,9 @@ func (s *Shell) sideRow(c *ui.Context, key string, icon *ui.SVG, title, subtitle
 			}
 		})
 	})
+	if onContextMenu != nil {
+		row.ContextMenu(onContextMenu)
+	}
 	if row.Clicked() {
 		onClick()
 	}

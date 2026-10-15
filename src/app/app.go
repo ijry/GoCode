@@ -102,6 +102,7 @@ type Shell struct {
 	selectedFolder      string
 	selectedConv        string
 	sidebarTab          string // workspace sidebar segmented tab: recent | pinned | folders
+	sidebarSearch       string // workspace sidebar conversation search box (filters by title)
 	composer            string
 	composerAttachments []attachmentItem // staged in the composer, uploaded on send
 	hostOpenFiles       func() []string  // Tauri host hook: open OS file dialog, return picked paths
