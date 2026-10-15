@@ -245,8 +245,7 @@ func (s *Shell) viewToolCard(c *ui.Context, key string, tc *toolCard) {
 		if open {
 			ui.Divider(c)
 			ui.Column(c).FillWidth().Padding(12, 12, 12, 12).Gap(6).Children(func() {
-				ui.Text(c, firstNonEmpty(tc.output, tc.kind, "No output recorded.")).
-					FontSize(12).TextColor(t.TextMuted).Wrap()
+				s.viewToolBody(c, tc, t)
 			})
 		}
 	})
