@@ -159,7 +159,7 @@ func (s *Shell) viewMDBlock(c *ui.Context, key string, b mdBlock, t *ui.Theme) {
 				if b.ordered {
 					marker = fmt.Sprintf("%d.", i+1)
 				}
-				ui.Row(c.Key(key+"-"+itoa("li", i))).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
+				ui.Row(c.Key(key + "-" + itoa("li", i))).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
 					ui.Text(c, marker).FontSize(14).TextColor(t.TextMuted)
 					ui.Column(c).Grow(1).Children(func() {
 						ui.RichText(c, mdInlineSpans(item, t)...).FontSize(14).LineHeight(1.5).Wrap()

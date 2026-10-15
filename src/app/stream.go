@@ -186,6 +186,23 @@ func (s *Stream) Events(connID string) []map[string]any {
 	return out
 }
 
+// AppendLocal injects a synthetic event into a connection's buffer — used to
+// echo the user's own turn (text + attachments) into the transcript so it
+// renders the way the agent's reply does. It is a client-side convenience only;
+// the real server echo (if any) is de-duplicated by buildTranscript's flush.
+func (s *Stream) AppendLocal(connID string, ev map[string]any) {
+	if connID == "" || ev == nil {
+		return
+	}
+	s.mu.Lock()
+	cs := s.ensureConn(connID)
+	cs.events = append(cs.events, ev)
+	s.mu.Unlock()
+	if s.onChange != nil {
+		s.onChange(connID, "")
+	}
+}
+
 // isReady reports whether the websocket is connected.
 func (s *Stream) isReady() bool {
 	if s == nil {

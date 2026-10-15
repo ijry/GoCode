@@ -49,9 +49,9 @@ func (b *Backend) raw(cmd string, body map[string]any) (json.RawMessage, error) 
 // ({"code","message","detail"?}); we parse it so the UI shows the human message
 // rather than a raw JSON dump.
 type apiError struct {
-	cmd, body       string
-	code, message   string
-	detail          string
+	cmd, body     string
+	code, message string
+	detail        string
 }
 
 func newAPIError(cmd string, body []byte) *apiError {
@@ -97,38 +97,40 @@ func (e *apiError) hint() string {
 type Shell struct {
 	B *Backend
 
-	section        string // workspace | settings | pet
-	settingsPage   string // general | web-service | quick-messages | …
-	selectedFolder string
-	selectedConv   string
-	sidebarTab     string // workspace sidebar segmented tab: recent | pinned | folders
-	composer       string
-	newAgent       string
-	toolOpen       map[string]bool // conversation detail: tool card id → expanded
-	copiedCode     map[string]bool // code block key → "Copied" label showing
-	appearanceMode string          // system | light | dark (from get_appearance_mode)
-	actionMsg      string
-	errorMsg       string // last failed action, shown as a banner ("" = none)
-	errorHint      string // actionable next step for the error
-	renaming       bool
-	renameText     string
-	skillsAgent    string            // Settings → Skills: selected agent wire type
-	skillsScope    string            // "global" | "project"
-	workbench      string            // "" (conversations) | automations | tasks | forge | canvas | files | …
-	petTab         string            // Pet section: sessions | sprite
-	fileDir        string            // Files route: current directory (workspace-relative)
-	fileSel        string            // Files route: selected file (workspace-relative)
-	diffSel        string            // Changes route: selected changed file (repo-relative)
-	commitMsg      string            // Changes route: commit message input
-	discardConfirm string            // Changes route: file awaiting discard confirmation
-	detailTab      string            // Workspace main area tab: chat | files | changes | terminal
-	termID         string            // Terminal route: live PTY id ("" = none started)
-	termInput      string            // Terminal route: pending input line
-	loginToken     string            // login gate: token input
-	loginErr       string            // login gate: last probe error
-	newSkillID     string            // Settings → Skills: new custom-skill id input
-	agentVer       map[string]string // Settings → Agents: last detected installed version
-	agentLatest    map[string]string // Settings → Agents: latest available (when newer)
+	section             string // workspace | settings | pet
+	settingsPage        string // general | web-service | quick-messages | …
+	selectedFolder      string
+	selectedConv        string
+	sidebarTab          string // workspace sidebar segmented tab: recent | pinned | folders
+	composer            string
+	composerAttachments []attachmentItem // staged in the composer, uploaded on send
+	hostOpenFiles       func() []string  // Tauri host hook: open OS file dialog, return picked paths
+	newAgent            string
+	toolOpen            map[string]bool // conversation detail: tool card id → expanded
+	copiedCode          map[string]bool // code block key → "Copied" label showing
+	appearanceMode      string          // system | light | dark (from get_appearance_mode)
+	actionMsg           string
+	errorMsg            string // last failed action, shown as a banner ("" = none)
+	errorHint           string // actionable next step for the error
+	renaming            bool
+	renameText          string
+	skillsAgent         string            // Settings → Skills: selected agent wire type
+	skillsScope         string            // "global" | "project"
+	workbench           string            // "" (conversations) | automations | tasks | forge | canvas | files | …
+	petTab              string            // Pet section: sessions | sprite
+	fileDir             string            // Files route: current directory (workspace-relative)
+	fileSel             string            // Files route: selected file (workspace-relative)
+	diffSel             string            // Changes route: selected changed file (repo-relative)
+	commitMsg           string            // Changes route: commit message input
+	discardConfirm      string            // Changes route: file awaiting discard confirmation
+	detailTab           string            // Workspace main area tab: chat | files | changes | terminal
+	termID              string            // Terminal route: live PTY id ("" = none started)
+	termInput           string            // Terminal route: pending input line
+	loginToken          string            // login gate: token input
+	loginErr            string            // login gate: last probe error
+	newSkillID          string            // Settings → Skills: new custom-skill id input
+	agentVer            map[string]string // Settings → Agents: last detected installed version
+	agentLatest         map[string]string // Settings → Agents: latest available (when newer)
 
 	stream     *Stream
 	connByConv map[string]string // conversation id → live ACP connection id
@@ -258,6 +260,29 @@ func str(m map[string]any, k string) string {
 		return v
 	}
 	return ""
+}
+
+// intVal reads a numeric (JSON float64) field, defaulting to 0.
+func intVal(m map[string]any, k string) int64 {
+	if m == nil {
+		return 0
+	}
+	switch v := m[k].(type) {
+	case float64:
+		return int64(v)
+	case int64:
+		return v
+	case int:
+		return int64(v)
+	default:
+		return 0
+	}
+}
+
+// asBool reads a boolean field, defaulting to false.
+func asBool(v any) bool {
+	b, _ := v.(bool)
+	return b
 }
 
 // View is the root view. There is deliberately NO outer navigation rail: the

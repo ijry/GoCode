@@ -723,11 +723,17 @@ func (s *Shell) createConversation(folderID any, agent string) {
 func (s *Shell) sendPrompt(convID string) {
 	agent := str(s.convByID(convID), "agent_type")
 	folderPath := s.folderPathByID(s.selectedFolder)
+	s.mu.Lock()
 	prompt := s.composer
-	if prompt == "" {
+	// Snapshot and clear staged attachments so a re-entrant prompt can't double
+	// send them; an empty prompt with attachments is still a valid turn.
+	atts := append([]attachmentItem(nil), s.composerAttachments...)
+	s.composer = ""
+	s.composerAttachments = nil
+	s.mu.Unlock()
+	if prompt == "" && len(atts) == 0 {
 		return
 	}
-	s.composer = ""
 	svc := s.svc
 	go func() {
 		s.setAction("connecting…", svc)
@@ -743,10 +749,30 @@ func (s *Shell) sendPrompt(convID string) {
 		s.connByConv[convID] = connID
 		s.mu.Unlock()
 		s.stream.Attach(connID) // subscribe before prompting so no events are missed
-		if _, err := s.B.raw("acp_prompt", map[string]any{"connectionId": connID, "prompt": prompt}); err != nil {
+
+		// Upload every staged file, then reference the stored copies in the
+		// prompt's content blocks.
+		uploaded := make([]attachmentItem, 0, len(atts))
+		for _, a := range atts {
+			ua, e := s.uploadAttachmentHTTP(connID, a.Path)
+			if e != nil {
+				s.setAction("upload failed: "+e.Error(), svc)
+				return
+			}
+			uploaded = append(uploaded, ua)
+		}
+		blocks := buildPromptBlocks(prompt, uploaded)
+		if _, err := s.B.raw("acp_prompt", map[string]any{"connectionId": connID, "blocks": blocks}); err != nil {
 			s.setAction("prompt failed: "+err.Error(), svc)
 			return
 		}
+		// Echo the user's own turn (text + attachments) into the local
+		// transcript so it renders like the agent's reply.
+		s.stream.AppendLocal(connID, map[string]any{
+			"type":        "user_message",
+			"text":        prompt,
+			"attachments": attachmentsToRaw(uploaded),
+		})
 		s.setAction("prompt sent", svc)
 	}()
 }

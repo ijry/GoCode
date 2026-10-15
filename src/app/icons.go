@@ -41,4 +41,9 @@ var (
 	iconStop     = mustIcon(`<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="black"/></svg>`)
 	iconAlert    = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><path d="M12 8v5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.1" fill="black"/></svg>`)
 	iconInfo     = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><path d="M12 11v5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.1" fill="black"/></svg>`)
+	// Attachment affordances in the composer and message bubbles.
+	iconPaperclip = mustIcon(`<svg viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	iconFile      = mustIcon(`<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/><path d="M13 3v5h5" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/></svg>`)
+	iconImage     = mustIcon(`<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="black" stroke-width="2"/><circle cx="8.5" cy="10" r="1.6" fill="black"/><path d="M5 18l5-5 4 4 3-3 4 4" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/></svg>`)
+	iconX         = mustIcon(`<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
 )

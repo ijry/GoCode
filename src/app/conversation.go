@@ -36,6 +36,7 @@ type transcriptItem struct {
 	text string
 	tool *toolCard
 	note string
+	atts []attachmentItem // user-message attachments (images + files)
 }
 
 // toolCard is one tool call's live rendered state, updated in place as
@@ -110,6 +111,15 @@ func buildTranscript(events []map[string]any) []transcriptItem {
 		case "error":
 			flush()
 			items = append(items, transcriptItem{kind: "note", note: str(ev, "message")})
+		case "user_message":
+			// The local client echoes the user's own turn (text + attachments)
+			// so it appears in the transcript the way the agent's reply does.
+			flush()
+			it := transcriptItem{kind: "message", role: "user", text: str(ev, "text")}
+			if raw := asListVal(ev["attachments"]); len(raw) > 0 {
+				it.atts = rawAttachments(raw)
+			}
+			items = append(items, it)
 		}
 	}
 	flush()
@@ -141,7 +151,7 @@ func (s *Shell) viewTranscript(c *ui.Context, turns []any, live []transcriptItem
 				key := itoa("tr", i)
 				switch it.kind {
 				case "message":
-					s.viewMessageBubble(c, key, it.role, it.text)
+					s.viewMessageBubble(c, key, it.role, it.text, it.atts)
 				case "thinking":
 					s.viewThinkingRow(c, key, it.text)
 				case "tool":
@@ -158,7 +168,7 @@ func (s *Shell) viewTranscript(c *ui.Context, turns []any, live []transcriptItem
 // user's is a right-aligned gray capsule hugging its content (max 88% wide),
 // the assistant's is plain full-width prose, and a system note is a muted
 // bordered card. Mirrors upstream Message + MessageContent.
-func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string) {
+func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string, atts []attachmentItem) {
 	t := c.Theme()
 	switch role {
 	case "user":
@@ -166,6 +176,7 @@ func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string) {
 			ui.Column(c).MaxWidthPercent(88).Radius(8).Background(t.SurfaceHover).
 				Padding(12, 16, 12, 16).Children(func() {
 				s.viewMarkdown(c, key+"-md", text, t)
+				s.viewAttachmentsInline(c, key+"-atts", atts)
 			})
 		})
 	case "system":
@@ -176,6 +187,7 @@ func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string) {
 	default:
 		ui.Column(c.Key(key)).FillWidth().Children(func() {
 			s.viewMarkdown(c, key+"-md", text, t)
+			s.viewAttachmentsInline(c, key+"-atts", atts)
 		})
 	}
 }
@@ -393,7 +405,7 @@ func (s *Shell) viewHistoricalTurn(c *ui.Context, key string, m map[string]any) 
 	role := str(m, "role")
 	blocks, _ := m["blocks"].([]any)
 	if len(blocks) == 0 {
-		s.viewMessageBubble(c, key, role, turnText(m))
+		s.viewMessageBubble(c, key, role, turnText(m), nil)
 		return
 	}
 	var prose strings.Builder
@@ -402,7 +414,7 @@ func (s *Shell) viewHistoricalTurn(c *ui.Context, key string, m map[string]any) 
 		if prose.Len() == 0 {
 			return
 		}
-		s.viewMessageBubble(c, key+"-p"+itoa("", part), role, prose.String())
+		s.viewMessageBubble(c, key+"-p"+itoa("", part), role, prose.String(), nil)
 		prose.Reset()
 		part++
 	}
@@ -446,11 +458,23 @@ func (s *Shell) viewComposerDock(c *ui.Context, connID, status, statusMsg string
 		ui.Column(c).FillWidth().Padding(12, 12, 4, 12).Children(func() {
 			ui.TextInput(c.Key("composer-input"), &s.composer).
 				FillWidth().Placeholder("Message the agent…")
+			s.viewAttachmentTray(c)
 		})
 		if connID != "" {
 			s.viewComposerSelectors(c, connID)
 		}
 		ui.Row(c).FillWidth().Padding(0, 8, 8, 8).Gap(8).AlignItems(ui.Center).Children(func() {
+			// Paperclip opens the host file dialog (upstream's attachment
+			// picker); staged files preview in viewAttachmentTray above.
+			paper := ui.Row(c.Key("attach-btn")).Width(30).Height(30).Radius(6).
+				AlignItems(ui.Center).Justify(ui.Center).Background(t.SurfaceHover).
+				Label("Attach file")
+			paper.Children(func() {
+				ui.Icon(c, iconPaperclip).Width(16).Height(16).TextColor(t.TextMuted)
+			})
+			if paper.Clicked() {
+				s.pickAttachment()
+			}
 			if hint := composerHint(status); hint != "" {
 				ui.Text(c, hint).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
 			}
@@ -460,7 +484,8 @@ func (s *Shell) viewComposerDock(c *ui.Context, connID, status, statusMsg string
 					s.cancelTurn(connID)
 				}
 			}
-			if ui.PrimaryButton(c.Key("send"), "Send").Disabled(s.composer == "").Clicked() {
+			if ui.PrimaryButton(c.Key("send"), "Send").
+				Disabled(s.composer == "" && len(s.stagedAttachments()) == 0).Clicked() {
 				s.sendPrompt(s.selectedConv)
 			}
 		})

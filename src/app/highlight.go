@@ -92,22 +92,22 @@ func keywordsFor(lang string) map[string]bool {
 
 var (
 	clikeKeywords = toSet(
-		"if else for while do switch case default break continue return goto "+
-			"func function fn def class struct interface type enum impl trait "+
-			"var let const new this self super import export package from as use "+
-			"public private protected static final abstract override async await "+
-			"try catch finally throw throws raise except with lambda yield "+
-			"nil null true false none and or not in is "+
-			"void int int8 int16 int32 int64 uint float32 float64 string bool byte rune "+
+		"if else for while do switch case default break continue return goto " +
+			"func function fn def class struct interface type enum impl trait " +
+			"var let const new this self super import export package from as use " +
+			"public private protected static final abstract override async await " +
+			"try catch finally throw throws raise except with lambda yield " +
+			"nil null true false none and or not in is " +
+			"void int int8 int16 int32 int64 uint float32 float64 string bool byte rune " +
 			"chan map range defer go select make len cap append copy delete",
 	)
 	pyKeywords = toSet(
-		"def class if elif else for while return import from as try except finally "+
-			"with lambda yield True False None and or not in is pass raise global "+
+		"def class if elif else for while return import from as try except finally " +
+			"with lambda yield True False None and or not in is pass raise global " +
 			"nonlocal assert del async await self",
 	)
 	shKeywords = toSet(
-		"if then else elif fi for while until do done case esac function return "+
+		"if then else elif fi for while until do done case esac function return " +
 			"export local readonly echo cd set unset source alias",
 	)
 	jsonKeywords = toSet("true false null")
