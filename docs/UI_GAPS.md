@@ -22,6 +22,13 @@
   （`c.After` 续帧，仅流式中跑），`TrackScroll` 跟随底部——**已在底部才跟随**，
   滚回历史的用户不被拽回（同上游 stick-to-bottom 的 at-bottom 守门）。
   打开会话即落在最新一条。（2026-10-15）
+- **P1-7（部分）Automations 工作台深度**（提交 9a12ea4）：Automations 从「列表 + 刷新」
+  升级为上游同构的两栏工作台——可选中列表 | 详情（状态 chip / 启用停用 / Run now·Edit·Delete /
+  Schedule 事实 / PROMPT / RUN HISTORY），行右键菜单（Run now / Enable↔Disable / Edit / Delete
+  带内联确认），创建/编辑表单（name/prompt/trigger/cron/timezone/agent/isolation/enabled，
+  接 `automation_create`/`automation_update` 的 `{draft:{…}}` 契约），运行历史（状态/起止/时长/
+  错误·摘要/Cancel），空态引导 + New automation。修复 cancel 未失效 runs 缓存导致运行行不刷新。
+  **tasks / forge / canvas 三个面板的深度仍待补（P1-7 续）。**（2026-10-15）
 - **P1-6 侧栏搜索 + 会话右键菜单**（提交 d714778）：侧栏加会话搜索框（标题子串过滤、
   不区分大小写、✕ 清空、无命中提示 "No matches"）；每个会话行挂右键菜单
   `Rename / Pin↔Unpin / Delete`（Delete 走软删），与详情头部动作同源
@@ -62,7 +69,8 @@
 
 5. ~~**无流式打字光标 / 自动滚动到底**。长回复时看不到「正在输出」。~~（已完成 2026-10-15，提交 c6454b8，见「已修复」。）
 6. ~~**侧栏无搜索 / 重命名 / 删除的右键菜单**。~~（已完成 2026-10-15，提交 d714778，见「已修复」。）
-7. **工作台深度**：automations/tasks/forge/canvas 多为「列表 + 基本动作」，缺详情/编辑/空态引导。
+7. **工作台深度**：~~automations~~ / tasks / forge / canvas 多为「列表 + 基本动作」，缺详情/编辑/空态引导。
+   （automations 已完成 2026-10-15，提交 9a12ea4；**tasks / forge / canvas 待办**。）
 8. **设置页深度**：16 页里若干只有开关/列表，缺表单校验、状态反馈、帮助文案。
 9. **无 i18n**。上游有 12+ 语言包；现在全英文硬编码。
 
