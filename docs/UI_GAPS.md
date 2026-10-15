@@ -6,7 +6,14 @@
 > 按对「可用」的影响排序，供后续逐项补齐。上游前端参考：`_upstream/ref/src/components/`
 > （settings 117 文件 / message 98 / layout 77 / chat 62 …）。
 
-## 已修复（2026-10-14 续）
+## 已修复（2026-10-14 续 + 2026-10-15）
+
+- **P0-1 代码块语法高亮 + 复制**（提交 39eb948）。
+- **P0-2 composer 模型/模式选择器**（提交 d9ae47c）：composer 加 Mode/Model pill 行,
+  接 `session/set_mode` / `set_config_option`。
+- **P0-3 工具卡 diff / 文件改动渲染**（提交 0a88105）：Edit/Write/Read/Bash 工具卡渲染
+  结构化内容——编辑类着色统一 diff(红绿 + 行号)、读/写高亮代码、bash 渲染命令+输出,
+  不再纯文本 dump。（2026-10-15）
 
 - **后端错误裸 JSON 泄漏**：连不上 agent 时，聊天区直接显示
   `connect failed: acp_connect: {"code":"dependency_missing",...}`。现在 `apiError`
@@ -35,12 +42,9 @@
 
 ### P0 — 直接影响「能不能用」
 
-1. **代码块无语法高亮、无复制按钮**。agent 输出以代码为主；现在 monospace 平铺。上游用
-   Shiki/Streamdown 高亮。→ 至少加「复制」按钮 + 语言标签（语言标签已有）。
-2. **composer 无模型/模式选择器**。上游 composer 有 agent 选择、model、mode（`session/set_mode`
-   /`session/set_config_option` 端口都有）。现在只能选 agent，不能切模型/模式。
-3. **工具卡不渲染 diff / 文件改动**。Edit/Write 类工具的输出现在是纯文本；上游有 diff 视图
-   （`components/diff/`）。changes 路由有 diff，但**会话内的工具卡没有**。
+1. **代码块高亮+复制**（已完成 2026-10-15，提交 39eb948，见「已修复」）。
+2. **composer 模型/模式选择器**（已完成 2026-10-15，提交 d9ae47c，见「已修复」）。
+3. **工具卡 diff / 文件改动**（已完成 2026-10-15，提交 0a88105，见「已修复」）。
 4. **无附件/图片**。上游 composer 支持贴图/附件（`upload_attachment` 端口已有，UI 未接）。
 
 ### P1 — 明显影响体验
@@ -60,11 +64,8 @@
 
 ## 建议的推进顺序
 
-1. 代码块复制 + 语法高亮（P0-1）—— 影响最大、最直观。
-2. composer 模型/模式选择器（P0-2）—— 接 `session/set_mode`/`set_config_option`。
-3. 工具卡内 diff 渲染（P0-3）—— 复用 changes 路由的 diff 渲染。
-4. 附件/图片（P0-4）—— 接 `upload_attachment`。
-5. 流式光标 + 自动滚动（P1-5）。
-6. 其余 P1/P2 逐项。
+1. 附件/图片（P0-4）—— 接 `upload_attachment`。
+2. 流式光标 + 自动滚动（P1-5）。
+3. 其余 P1/P2 逐项。
 
 > 注：本文档只列 UI（前端）缺口；后端路由/契约层的剩余项见 `docs/ROUTE_INVENTORY.md`。
