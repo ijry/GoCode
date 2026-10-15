@@ -317,50 +317,6 @@ func (s *Shell) viewRoutePlaceholder(c *ui.Context, route string) {
 	ui.Text(c, hints[route]).TextColor(t.TextMuted).Wrap()
 }
 
-// viewCanvas lists the spatial canvas boards (canvas_list_boards), each with a
-// node/terminal count — upstream's Canvas overview.
-func (s *Shell) viewCanvas(c *ui.Context) {
-	t := c.Theme()
-	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Canvas").FontSize(22).Bold()
-		ui.Spacer(c)
-		if ui.Button(c.Key("cv-refresh2"), "Refresh").Clicked() {
-			s.invalidate("canvas-boards")
-		}
-	})
-	ui.Text(c, "Spatial boards of conversations, notes and terminals.").FontSize(12).TextColor(t.TextMuted)
-	list := asList(s.ensure("canvas-boards", "canvas_list_boards", nil))
-	if list == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
-		return
-	}
-	if len(list) == 0 {
-		ui.Text(c, "No canvas boards yet.").FontSize(12).TextColor(t.TextMuted)
-		return
-	}
-	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Gap(6).Children(func() {
-			for i, item := range list {
-				board := asObjVal(item["board"])
-				name := firstNonEmpty(str(board, "name"), "(untitled board)")
-				desc := str(board, "description")
-				nodes := intOf(item["node_count"])
-				terms := intOf(item["terminal_count"])
-				ui.Column(c.Key(itoa("cvb", i))).Gap(2).Padding(10).Background(t.Surface).Radius(8).Children(func() {
-					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, name).Bold().MaxLines(1)
-						ui.Spacer(c)
-						ui.Textf(c, "%d node(s) · %d terminal(s)", nodes, terms).FontSize(11).TextColor(t.TextMuted)
-					})
-					if desc != "" {
-						ui.Text(c, desc).FontSize(12).TextColor(t.TextMuted).MaxLines(2).Wrap()
-					}
-				})
-			}
-		})
-	})
-}
-
 // asObjVal converts an already-decoded value into an object, or nil.
 func asObjVal(v any) map[string]any {
 	m, _ := v.(map[string]any)

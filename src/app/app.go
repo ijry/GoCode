@@ -126,6 +126,10 @@ type Shell struct {
 	taskConfirm         string            // To-dos: id awaiting delete confirmation ("" = none)
 	taskShowCanceled    bool              // To-dos: show canceled cards in the Done column
 	taskShowArchived    bool              // To-dos: show archived cards
+	canvasSel           string            // Canvas: open board id ("" = board list)
+	canvasEditor        *canvasEditor     // Canvas: new/rename board form (nil = closed)
+	canvasConfirm       string            // Canvas: board id awaiting delete confirmation ("" = none)
+	canvasSearch        string            // Canvas: board search box
 	petTab              string            // Pet section: sessions | sprite
 	fileDir             string            // Files route: current directory (workspace-relative)
 	fileSel             string            // Files route: selected file (workspace-relative)
