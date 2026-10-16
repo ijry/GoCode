@@ -70,7 +70,7 @@ func (s *Shell) viewCanvas(c *ui.Context) {
 	})
 
 	if list == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	boards := s.filterBoards(list)
@@ -178,7 +178,7 @@ func (s *Shell) viewCanvasBoard(c *ui.Context, boardID string) {
 	})
 	snap := asObj(s.ensure("canvas-nodes:"+boardID, "canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)}))
 	if snap == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	nodes := asListVal(snap["nodes"])

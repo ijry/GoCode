@@ -45,7 +45,7 @@ func (s *Shell) viewChanges(c *ui.Context) {
 			ui.Scroll(c).Grow(1).Padding(6).Children(func() {
 				ui.Column(c).Gap(1).Children(func() {
 					if files == nil {
-						ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+						loadingState(c, "")
 						return
 					}
 					if len(files) == 0 {
@@ -138,7 +138,7 @@ func (s *Shell) viewDiff(c *ui.Context, root string) {
 		return
 	}
 	if raw == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	var text string

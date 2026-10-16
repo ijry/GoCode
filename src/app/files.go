@@ -68,7 +68,7 @@ func (s *Shell) fileListLevel(c *ui.Context, root, curAbs string) {
 	t := c.Theme()
 	nodes := asList(s.ensure("ft:"+curAbs, "get_file_tree", map[string]any{"path": curAbs, "maxDepth": 1}))
 	if nodes == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if len(nodes) == 0 {
@@ -125,7 +125,7 @@ func (s *Shell) viewFilePreview(c *ui.Context, root string) {
 	}
 	if raw == nil {
 		ui.Text(c, s.fileSel).FontSize(12).Bold().MaxLines(1)
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	ui.Text(c, s.fileSel).FontSize(12).Bold().MaxLines(1)

@@ -65,7 +65,7 @@ func (s *Shell) viewAutomations(c *ui.Context) {
 	ui.Text(c, "Scheduled and event-driven agent runs.").FontSize(12).TextColor(t.TextMuted)
 
 	if list == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if len(list) == 0 && s.autoEditor == nil {
@@ -254,7 +254,7 @@ func (s *Shell) viewAutomationDetail(c *ui.Context, a map[string]any) {
 			ui.Text(c, "RUN HISTORY").FontSize(10).Bold().TextColor(t.TextMuted)
 			runs := asList(s.ensure("auto-runs:"+id, "automation_runs", map[string]any{"automationId": numOrString(id)}))
 			if runs == nil {
-				ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+				loadingState(c, "")
 			} else if len(runs) == 0 {
 				ui.Text(c, "No runs yet.").FontSize(12).TextColor(t.TextMuted)
 			} else {

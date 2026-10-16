@@ -49,12 +49,12 @@ func (s *Shell) viewSettingsQuickMessages(c *ui.Context) {
 		return
 	}
 
-	if e := s.errFor("quick-messages"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("quick-messages") != "" {
+		s.errorState(c, "quick-messages", nil)
 		return
 	}
 	if msgs == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if len(msgs) == 0 {

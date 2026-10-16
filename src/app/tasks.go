@@ -91,7 +91,7 @@ func (s *Shell) viewTasks(c *ui.Context) {
 	}
 
 	if list == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	ui.Row(c.Key("tk-toggles")).Gap(14).AlignItems(ui.Center).Children(func() {
@@ -307,7 +307,7 @@ func (s *Shell) viewTaskDetail(c *ui.Context, tk map[string]any) {
 			ui.Text(c, "ACTIVITY").FontSize(10).Bold().TextColor(t.TextMuted)
 			evs := asList(s.ensure("task-events:"+id, "work_task_events", map[string]any{"taskId": numOrString(id)}))
 			if evs == nil {
-				ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+				loadingState(c, "")
 			} else if len(evs) == 0 {
 				ui.Text(c, "No activity yet.").FontSize(12).TextColor(t.TextMuted)
 			} else {

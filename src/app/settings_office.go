@@ -18,13 +18,13 @@ func (s *Shell) viewSettingsOfficeTools(c *ui.Context) {
 	})
 	ui.Text(c, "Upstream merges this page into Skill Packs (Office tab); officecli is the bundled document helper.").
 		FontSize(11).TextColor(t.TextMuted).Wrap()
-	if e := s.errFor("officecli"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("officecli") != "" {
+		s.errorState(c, "officecli", nil)
 		return
 	}
 	info := asObj(s.ensure("officecli", "officecli_detect", nil))
 	if info == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {

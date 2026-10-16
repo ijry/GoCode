@@ -57,9 +57,9 @@ func (s *Shell) viewSettings(c *ui.Context) {
 			ui.Text(c, cat(c).SectionSettings()).FontSize(12).Bold().TextColor(t.TextMuted)
 			ui.Scroll(c).Grow(1).Children(func() {
 				ui.Sidebar(c, &s.settingsPage, func() {
-				for _, p := range settingsPages {
-					ui.SidebarItem(c, p.id, nil, p.label(cat(c)))
-				}
+					for _, p := range settingsPages {
+						ui.SidebarItem(c, p.id, nil, p.label(cat(c)))
+					}
 				})
 			})
 		})
@@ -133,12 +133,12 @@ func (s *Shell) viewSettingsGeneral(c *ui.Context) {
 	s.viewLanguageSection(c)
 
 	cfg := asObj(s.ensure("sys-lang", "get_system_language_settings", nil))
-	if e := s.errFor("sys-lang"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("sys-lang") != "" {
+		s.errorState(c, "sys-lang", nil)
 		return
 	}
 	if cfg == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	lang := str(cfg, "language")
@@ -161,8 +161,8 @@ func (s *Shell) viewSettingsWebService(c *ui.Context) {
 			s.invalidate("web-status")
 		})
 	})
-	if e := s.errFor("web-status"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("web-status") != "" {
+		s.errorState(c, "web-status", nil)
 		return
 	}
 	// get_web_server_status returns null when stopped, else {port, token,
@@ -213,12 +213,12 @@ func (s *Shell) viewSettingsAgents(c *ui.Context) {
 			s.invalidate("agents")
 		})
 	})
-	if e := s.errFor("agents"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("agents") != "" {
+		s.errorState(c, "agents", nil)
 		return
 	}
 	if agents == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	ui.Textf(c, "%d agents in the built-in catalog", len(agents)).FontSize(12).TextColor(t.TextMuted)
@@ -316,12 +316,12 @@ func (s *Shell) viewSettingsMCP(c *ui.Context) {
 			s.invalidate("mcp-scan")
 		}
 	})
-	if e := s.errFor("mcp-scan"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("mcp-scan") != "" {
+		s.errorState(c, "mcp-scan", nil)
 		return
 	}
 	if data == nil {
-		ui.Text(c, "Scanning…").TextColor(t.TextMuted)
+		loadingState(c, "Scanning…")
 		return
 	}
 	servers, _ := data["servers"].([]any)
@@ -377,7 +377,7 @@ func (s *Shell) viewSettingsLogs(c *ui.Context) {
 	}
 	ui.Text(c, "Log files").FontSize(13).Bold()
 	if files == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if len(files) == 0 {
@@ -448,12 +448,12 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 	res := asObj(s.ensure(key, "acp_list_agent_skills", map[string]any{
 		"agentType": s.skillsAgent,
 	}))
-	if e := s.errFor(key); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor(key) != "" {
+		s.errorState(c, key, nil)
 		return
 	}
 	if res == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if supported, _ := res["supported"].(bool); !supported {
@@ -519,7 +519,7 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 	})
 	custom := asList(s.ensure("custom-skills", "custom_list", nil))
 	if custom == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 	} else if len(custom) == 0 {
 		ui.Text(c, "No custom skills yet.").FontSize(12).TextColor(t.TextMuted)
 	} else {
@@ -583,7 +583,7 @@ func (s *Shell) viewSettingsChatChannels(c *ui.Context) {
 	ui.Text(c, "Outbound chat integrations (Lark / Telegram / WeChat).").FontSize(12).TextColor(t.TextMuted)
 	list := asList(s.ensure("chat-channels", "list_chat_channels", nil))
 	if list == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if len(list) == 0 {
@@ -623,7 +623,7 @@ func (s *Shell) viewSettingsComputerUse(c *ui.Context) {
 	ui.Text(c, "Computer Use").FontSize(22).Bold()
 	info := asObj(s.ensure("computer-available", "computer_available", nil))
 	if info == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	available := false
@@ -655,7 +655,7 @@ func (s *Shell) viewSettingsExperts(c *ui.Context) {
 	ui.Text(c, "Bundled expert skill packs. Enable per agent from the matrix.").FontSize(12).TextColor(t.TextMuted)
 	list := asList(s.ensure("experts-list", "experts_list", nil))
 	if list == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if len(list) == 0 {
@@ -690,8 +690,8 @@ func (s *Shell) viewSettingsAppearance(c *ui.Context) {
 		}
 	}
 	ui.Text(c, "Appearance").FontSize(22).Bold()
-	if e := s.errFor("appearance-mode"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("appearance-mode") != "" {
+		s.errorState(c, "appearance-mode", nil)
 		return
 	}
 

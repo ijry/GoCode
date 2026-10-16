@@ -108,12 +108,12 @@ func (s *Shell) viewPetPanel(c *ui.Context) {
 			s.invalidate("pet-sessions")
 		})
 	})
-	if e := s.errFor("pet-sessions"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("pet-sessions") != "" {
+		s.errorState(c, "pet-sessions", nil)
 		return
 	}
 	if payload == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if len(sessions) == 0 {

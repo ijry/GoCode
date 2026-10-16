@@ -16,17 +16,17 @@ func (s *Shell) viewSettingsScience(c *ui.Context) {
 		})
 	})
 	ui.Text(c, "Bundled science skill packs, installable per agent.").FontSize(12).TextColor(t.TextMuted)
-	if e := s.errFor("science-list"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("science-list") != "" {
+		s.errorState(c, "science-list", nil)
 		return
 	}
 	list := asList(s.ensure("science-list", "science_list", nil))
 	if list == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if len(list) == 0 {
-		ui.Text(c, "No science packs in this build.").FontSize(12).TextColor(t.TextMuted)
+		emptyState(c, iconInfo, "No science packs in this build.", "")
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {

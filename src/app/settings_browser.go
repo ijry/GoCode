@@ -20,14 +20,14 @@ func (s *Shell) viewSettingsBrowser(c *ui.Context) {
 			s.invalidate("browser-bridge")
 		})
 	})
-	if e := s.errFor("browser-tools"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+	if s.errFor("browser-tools") != "" {
+		s.errorState(c, "browser-tools", nil)
 		return
 	}
 	ui.Text(c, "Browser tools").FontSize(13).Bold()
 	ui.Text(c, "Let agents drive a loopback browser through the bridge.").FontSize(11).TextColor(t.TextMuted)
 	if settings == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	enabled := truthy(settings["enabled"])
@@ -38,7 +38,7 @@ func (s *Shell) viewSettingsBrowser(c *ui.Context) {
 	ui.Divider(c)
 	ui.Text(c, "Bridge").FontSize(13).Bold()
 	if status == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	ui.Row(c).Gap(8).Children(func() {

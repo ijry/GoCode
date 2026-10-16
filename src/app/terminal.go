@@ -45,7 +45,7 @@ func (s *Shell) viewTerminal(c *ui.Context) {
 		return
 	}
 	if snap == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if alive, _ := snap["alive"].(bool); !alive {

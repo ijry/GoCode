@@ -183,7 +183,7 @@ func (s *Shell) convList(c *ui.Context, which string) {
 func (s *Shell) foldersList(c *ui.Context, folders []map[string]any) {
 	t := c.Theme()
 	if folders == nil {
-		ui.Text(c, "Loading…").FontSize(12).TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	if len(folders) == 0 {

@@ -62,7 +62,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 			s.viewForgeNotice(c, "Could not read this folder's remote", msg, "")
 			return
 		}
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	remote := asObj(rawRemote)
@@ -106,7 +106,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 			s.viewForgeConnect(c, provider, host, s.errHintFor(identKey))
 			return
 		}
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	ui.Textf(c, "Signed in as %s", firstNonEmpty(str(ident, "username"), "(unknown)")).
@@ -154,7 +154,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 			s.viewForgeNotice(c, "Could not load issues", msg, s.errHintFor(issuesKey))
 			return
 		}
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		loadingState(c, "")
 		return
 	}
 	rows := asListVal(page["rows"])
