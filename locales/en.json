@@ -1,0 +1,120 @@
+{
+  "@@locale": "en",
+  "appTitle": "YoYoCode",
+  "appTagline": "Your agents, your workspace — pick up a chat or open a folder to begin.",
+
+  "statusConnecting": "connecting",
+  "statusConnected": "connected",
+  "sectionWorkspace": "Workspace",
+  "sectionSettings": "Settings",
+  "sectionPet": "Pet",
+  "routeImportSessions": "Import sessions",
+  "routeProjectBoot": "Project boot",
+
+  "navGeneral": "General",
+  "navAppearance": "Appearance",
+  "navAgents": "Agents",
+  "navVersionControl": "Version Control",
+  "navMCP": "MCP",
+  "navQuickMessages": "Quick Messages",
+  "navWebService": "Web Service",
+  "navServers": "Servers",
+  "navShortcuts": "Shortcuts",
+  "navSkills": "Skills",
+  "navSkillPacks": "Skill Packs",
+  "navExperts": "Experts",
+  "navScience": "Science",
+  "navOfficeTools": "Office Tools",
+  "navChatChannels": "Chat Channels",
+  "navCollaboration": "Collaboration",
+  "navComputerUse": "Computer Use",
+  "navBrowser": "Browser",
+  "navLogs": "Logs",
+  "navSystem": "System",
+
+  "loginTitle": "YoYoCode",
+  "loginHint": "Enter this server's access token to connect.",
+  "loginTokenPlaceholder": "Access token",
+  "loginConnect": "Connect",
+  "loginInvalid": "Invalid token",
+  "loginConnFailed": "Connection failed",
+  "loginTokenHint": "The token is shown under Settings → Web Service.",
+
+  "generalTitle": "General",
+  "generalInterfaceLanguage": "Interface language",
+  "languageSection": "Language",
+  "languageHelp": "The whole window — its own text, MyGo's controls and dialogs — follows the language you pick here.",
+  "languageFollowSystem": "Follow system language",
+
+  "actionRefresh": "Refresh",
+  "actionNewChat": "New chat",
+  "actionSend": "Send",
+  "actionCancel": "Cancel",
+  "actionEdit": "Edit",
+  "actionDelete": "Delete",
+  "actionConnect": "Connect",
+  "actionAddServer": "Add a server",
+  "actionRemove": "Remove",
+  "actionKeep": "Keep",
+
+  "sidebarChatsCount": "{count, plural, =0 {No chats} one {# chat} other {# chats}}",
+
+  "serversTitle": "Servers",
+  "serversHelp": "Connect this window to other YoYoCode servers. Switching swaps the whole workspace over — folders, conversations and panels all come from the server you pick.",
+  "serversActiveBadge": "Connected",
+  "serversLocalName": "Local workspace",
+  "serversLocalNote": "This computer's in-process backend.",
+  "serversLocalBadge": "Always available",
+  "serversNoTokenWarn": "No token saved — this server will ask for one after switching.",
+  "serversTokenSaved": "Token saved.",
+  "serversSavedConnections": "Saved connections",
+  "serversActiveRowBadge": "Active",
+  "serversAddForm": "Add a server",
+  "serversEditForm": "Edit connection",
+  "serversNameLabel": "Name",
+  "serversAddressLabel": "Address",
+  "serversTokenLabel": "Access token",
+  "serversTokenHelp": "The token is optional: a server that needs one shows its login screen right after the switch, and what you type there is saved back here.",
+  "serversSaveConnect": "Save & connect",
+  "serversAddressPlaceholder": "http://192.168.1.9:8787",
+  "serversNamePlaceholder": "Home studio box",
+  "serversTokenPlaceholder": "from the server's Settings → Web Service",
+  "serversSwitchFailed": "Could not reach {name}: {reason}",
+  "serversTokenRejected": "{name} rejected the saved token. Edit the connection and paste a current one.",
+  "@serversSwitchFailed": {
+    "description": "The Servers page, when a server did not answer the health check.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Studio box" },
+      "reason": { "type": "String", "example": "dial tcp: connection refused" }
+    }
+  },
+  "@serversTokenRejected": {
+    "description": "The Servers page, when a server answered 401 to the saved token.",
+    "placeholders": {
+      "name": { "type": "String", "example": "Studio box" }
+    }
+  },
+
+  "autoNextRun": "Next run: {when}",
+  "autoLastRun": "Last run: {when}",
+  "autoNever": "never",
+  "tasksUpdated": "Updated: {when}",
+  "@autoNextRun": {
+    "description": "The automation detail, the schedule fact of the next run.",
+    "placeholders": {
+      "when": { "type": "String", "example": "10/16/26, 09:30" }
+    }
+  },
+  "@autoLastRun": {
+    "description": "The automation detail, the schedule fact of the last run.",
+    "placeholders": {
+      "when": { "type": "String", "example": "10/16/26, 09:30" }
+    }
+  },
+  "@tasksUpdated": {
+    "description": "The to-do detail, when the task last changed.",
+    "placeholders": {
+      "when": { "type": "String", "example": "10/16/26, 09:30" }
+    }
+  }
+}

@@ -29,7 +29,7 @@ func (s *Shell) viewWorkspace(c *ui.Context) {
 			// rows, so they live on the bottom chrome in this single-window
 			// build instead.
 			ui.Column(c.Key("ws-nav")).PaddingX(10).PaddingY(10).Gap(2).Children(func() {
-				s.navRow(c, "nav-newchat", iconNewChat, "New chat", false, func() {
+				s.navRow(c, "nav-newchat", iconNewChat, cat(c).ActionNewChat(), false, func() {
 					s.workbench = ""
 					s.createChatConversation()
 				})
@@ -164,6 +164,7 @@ func (s *Shell) convList(c *ui.Context, which string) {
 		list = pinned
 		emptyHint = "No pinned chats"
 	}
+	ui.Text(c, cat(c).SidebarChatsCount(len(list))).FontSize(11).TextColor(t.TextMuted)
 	if strings.TrimSpace(s.sidebarSearch) != "" {
 		emptyHint = "No matches"
 	}
@@ -442,7 +443,7 @@ func (s *Shell) viewConversationDetail(c *ui.Context) {
 					FontSize(13).TextColor(t.TextMuted)
 			})
 			ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-				if ui.PrimaryButton(c.Key("welcome-newchat"), "New chat").Clicked() {
+				if ui.PrimaryButton(c.Key("welcome-newchat"), cat(c).ActionNewChat()).Clicked() {
 					s.workbench = ""
 					s.createChatConversation()
 				}

@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 )
 
@@ -236,13 +237,13 @@ func (s *Shell) viewAutomationDetail(c *ui.Context, a map[string]any) {
 			ui.Column(c.Key("au-facts")).Gap(4).Children(func() {
 				if trigger == "schedule" && cron != "" {
 					ui.Textf(c, "Trigger: every cron %s (%s)", cron, firstNonEmpty(str(a, "timezone"), "UTC")).FontSize(13).TextColor(t.TextMuted)
-					ui.Textf(c, "Next run: %s", firstNonEmpty(autoAbsTime(nextRun), "—")).FontSize(13).TextColor(t.TextMuted)
+					ui.Text(c, cat(c).AutoNextRun(firstNonEmpty(autoAbsTime(nextRun, c.Locale()), "—"))).FontSize(13).TextColor(t.TextMuted)
 				} else {
 					ui.Text(c, "Trigger: manual").FontSize(13).TextColor(t.TextMuted)
 				}
 				ui.Textf(c, "Agent: %s", firstNonEmpty(agent, "—")).FontSize(13).TextColor(t.TextMuted)
 				ui.Textf(c, "Isolation: %s", firstNonEmpty(isolation, "—")).FontSize(13).TextColor(t.TextMuted)
-				ui.Textf(c, "Last run: %s", firstNonEmpty(autoAbsTime(lastRun), "never")).FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, cat(c).AutoLastRun(firstNonEmpty(autoAbsTime(lastRun, c.Locale()), cat(c).AutoNever()))).FontSize(13).TextColor(t.TextMuted)
 			})
 
 			// Prompt.
@@ -278,7 +279,7 @@ func (s *Shell) automationRunRow(c *ui.Context, r map[string]any, key, autoID st
 	ended := str(r, "ended_at")
 	ui.Row(c.Key(key)).Gap(8).AlignItems(ui.Center).Children(func() {
 		autoStatusChip(c, key+"-chip", status)
-		line := autoAbsTime(started)
+		line := autoAbsTime(started, c.Locale())
 		if d := autoDuration(started, ended); d != "" {
 			line += " · " + d
 		}
@@ -655,7 +656,7 @@ func relTimeFuture(iso string, now time.Time) string {
 }
 
 // autoAbsTime formats a timestamp for the detail pane, or "" when absent.
-func autoAbsTime(iso string) string {
+func autoAbsTime(iso, locale string) string {
 	if iso == "" {
 		return ""
 	}
@@ -663,7 +664,10 @@ func autoAbsTime(iso string) string {
 	if err != nil {
 		return iso
 	}
-	return ts.Local().Format("2006-01-02 15:04")
+	if locale == "" {
+		locale = "en"
+	}
+	return i18n.FormatDate(locale, ts.Local(), i18n.DateOptions{Date: i18n.ShortStyle, Time: i18n.ShortStyle})
 }
 
 // autoDuration is the human run length between two timestamps, or "".

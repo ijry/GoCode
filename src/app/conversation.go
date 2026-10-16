@@ -535,7 +535,7 @@ func (s *Shell) viewComposerDock(c *ui.Context, connID, status, statusMsg string
 					s.cancelTurn(connID)
 				}
 			}
-			if ui.PrimaryButton(c.Key("send"), "Send").
+			if ui.PrimaryButton(c.Key("send"), cat(c).ActionSend()).
 				Disabled(s.composer == "" && len(s.stagedAttachments()) == 0).Clicked() {
 				s.sendPrompt(s.selectedConv)
 			}

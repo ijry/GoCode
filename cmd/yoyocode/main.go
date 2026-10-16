@@ -30,6 +30,11 @@ import (
 	"yoyocode/src-go/db"
 	"yoyocode/src-go/web"
 	"yoyocode/src-go/web/handlers"
+
+	// The catalogs' languages become the app's: importing the generated
+	// package registers them with package i18n (and links MyGo's own
+	// translations for them).
+	"yoyocode/locales"
 )
 
 // bootBackend starts the web server on 127.0.0.1:<random> and returns an
@@ -85,11 +90,16 @@ func main() {
 	shell := app.New(b)
 
 	mygo.App.WhenReady(func() {
-		mygo.NewWindow(mygo.WindowOptions{
-			Title:   "YoYoCode",
+		win := mygo.NewWindow(mygo.WindowOptions{
+			Title:   locales.AppTitle(), // said again when the language changes
 			Width:   1240,
 			Height:  820,
 			Content: ui.View(shell.View),
+		})
+		// The window's title is set once; hear the language change and say it
+		// again, the way the i18n docs describe for one-time labels.
+		mygo.App.OnLocaleChanged(func(string) {
+			win.SetTitle(locales.AppTitle())
 		})
 	})
 	if err := mygo.App.Run(); err != nil {

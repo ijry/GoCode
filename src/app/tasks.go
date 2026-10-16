@@ -300,7 +300,7 @@ func (s *Shell) viewTaskDetail(c *ui.Context, tk map[string]any) {
 				if fe := firstNonEmpty(str(tk, "failure_reason"), str(tk, "last_error")); fe != "" {
 					ui.Textf(c, "Error: %s", fe).FontSize(13).TextColor(t.Danger).Wrap()
 				}
-				ui.Textf(c, "Updated: %s", firstNonEmpty(autoAbsTime(str(tk, "updated_at")), "—")).FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, cat(c).TasksUpdated(firstNonEmpty(autoAbsTime(str(tk, "updated_at"), c.Locale()), "—"))).FontSize(13).TextColor(t.TextMuted)
 			})
 
 			// Events timeline.
@@ -315,7 +315,7 @@ func (s *Shell) viewTaskDetail(c *ui.Context, tk map[string]any) {
 					for _, ev := range evs {
 						ui.Textf(c, "%s · %s · %s", firstNonEmpty(str(ev, "kind"), "event"),
 							firstNonEmpty(str(ev, "actor"), "system"),
-							firstNonEmpty(autoAbsTime(str(ev, "created_at")), "—")).
+							firstNonEmpty(autoAbsTime(str(ev, "created_at"), c.Locale()), "—")).
 							FontSize(12).TextColor(t.TextMuted)
 					}
 				})

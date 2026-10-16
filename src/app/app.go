@@ -428,10 +428,10 @@ func (s *Shell) viewStatusBar(c *ui.Context) {
 	t := c.Theme()
 	connected := s.stream != nil && s.stream.isReady()
 	dot := t.TextMuted
-	label := "connecting"
+	label := cat(c).StatusConnecting()
 	if connected {
 		dot = t.Success
-		label = "connected"
+		label = cat(c).StatusConnected()
 	}
 	ui.Row(c.Key("statusbar")).Background(t.Surface).PaddingX(12).PaddingY(5).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "\u25CF").FontSize(9).TextColor(dot)
@@ -439,7 +439,7 @@ func (s *Shell) viewStatusBar(c *ui.Context) {
 		// Active server: a button because the whole workspace can be swapped to
 		// another one from Settings → Servers (single window, no second window).
 		srv := s.activeProfile()
-		if ui.Button(c.Key("sb-server"), srv.Name).Clicked() {
+		if ui.Button(c.Key("sb-server"), s.serverDisplayName(c, srv)).Clicked() {
 			s.section = "settings"
 			s.settingsPage = "servers"
 		}
@@ -448,8 +448,8 @@ func (s *Shell) viewStatusBar(c *ui.Context) {
 		// The two full-screen routes upstream opens as SEPARATE windows (never
 		// sidebar rows) are listed here in the single-window build.
 		for _, item := range []struct{ route, label string }{
-			{"import-sessions", "Import sessions"},
-			{"project-boot", "Project boot"},
+			{"import-sessions", cat(c).RouteImportSessions()},
+			{"project-boot", cat(c).RouteProjectBoot()},
 		} {
 			active := s.section == "workspace" && s.workbench == item.route
 			var clicked bool
@@ -467,9 +467,9 @@ func (s *Shell) viewStatusBar(c *ui.Context) {
 		// Section switcher: the single-window stand-in for the separate
 		// settings / pet routes upstream opens.
 		for _, item := range []struct{ id, label string }{
-			{"workspace", "Workspace"},
-			{"settings", "Settings"},
-			{"pet", "Pet"},
+			{"workspace", cat(c).SectionWorkspace()},
+			{"settings", cat(c).SectionSettings()},
+			{"pet", cat(c).SectionPet()},
 		} {
 			active := s.section == item.id
 			var clicked bool

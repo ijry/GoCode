@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+
+	"yoyocode/locales"
 )
 
 // serverProfile is a saved server connection: where it lives and the token to
@@ -84,6 +86,16 @@ func (s *Shell) localProfile() serverProfile {
 	return serverProfile{ID: localServerID, Name: "Local workspace", URL: s.localURL, Token: s.localToken}
 }
 
+// serverDisplayName says a connection's name in the window's language: the
+// local connection's is a catalog message, a saved remote's is what the user
+// typed.
+func (s *Shell) serverDisplayName(c *ui.Context, p serverProfile) string {
+	if p.ID == localServerID {
+		return cat(c).ServersLocalName()
+	}
+	return p.Name
+}
+
 // profileByID resolves a connection id to its profile (local included).
 func (s *Shell) profileByID(id string) (serverProfile, bool) {
 	if id == localServerID {
@@ -123,9 +135,9 @@ func (s *Shell) switchServer(id string) {
 		s.mu.Lock()
 		switch {
 		case err != nil:
-			s.srvErr = "Could not reach " + p.Name + ": " + err.Error()
+			s.srvErr = locales.ServersSwitchFailed(p.Name, err.Error())
 		case !ok && status == http.StatusUnauthorized:
-			s.srvErr = p.Name + " rejected the saved token. Edit the connection and paste a current one."
+			s.srvErr = locales.ServersTokenRejected(p.Name)
 		case !ok:
 			s.srvErr = fmt.Sprintf("%s answered %d to the health check.", p.Name, status)
 		default:
@@ -276,33 +288,30 @@ func normalizeServerURL(raw string) (string, error) {
 func (s *Shell) viewSettingsServers(c *ui.Context) {
 	t := c.Theme()
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Servers").FontSize(22).Bold()
+		ui.Text(c, cat(c).ServersTitle()).FontSize(22).Bold()
 	})
-	ui.Text(c, "Connect this window to other YoYoCode servers. Switching swaps the whole "+
-		"workspace over — folders, conversations and panels all come from the server you pick.").
-		FontSize(12).TextColor(t.TextMuted).Wrap()
+	ui.Text(c, cat(c).ServersHelp()).FontSize(12).TextColor(t.TextMuted).Wrap()
 
 	// Active connection.
 	active := s.activeProfile()
 	ui.Column(c.Key("srv-active")).Gap(2).Padding(10).Margin(8, 0, 0, 0).Background(t.Surface).Radius(8).Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Box(c).Width(8).Height(8).Radius(4).Background(t.Success)
-			ui.Text(c, active.Name).Bold()
+			ui.Text(c, s.serverDisplayName(c, active)).Bold()
 			ui.Spacer(c)
-			ui.Text(c, "Connected").FontSize(11).TextColor(t.Success)
+			ui.Text(c, cat(c).ServersActiveBadge()).FontSize(11).TextColor(t.Success)
 		})
 		ui.Text(c, active.URL).FontSize(12).TextColor(t.TextMuted).MaxLines(1)
 		if active.ID == localServerID {
-			ui.Text(c, "This computer's in-process backend.").FontSize(11).TextColor(t.TextMuted)
+			ui.Text(c, cat(c).ServersLocalNote()).FontSize(11).TextColor(t.TextMuted)
 		} else if active.Token == "" {
-			ui.Text(c, "No token saved — this server will ask for one after switching.").
-				FontSize(11).TextColor(t.Danger)
+			ui.Text(c, cat(c).ServersNoTokenWarn()).FontSize(11).TextColor(t.Danger)
 		} else {
-			ui.Text(c, "Token saved.").FontSize(11).TextColor(t.TextMuted)
+			ui.Text(c, cat(c).ServersTokenSaved()).FontSize(11).TextColor(t.TextMuted)
 		}
 	})
 
-	ui.Text(c, "Saved connections").FontSize(13).Bold().Margin(12, 0, 0, 0)
+	ui.Text(c, cat(c).ServersSavedConnections()).FontSize(13).Bold().Margin(12, 0, 0, 0)
 
 	// The local connection, always present and not removable.
 	s.serverRow(c, s.localProfile(), true)
@@ -322,20 +331,18 @@ func (s *Shell) viewSettingsServers(c *ui.Context) {
 	// Add / edit form.
 	if ed := s.srvEditor; ed != nil {
 		ui.Column(c.Key("srv-form")).Gap(8).Padding(12).Margin(8, 0, 0, 0).Background(t.Surface).Radius(8).Children(func() {
-			title := "Add a server"
+			title := cat(c).ServersAddForm()
 			if ed.id != "" {
-				title = "Edit connection"
+				title = cat(c).ServersEditForm()
 			}
 			ui.Text(c, title).FontSize(14).Bold()
-			ui.Text(c, "Name").FontSize(11).TextColor(t.TextMuted)
-			ui.TextInput(c.Key("srv-name"), &ed.name).Placeholder("Home studio box")
-			ui.Text(c, "Address").FontSize(11).TextColor(t.TextMuted)
-			ui.TextInput(c.Key("srv-url"), &ed.url).Placeholder("http://192.168.1.9:8787")
-			ui.Text(c, "Access token").FontSize(11).TextColor(t.TextMuted)
-			ui.TextInput(c.Key("srv-token"), &ed.token).Placeholder("from the server's Settings → Web Service")
-			ui.Text(c, "The token is optional: a server that needs one shows its login "+
-				"screen right after the switch, and what you type there is saved back here.").
-				FontSize(11).TextColor(t.TextMuted).Wrap()
+			ui.Text(c, cat(c).ServersNameLabel()).FontSize(11).TextColor(t.TextMuted)
+			ui.TextInput(c.Key("srv-name"), &ed.name).Placeholder(cat(c).ServersNamePlaceholder())
+			ui.Text(c, cat(c).ServersAddressLabel()).FontSize(11).TextColor(t.TextMuted)
+			ui.TextInput(c.Key("srv-url"), &ed.url).Placeholder(cat(c).ServersAddressPlaceholder())
+			ui.Text(c, cat(c).ServersTokenLabel()).FontSize(11).TextColor(t.TextMuted)
+			ui.TextInput(c.Key("srv-token"), &ed.token).Placeholder(cat(c).ServersTokenPlaceholder())
+			ui.Text(c, cat(c).ServersTokenHelp()).FontSize(11).TextColor(t.TextMuted).Wrap()
 			if ed.err != "" {
 				ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 					ui.Icon(c, iconAlert).Width(13).Height(13).TextColor(t.Danger)
@@ -343,17 +350,17 @@ func (s *Shell) viewSettingsServers(c *ui.Context) {
 				})
 			}
 			ui.Row(c).Gap(6).Children(func() {
-				if ui.PrimaryButton(c.Key("srv-save"), "Save & connect").Clicked() {
+				if ui.PrimaryButton(c.Key("srv-save"), cat(c).ServersSaveConnect()).Clicked() {
 					s.saveServerEditor()
 				}
-				if ui.Button(c.Key("srv-cancel"), "Cancel").Clicked() {
+				if ui.Button(c.Key("srv-cancel"), cat(c).ActionCancel()).Clicked() {
 					s.mu.Lock()
 					s.srvEditor = nil
 					s.mu.Unlock()
 				}
 			})
 		})
-	} else if ui.Button(c.Key("srv-add"), "Add a server").Clicked() {
+	} else if ui.Button(c.Key("srv-add"), cat(c).ActionAddServer()).Clicked() {
 		s.mu.Lock()
 		s.srvEditor = &serverEditor{}
 		s.srvErr = ""
@@ -379,36 +386,36 @@ func (s *Shell) serverRow(c *ui.Context, p serverProfile, local bool) {
 			return t.TextMuted
 		}())
 		ui.Column(c).Grow(1).Gap(1).Children(func() {
-			ui.Text(c, p.Name).MaxLines(1)
+			ui.Text(c, s.serverDisplayName(c, p)).MaxLines(1)
 			ui.Text(c, p.URL).FontSize(10).MaxLines(1).TextColor(t.TextMuted)
 		})
 		if local {
-			ui.Text(c, "Always available").FontSize(11).TextColor(t.TextMuted)
+			ui.Text(c, cat(c).ServersLocalBadge()).FontSize(11).TextColor(t.TextMuted)
 			return
 		}
 		if selected {
-			ui.Text(c, "Active").FontSize(11).TextColor(t.Success)
+			ui.Text(c, cat(c).ServersActiveRowBadge()).FontSize(11).TextColor(t.Success)
 		}
-		if !selected && ui.Button(c.Key("srv-connect-"+p.ID), "Connect").Clicked() {
+		if !selected && ui.Button(c.Key("srv-connect-"+p.ID), cat(c).ActionConnect()).Clicked() {
 			s.switchServer(p.ID)
 		}
-		if ui.Button(c.Key("srv-edit-"+p.ID), "Edit").Clicked() {
+		if ui.Button(c.Key("srv-edit-"+p.ID), cat(c).ActionEdit()).Clicked() {
 			s.mu.Lock()
 			s.srvEditor = &serverEditor{id: p.ID, name: p.Name, url: p.URL, token: p.Token}
 			s.srvErr = ""
 			s.mu.Unlock()
 		}
 		if s.srvConfirm == p.ID {
-			ui.Text(c, "Delete?").FontSize(11).TextColor(t.Danger)
-			if ui.Button(c.Key("srv-rm-ok-"+p.ID), "Remove").Clicked() {
+			ui.Text(c, cat(c).ActionDelete()+"?").FontSize(11).TextColor(t.Danger)
+			if ui.Button(c.Key("srv-rm-ok-"+p.ID), cat(c).ActionRemove()).Clicked() {
 				s.deleteServer(p.ID)
 			}
-			if ui.Button(c.Key("srv-rm-no-"+p.ID), "Keep").Clicked() {
+			if ui.Button(c.Key("srv-rm-no-"+p.ID), cat(c).ActionKeep()).Clicked() {
 				s.mu.Lock()
 				s.srvConfirm = ""
 				s.mu.Unlock()
 			}
-		} else if ui.Button(c.Key("srv-del-"+p.ID), "Delete").Clicked() {
+		} else if ui.Button(c.Key("srv-del-"+p.ID), cat(c).ActionDelete()).Clicked() {
 			s.mu.Lock()
 			s.srvConfirm = p.ID
 			s.mu.Unlock()

@@ -13,6 +13,8 @@ import (
 	"net/http"
 
 	"github.com/egoist/mygo/ui"
+
+	"yoyocode/locales"
 )
 
 // viewLogin renders the token gate.
@@ -20,21 +22,21 @@ func (s *Shell) viewLogin(c *ui.Context) {
 	t := c.Theme()
 	ui.Column(c).Fill().Center().Gap(14).Children(func() {
 		ui.Column(c).Center().Gap(6).Children(func() {
-			ui.Text(c, "YoYoCode").FontSize(26).Bold()
-			ui.Text(c, "Enter this server's access token to connect.").FontSize(13).TextColor(t.TextMuted)
+			ui.Text(c, cat(c).LoginTitle()).FontSize(26).Bold()
+			ui.Text(c, cat(c).LoginHint()).FontSize(13).TextColor(t.TextMuted)
 		})
 		ui.Column(c).Width(340).Gap(8).Children(func() {
 			ui.Row(c).Children(func() {
-				ui.TextInput(c.Key("login-token"), &s.loginToken).Placeholder("Access token").Grow(1)
+				ui.TextInput(c.Key("login-token"), &s.loginToken).Placeholder(cat(c).LoginTokenPlaceholder()).Grow(1)
 			})
 			if s.loginErr != "" {
 				ui.Text(c, s.loginErr).FontSize(12).TextColor(t.Danger).Wrap()
 			}
-			if ui.PrimaryButton(c.Key("login-connect"), "Connect").Disabled(s.loginToken == "").Clicked() {
+			if ui.PrimaryButton(c.Key("login-connect"), cat(c).LoginConnect()).Disabled(s.loginToken == "").Clicked() {
 				s.connectToken(s.loginToken)
 			}
 		})
-		ui.Text(c, "The token is shown under Settings → Web Service.").FontSize(11).TextColor(t.TextMuted)
+		ui.Text(c, cat(c).LoginTokenHint()).FontSize(11).TextColor(t.TextMuted)
 	})
 }
 
@@ -47,7 +49,7 @@ func (s *Shell) connectToken(token string) {
 		s.mu.Lock()
 		switch {
 		case err != nil:
-			s.loginErr = "Connection failed: " + err.Error()
+			s.loginErr = locales.LoginConnFailed() + ": " + err.Error()
 		case ok:
 			s.B.Token = token
 			s.loginErr = ""
@@ -56,9 +58,9 @@ func (s *Shell) connectToken(token string) {
 			s.persistActiveToken(token)
 			delete(s.cache, "appearance-mode")
 		case status == http.StatusUnauthorized:
-			s.loginErr = "Invalid token"
+			s.loginErr = locales.LoginInvalid()
 		default:
-			s.loginErr = fmt.Sprintf("Connection failed (%d)", status)
+			s.loginErr = fmt.Sprintf("%s (%d)", locales.LoginConnFailed(), status)
 		}
 		s.mu.Unlock()
 		svc.Invalidate()

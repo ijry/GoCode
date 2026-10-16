@@ -8,31 +8,37 @@ import (
 	"encoding/json"
 
 	"github.com/egoist/mygo/ui"
+
+	"yoyocode/locales"
 )
 
 // settingsPages is the upstream settings page tree (src/app/settings/*), in
-// sidebar order. id matches the upstream route segment.
-var settingsPages = []struct{ id, label string }{
-	{"general", "General"},
-	{"appearance", "Appearance"},
-	{"agents", "Agents"},
-	{"version-control", "Version Control"},
-	{"mcp", "MCP"},
-	{"quick-messages", "Quick Messages"},
-	{"web-service", "Web Service"},
-	{"servers", "Servers"},
-	{"shortcuts", "Shortcuts"},
-	{"skills", "Skills"},
-	{"skill-packs", "Skill Packs"},
-	{"experts", "Experts"},
-	{"science", "Science"},
-	{"office-tools", "Office Tools"},
-	{"chat-channels", "Chat Channels"},
-	{"collaboration", "Collaboration"},
-	{"computer-use", "Computer Use"},
-	{"browser", "Browser"},
-	{"logs", "Logs"},
-	{"system", "System"},
+// sidebar order. id matches the upstream route segment; the label comes from
+// the catalogs, so the navigation follows the app's language.
+var settingsPages = []struct {
+	id    string
+	label func(locales.Messages) string // method expression, said in the window's language
+}{
+	{"general", locales.Messages.GeneralTitle},
+	{"appearance", locales.Messages.NavAppearance},
+	{"agents", locales.Messages.NavAgents},
+	{"version-control", locales.Messages.NavVersionControl},
+	{"mcp", locales.Messages.NavMCP},
+	{"quick-messages", locales.Messages.NavQuickMessages},
+	{"web-service", locales.Messages.NavWebService},
+	{"servers", locales.Messages.NavServers},
+	{"shortcuts", locales.Messages.NavShortcuts},
+	{"skills", locales.Messages.NavSkills},
+	{"skill-packs", locales.Messages.NavSkillPacks},
+	{"experts", locales.Messages.NavExperts},
+	{"science", locales.Messages.NavScience},
+	{"office-tools", locales.Messages.NavOfficeTools},
+	{"chat-channels", locales.Messages.NavChatChannels},
+	{"collaboration", locales.Messages.NavCollaboration},
+	{"computer-use", locales.Messages.NavComputerUse},
+	{"browser", locales.Messages.NavBrowser},
+	{"logs", locales.Messages.NavLogs},
+	{"system", locales.Messages.NavSystem},
 }
 
 // settingsPlaceholderHints describe the pages whose panels have no backend yet,
@@ -48,12 +54,12 @@ func (s *Shell) viewSettings(c *ui.Context) {
 	ui.Row(c).Fill().Children(func() {
 		// Settings sub-navigation.
 		ui.Column(c.Key("set-nav")).Width(190).FillHeight().Background(t.Surface).Padding(10).Gap(2).Children(func() {
-			ui.Text(c, "Settings").FontSize(12).Bold().TextColor(t.TextMuted)
+			ui.Text(c, cat(c).SectionSettings()).FontSize(12).Bold().TextColor(t.TextMuted)
 			ui.Scroll(c).Grow(1).Children(func() {
 				ui.Sidebar(c, &s.settingsPage, func() {
-					for _, p := range settingsPages {
-						ui.SidebarItem(c, p.id, nil, p.label)
-					}
+				for _, p := range settingsPages {
+					ui.SidebarItem(c, p.id, nil, p.label(cat(c)))
+				}
 				})
 			})
 		})
@@ -98,7 +104,7 @@ func (s *Shell) viewSettings(c *ui.Context) {
 				label := s.settingsPage
 				for _, p := range settingsPages {
 					if p.id == s.settingsPage {
-						label = p.label
+						label = p.label(cat(c))
 					}
 				}
 				ui.Text(c, label).FontSize(22).Bold()
@@ -120,8 +126,13 @@ func (s *Shell) viewSettings(c *ui.Context) {
 
 func (s *Shell) viewSettingsGeneral(c *ui.Context) {
 	t := c.Theme()
+	ui.Text(c, cat(c).GeneralTitle()).FontSize(22).Bold()
+
+	// Language: the whole window follows this picker (our messages, MyGo's
+	// controls and dialogs). App-level, so it renders without the backend.
+	s.viewLanguageSection(c)
+
 	cfg := asObj(s.ensure("sys-lang", "get_system_language_settings", nil))
-	ui.Text(c, "General").FontSize(22).Bold()
 	if e := s.errFor("sys-lang"); e != "" {
 		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
 		return
@@ -135,7 +146,7 @@ func (s *Shell) viewSettingsGeneral(c *ui.Context) {
 		lang = "(system default)"
 	}
 	ui.Row(c).Gap(8).Children(func() {
-		ui.Text(c, "Interface language").TextColor(t.TextMuted)
+		ui.Text(c, cat(c).GeneralInterfaceLanguage()).TextColor(t.TextMuted)
 		ui.Text(c, lang).Bold()
 	})
 }
