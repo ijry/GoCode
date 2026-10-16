@@ -13,25 +13,41 @@
 package documents
 
 import (
-	"fmt"
 	"io"
-	"strings"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/editor"
 )
 
-// doc is the window of one document: the text its editor shows, plus the
-// mygo.Document and mygo.Window it is bound to.
+// doc is the window of one document: the mygo.Document, its mygo.Window, and
+// the code editor (buffer + state) that shows and edits the text.
 type doc struct {
-	doc  *mygo.Document[string]
-	win  *mygo.Window
-	text string
+	doc     *mygo.Document[string]
+	win     *mygo.Window
+	buf     *editor.Buffer
+	st      *editor.State
+	lastVer uint64 // the buffer version last pushed into the document
 }
 
 func (d *doc) view(c *ui.Context) {
 	t := c.Theme()
 	state := d.doc.State()
+
+	// Follow the buffer's edits into the document: the editor edits the buffer
+	// in place, so a version change is a keystroke. doc.Set marks the document
+	// edited, which triggers the debounced autosave; with Equal, an undo back to
+	// the file's text leaves it unedited again.
+	if v := d.buf.Version(); v != d.lastVer {
+		d.lastVer = v
+		d.doc.Set(d.buf.String())
+	}
+	// Highlight by the file's type, following a Save As that changes it (an
+	// untitled document has no path yet, so it stays plain text).
+	if want := editor.LanguageFor(state.Path); d.buf.Language() != want {
+		d.buf.SetLanguage(want)
+	}
+
 	ui.Column(c).Fill().Children(func() {
 		// Another app changed the file out from under us: offer to keep ours
 		// (overwrite) or take theirs (revert). mygo holds the document edited
@@ -47,16 +63,13 @@ func (d *doc) view(c *ui.Context) {
 				}
 			})
 		}
-		// The editor binds straight to d.text; every keystroke pushes the
-		// content into the document (which marks it edited and triggers the
-		// debounced autosave), and OnReload / OnStateChange push an external
-		// change or revert back into d.text.
-		ui.TextArea(c.Key("doc-text"), &d.text).Fill().Font("monospace").Label("Document").AutoFocus().
-			OnChange(func() { d.doc.Set(d.text) })
+		editor.View(c, d.st).Fill().Label("Document")
 		ui.Row(c).Padding(6, 12).Gap(12).Children(func() {
-			lines := strings.Count(d.text, "\n") + 1
-			ui.Text(c, fmt.Sprintf("%d words · %d lines", len(strings.Fields(d.text)), lines)).
-				FontSize(12).TextColor(t.TextMuted).Grow(1)
+			name := state.Path
+			if name == "" {
+				name = state.Name
+			}
+			ui.Text(c, name).FontSize(12).TextColor(t.TextMuted).Grow(1).MaxLines(1)
 			ui.Text(c, docStatusLabel(state)).FontSize(12).TextColor(t.TextMuted)
 		})
 	})
@@ -102,17 +115,24 @@ func Register() {
 		// primary surface, and documents are opened on demand.
 		NoUntitled: true,
 		Window: func(document *mygo.Document[string]) *mygo.Window {
-			d := &doc{doc: document, text: document.Content()}
+			d := &doc{doc: document, buf: editor.NewBuffer(document.Content())}
+			d.lastVer = d.buf.Version()
+			d.st = &editor.State{Buffer: d.buf}
 			win := mygo.NewWindow(mygo.WindowOptions{
 				Width:    760,
 				Height:   560,
 				StateKey: "document",
 				Content:  ui.View(d.view),
 			})
-			// Reverted, or changed by another app: show the file's text and
-			// repaint. OnStateChange repaints so the title's edited dot and the
-			// status line track the document.
-			document.OnReload(func() { d.text = document.Content(); win.Update(func() {}) })
+			d.win = win
+			// Reverted, or changed by another app: load the file's text afresh
+			// (forgetting the undo history) and repaint. OnStateChange repaints
+			// so the title's edited dot and the status line track the document.
+			document.OnReload(func() {
+				d.buf.Reset(document.Content())
+				d.lastVer = d.buf.Version()
+				win.Update(func() {})
+			})
 			document.OnStateChange(func(mygo.DocumentState) { win.Update(func() {}) })
 			return win
 		},
