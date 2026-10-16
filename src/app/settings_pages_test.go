@@ -58,3 +58,44 @@ func TestSettingsOfficeToolsPage(t *testing.T) {
 		}
 	}
 }
+
+// TestSettingsVersionControlPage exercises the version-control page with a
+// detected git and one GitHub account: the Git card shows the version, the
+// custom-path field is present, and the forge accounts card groups the account
+// under its provider with its scopes and saved-token state.
+func TestSettingsVersionControlPage(t *testing.T) {
+	s := settingsShellForTest(t, "version-control")
+	s.cache["git-detect"] = json.RawMessage(`{"installed":true,"version":"2.45.1","path":"/usr/bin/git"}`)
+	s.cache["git-settings"] = json.RawMessage(`{"custom_path":""}`)
+	s.cache["gh-accounts"] = json.RawMessage(`{"accounts":[{"id":"acct-1","provider":"github","server_url":"https://github.com","username":"octocat","scopes":["repo"]}]}`)
+	s.cache["acct-token:acct-1"] = json.RawMessage(`"ghp_exampletoken"`)
+	tt := ui.NewTester(s.View, 1240, 820)
+	for _, want := range []string{
+		"Git", "git 2.45.1", "Custom git path",
+		"Forge accounts", "GitHub", "octocat", "Scopes: repo",
+		"Token saved.", "Test", "Delete", "Add account",
+	} {
+		if !tt.HasText(want) {
+			t.Errorf("version-control page missing %q; texts = %v", want, tt.Texts())
+		}
+	}
+}
+
+// TestSettingsVersionControlEmpty covers the two honest states the page must
+// render without a backend: no git detected (the alert branch) and no forge
+// accounts yet (the empty branch).
+func TestSettingsVersionControlEmpty(t *testing.T) {
+	s := settingsShellForTest(t, "version-control")
+	s.cache["git-detect"] = json.RawMessage(`{"installed":false}`)
+	s.cache["git-settings"] = json.RawMessage(`{"custom_path":""}`)
+	s.cache["gh-accounts"] = json.RawMessage(`{"accounts":[]}`)
+	tt := ui.NewTester(s.View, 1240, 820)
+	for _, want := range []string{
+		"Git", "No git found", "Custom git path",
+		"Forge accounts", "No forge accounts yet.", "Add account",
+	} {
+		if !tt.HasText(want) {
+			t.Errorf("version-control empty page missing %q; texts = %v", want, tt.Texts())
+		}
+	}
+}

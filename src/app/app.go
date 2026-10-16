@@ -161,6 +161,14 @@ type Shell struct {
 	srvEditor           *serverEditor     // Settings → Servers: add/edit form (nil = closed)
 	srvErr              string            // Settings → Servers: last add/switch failure (inline)
 	srvConfirm          string            // Settings → Servers: profile id awaiting delete confirmation
+	gitCustomPath       string            // Settings → Version Control: custom git path input
+	gitTestOK           *bool             // Settings → Version Control: last test_git_path result (nil = untested)
+	gitTestMsg          string            // Settings → Version Control: why the last test failed
+	vcTesting           string            // Settings → Version Control: account id being validated
+	vcRotate            string            // Settings → Version Control: account id whose token form is open
+	vcRotateToken       string            // Settings → Version Control: the new token typed in it
+	vcRemove            string            // Settings → Version Control: account id awaiting removal confirmation
+	vcAdd               *vcAddForm        // Settings → Version Control: add-account form (nil = closed)
 	epoch               uint64            // bumped on every backend switch; stale fetches are dropped
 	newSkillID          string            // Settings → Skills: new custom-skill id input
 	agentVer            map[string]string // Settings → Agents: last detected installed version

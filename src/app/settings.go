@@ -289,50 +289,6 @@ func (s *Shell) checkAgentVersion(agentType string) {
 	}()
 }
 
-func (s *Shell) viewSettingsVersionControl(c *ui.Context) {
-	t := c.Theme()
-	git := asObj(s.ensure("git-settings", "get_git_settings", nil))
-	accts := asObj(s.ensure("gh-accounts", "get_github_accounts", nil))
-	ui.Text(c, "Version Control").FontSize(22).Bold()
-	ui.Row(c).Gap(8).Children(func() {
-		ui.Text(c, "Custom git path").TextColor(t.TextMuted)
-		p := "(system git)"
-		if git != nil {
-			if v := str(git, "custom_path"); v != "" {
-				p = v
-			}
-		}
-		ui.Text(c, p).Bold()
-	})
-	ui.Spacer(c).Height(4)
-	ui.Text(c, "Forge accounts").FontSize(13).Bold()
-	var list []any
-	if accts != nil {
-		list, _ = accts["accounts"].([]any)
-	}
-	if len(list) == 0 {
-		ui.Text(c, "No accounts configured").FontSize(12).TextColor(t.TextMuted)
-		return
-	}
-	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Gap(6).Children(func() {
-			for i, raw := range list {
-				a, _ := raw.(map[string]any)
-				ui.Column(c.Key(itoa("gh", i))).Gap(2).Padding(10).Background(t.Surface).Radius(8).Children(func() {
-					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, firstNonEmpty(str(a, "label"), str(a, "username"), str(a, "id"))).Bold()
-						ui.Spacer(c)
-						ui.Text(c, firstNonEmpty(str(a, "provider"), str(a, "forge"))).FontSize(11).TextColor(t.TextMuted)
-					})
-					if host := firstNonEmpty(str(a, "server_url"), str(a, "serverUrl"), str(a, "host")); host != "" {
-						ui.Text(c, host).FontSize(12).TextColor(t.TextMuted)
-					}
-				})
-			}
-		})
-	})
-}
-
 func (s *Shell) viewSettingsSystem(c *ui.Context) {
 	t := c.Theme()
 	ui.Text(c, "System").FontSize(22).Bold()
