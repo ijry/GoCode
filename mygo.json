@@ -4,5 +4,9 @@
   "version": "0.1.0",
   "main": "./cmd/yoyocode",
   "out": "build/app",
-  "i18n": { "dir": "locales", "source": "en" }
+  "i18n": { "dir": "locales", "source": "en" },
+  "fileAssociations": [
+    { "ext": ["md", "markdown"], "name": "Markdown Document", "mimeType": "text/markdown" },
+    { "ext": ["txt"], "name": "Plain Text", "mimeType": "text/plain" }
+  ]
 }

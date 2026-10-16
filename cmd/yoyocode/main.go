@@ -25,6 +25,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"yoyocode/src/app"
+	"yoyocode/src/documents"
 
 	appstate "yoyocode/src-go/app_state"
 	"yoyocode/src-go/db"
@@ -88,6 +89,13 @@ func main() {
 		log.Fatalf("[yoyocode] %v", err)
 	}
 	shell := app.New(b)
+
+	// Install the NSDocument-style model: File menu (New / Open / Open Recent /
+	// Save / Save As / Duplicate / Rename / Move To / Revert), a window per
+	// Markdown/Text file, autosave in place, crash recovery, save prompts on
+	// close/quit, and detection of files changed by other apps. The main window
+	// stays the app's primary surface.
+	documents.Register()
 
 	mygo.App.WhenReady(func() {
 		win := mygo.NewWindow(mygo.WindowOptions{
