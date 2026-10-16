@@ -1,0 +1,253 @@
+package app
+
+// settings_quick_messages.go is the Settings → Quick Messages page (UI_GAPS
+// P1-8 depth): reusable composer snippets, with full CRUD, inline form
+// validation, status feedback and help text — the backend
+// (quick_messages_create/update/delete) does no validation of its own, so the
+// page is where a blank title / blank content is caught.
+//
+// Wire contract (src-go/web/handlers/quick_messages.go):
+//   quick_messages_list               → [{id,title,content,sort_order,…}]
+//   quick_messages_create {title,content} → record
+//   quick_messages_update {id,title?,content?} → record
+//   quick_messages_delete {id}        → empty
+//   quick_messages_reorder {ids:[…]}
+
+import (
+	"strings"
+
+	"github.com/egoist/mygo/ui"
+)
+
+// quickMsgEditor holds the create/edit form's working state. id == "" = create.
+type quickMsgEditor struct {
+	id      string
+	title   string
+	content string
+}
+
+// viewSettingsQuickMessages renders the Quick Messages page.
+func (s *Shell) viewSettingsQuickMessages(c *ui.Context) {
+	t := c.Theme()
+	msgs := asList(s.ensure("quick-messages", "quick_messages_list", nil))
+
+	ui.Row(c.Key("qm-head")).Gap(10).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, "Quick Messages").FontSize(22).Bold()
+		ui.Spacer(c)
+		iconButton(c, "qm-refresh", iconRefresh, "Refresh", func() {
+			s.invalidate("quick-messages")
+		})
+		if ui.PrimaryButton(c.Key("qm-new"), "New message").Clicked() {
+			s.startNewQuickMessage()
+		}
+	})
+	ui.Text(c, "Reusable snippets you can drop into the composer — e.g. a code-review checklist or a bug-report template.").
+		FontSize(12).TextColor(t.TextMuted).Wrap()
+
+	// Status feedback for the last save / delete.
+	if s.qmStatus != "" {
+		ui.Text(c, s.qmStatus).FontSize(12).TextColor(t.Success)
+	}
+
+	if s.qmEditor != nil {
+		s.viewQuickMessageEditor(c)
+		return
+	}
+
+	if e := s.errFor("quick-messages"); e != "" {
+		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
+		return
+	}
+	if msgs == nil {
+		ui.Text(c, "Loading…").TextColor(t.TextMuted)
+		return
+	}
+	if len(msgs) == 0 {
+		ui.Column(c.Key("qm-empty")).Fill().Center().Gap(10).Children(func() {
+			ui.Text(c, "No quick messages yet").FontSize(16).Bold()
+			ui.Text(c, "Add one and it appears in the composer's quick-message picker.").
+				FontSize(12).TextColor(t.TextMuted)
+			if ui.PrimaryButton(c.Key("qm-empty-new"), "New message").Clicked() {
+				s.startNewQuickMessage()
+			}
+		})
+		return
+	}
+
+	ui.Scroll(c).Grow(1).Children(func() {
+		ui.Column(c).Gap(6).Children(func() {
+			for i, m := range msgs {
+				s.quickMessageRow(c, m, itoa("qm", i))
+			}
+		})
+	})
+}
+
+// quickMessageRow is one snippet: title + content, an edit control, and a
+// delete that goes through an inline confirmation.
+func (s *Shell) quickMessageRow(c *ui.Context, m map[string]any, key string) {
+	t := c.Theme()
+	id := fmtAny(m["id"])
+	ui.Column(c.Key(key)).Gap(3).Padding(10).Background(t.Surface).Radius(8).Children(func() {
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, firstNonEmpty(str(m, "title"), "(untitled)")).Grow(1).MaxLines(1).TextColor(t.Text)
+			if ui.Button(c.Key(key+"-edit"), "Edit").Clicked() {
+				s.startEditQuickMessage(m)
+			}
+			iconButton(c, key+"-del", iconX, "Delete "+firstNonEmpty(str(m, "title"), "message"), func() {
+				s.qmConfirm = id
+			})
+		})
+		if content := str(m, "content"); content != "" {
+			ui.Text(c, content).FontSize(12).TextColor(t.TextMuted).MaxLines(3).Wrap()
+		}
+		if s.qmConfirm == id {
+			ui.Row(c.Key(key + "-confirm")).Gap(8).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, "Delete this message?").FontSize(12).TextColor(t.Danger)
+				if ui.PrimaryButton(c.Key(key+"-confirm-yes"), "Delete").Clicked() {
+					s.qmConfirm = ""
+					s.deleteQuickMessage(id)
+				}
+				if ui.Button(c.Key(key+"-confirm-no"), "Cancel").Clicked() {
+					s.qmConfirm = ""
+				}
+			})
+		}
+	})
+}
+
+// viewQuickMessageEditor renders the create/edit form with inline validation.
+func (s *Shell) viewQuickMessageEditor(c *ui.Context) {
+	t := c.Theme()
+	e := s.qmEditor
+	if e == nil {
+		return
+	}
+	title := "New quick message"
+	if e.id != "" {
+		title = "Edit quick message"
+	}
+	ui.Column(c.Key("qm-form")).Gap(10).Children(func() {
+		ui.Text(c, title).FontSize(18).Bold()
+		ui.Text(c, "Title").FontSize(12).TextColor(t.TextMuted)
+		ui.TextInput(c.Key("qm-f-title"), &e.title).Placeholder("Review checklist")
+		ui.Text(c, "Content").FontSize(12).TextColor(t.TextMuted)
+		ui.TextArea(c.Key("qm-f-content"), &e.content).Placeholder("The text to insert…").MinHeight(80)
+		if s.qmErr != "" {
+			ui.Row(c.Key("qm-form-err")).Gap(6).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, iconAlert).Width(13).Height(13).TextColor(t.Danger)
+				ui.Text(c, s.qmErr).FontSize(12).TextColor(t.Danger)
+			})
+		}
+		ui.Row(c).Gap(6).Children(func() {
+			if ui.PrimaryButton(c.Key("qm-f-save"), "Save").Clicked() {
+				s.saveQuickMessage()
+			}
+			if ui.Button(c.Key("qm-f-cancel"), "Cancel").Clicked() {
+				s.qmEditor = nil
+				s.qmErr = ""
+			}
+		})
+	})
+}
+
+// ── helpers ──
+
+// fmtAny renders a decoded JSON scalar for use as a string key/id.
+func fmtAny(v any) string {
+	switch x := v.(type) {
+	case string:
+		return x
+	case float64:
+		// ids arrive as JSON numbers; print without a trailing ".0"
+		if x == float64(int64(x)) {
+			return itoa("", int(x))
+		}
+	}
+	return ""
+}
+
+// ── mutations ──
+
+func (s *Shell) startNewQuickMessage() {
+	s.qmEditor = &quickMsgEditor{}
+	s.qmErr = ""
+	s.qmConfirm = ""
+	s.qmStatus = ""
+}
+
+func (s *Shell) startEditQuickMessage(m map[string]any) {
+	s.qmEditor = &quickMsgEditor{
+		id:      fmtAny(m["id"]),
+		title:   str(m, "title"),
+		content: str(m, "content"),
+	}
+	s.qmErr = ""
+	s.qmConfirm = ""
+	s.qmStatus = ""
+}
+
+// validateQuickMessage is the page's own check — the backend stores whatever it
+// is given, so a blank snippet would silently become a dead entry.
+func (s *Shell) validateQuickMessage() bool {
+	e := s.qmEditor
+	if e == nil {
+		return false
+	}
+	if strings.TrimSpace(e.title) == "" {
+		s.qmErr = "A title is required."
+		return false
+	}
+	if strings.TrimSpace(e.content) == "" {
+		s.qmErr = "Content is required."
+		return false
+	}
+	s.qmErr = ""
+	return true
+}
+
+func (s *Shell) saveQuickMessage() {
+	if !s.validateQuickMessage() {
+		return
+	}
+	e := s.qmEditor
+	title := strings.TrimSpace(e.title)
+	content := strings.TrimSpace(e.content)
+	id := e.id
+	svc := s.svc
+	go func() {
+		var err error
+		if id == "" {
+			_, err = s.B.raw("quick_messages_create", map[string]any{"title": title, "content": content})
+		} else {
+			_, err = s.B.raw("quick_messages_update", map[string]any{"id": numOrString(id), "title": title, "content": content})
+		}
+		s.mu.Lock()
+		if err != nil {
+			s.qmErr = "save failed: " + err.Error()
+		} else {
+			s.qmStatus = "Saved."
+			s.qmEditor = nil
+			s.qmErr = ""
+		}
+		delete(s.cache, "quick-messages")
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
+}
+
+func (s *Shell) deleteQuickMessage(id string) {
+	svc := s.svc
+	go func() {
+		_, err := s.B.raw("quick_messages_delete", map[string]any{"id": numOrString(id)})
+		s.mu.Lock()
+		if err != nil {
+			s.qmStatus = "delete failed: " + err.Error()
+		} else {
+			s.qmStatus = "Deleted."
+		}
+		delete(s.cache, "quick-messages")
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
+}

@@ -121,6 +121,10 @@ type Shell struct {
 	renameText          string
 	skillsAgent         string            // Settings → Skills: selected agent wire type
 	skillsScope         string            // "global" | "project"
+	qmEditor            *quickMsgEditor   // Settings → Quick Messages: open create/edit form
+	qmErr               string            // Settings → Quick Messages: validation error
+	qmConfirm           string            // Settings → Quick Messages: id awaiting delete confirm
+	qmStatus            string            // Settings → Quick Messages: last action feedback
 	workbench           string            // "" (conversations) | automations | tasks | forge | canvas | files | …
 	autoSel             string            // Automations: selected automation id ("" = first row)
 	autoEditor          *automationEditor // Automations: open create/edit form (nil = closed)

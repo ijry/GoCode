@@ -34,6 +34,14 @@ var settingsPages = []struct{ id, label string }{
 	{"system", "System"},
 }
 
+// settingsPlaceholderHints describe the pages whose panels have no backend yet,
+// so a placeholder still tells the reader what it will do.
+var settingsPlaceholderHints = map[string]string{
+	"shortcuts":     "Keyboard-shortcut customisation for the composer and navigation.",
+	"skill-packs":   "Bundles of skills you can install into an agent in one step.",
+	"collaboration": "Shared-workspace and multi-user hand-off settings.",
+}
+
 func (s *Shell) viewSettings(c *ui.Context) {
 	t := c.Theme()
 	ui.Row(c).Fill().Children(func() {
@@ -91,7 +99,17 @@ func (s *Shell) viewSettings(c *ui.Context) {
 					}
 				}
 				ui.Text(c, label).FontSize(22).Bold()
-				ui.Text(c, "This page mirrors upstream src/app/settings/"+s.settingsPage+" and is coming next.").TextColor(t.TextMuted)
+				ui.Column(c.Key("set-placeholder")).Gap(6).Padding(12).Background(t.Surface).Radius(8).Children(func() {
+					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+						ui.Icon(c, iconInfo).Width(14).Height(14).TextColor(t.TextMuted)
+						ui.Text(c, "Not built yet").FontSize(13).Bold().TextColor(t.Text)
+					})
+					if hint := settingsPlaceholderHints[s.settingsPage]; hint != "" {
+						ui.Text(c, hint).FontSize(12).TextColor(t.TextMuted).Wrap()
+					}
+					ui.Text(c, "This page mirrors upstream src/app/settings/"+s.settingsPage+
+						"; its backend is not ported yet.").FontSize(11).TextColor(t.TextMuted).Wrap()
+				})
 			}
 		})
 	})
@@ -156,42 +174,6 @@ func (s *Shell) viewSettingsWebService(c *ui.Context) {
 			})
 		}
 	}
-}
-
-func (s *Shell) viewSettingsQuickMessages(c *ui.Context) {
-	t := c.Theme()
-	msgs := asList(s.ensure("quick-messages", "quick_messages_list", nil))
-	ui.Row(c).Gap(10).Children(func() {
-		ui.Text(c, "Quick Messages").FontSize(22).Bold()
-		ui.Spacer(c)
-		iconButton(c, "qm-refresh", iconRefresh, "Refresh", func() {
-			s.invalidate("quick-messages")
-		})
-	})
-	if e := s.errFor("quick-messages"); e != "" {
-		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
-		return
-	}
-	if msgs == nil {
-		ui.Text(c, "Loading…").TextColor(t.TextMuted)
-		return
-	}
-	if len(msgs) == 0 {
-		ui.Text(c, "No quick messages yet.").TextColor(t.TextMuted)
-		return
-	}
-	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Gap(2).Children(func() {
-			for i, m := range msgs {
-				title := str(m, "title")
-				content := str(m, "content")
-				ui.Column(c.Key(itoa("qm", i))).Padding(8).Gap(2).Children(func() {
-					ui.Text(c, title).Bold()
-					ui.Text(c, content).FontSize(12).TextColor(t.TextMuted).MaxLines(2)
-				})
-			}
-		})
-	})
 }
 
 func itoa(prefix string, i int) string {
