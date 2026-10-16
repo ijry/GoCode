@@ -52,12 +52,13 @@ func (s *Shell) viewWorkspace(c *ui.Context) {
 				// list (UI_GAPS P1-6). Shown for the conversation tabs only —
 				// the Folders tab has no titles to search.
 				if s.sidebarTab != "folders" {
-					ui.Row(c.Key("ws-search-row")).Gap(6).Children(func() {
+					ui.Row(c.Key("ws-search-row")).Gap(6).AlignItems(ui.Center).Children(func() {
+						ui.Icon(c, iconSearch).Width(14).Height(14).TextColor(t.TextMuted)
 						ui.TextInput(c.Key("ws-search"), &s.sidebarSearch).Grow(1).Placeholder("Search chats")
 						if s.sidebarSearch != "" {
-							if ui.Button(c.Key("ws-search-clear"), "✕").Clicked() {
+							iconButton(c, "ws-search-clear", iconX, "Clear search", func() {
 								s.sidebarSearch = ""
-							}
+							})
 						}
 					})
 				}
@@ -75,13 +76,13 @@ func (s *Shell) viewWorkspace(c *ui.Context) {
 					}
 				})
 				if s.sidebarTab == "folders" {
-					ui.Row(c).Gap(6).Children(func() {
+					ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 						if ui.Button(c.Key("ws-open"), "Open folder…").Clicked() {
 							s.openFolder()
 						}
-						if ui.Button(c.Key("ws-reload"), "⟳").Clicked() {
+						iconButton(c, "ws-reload", iconRefresh, "Reload folders", func() {
 							s.invalidate("folders")
-						}
+						})
 					})
 				} else {
 					s.viewNewConversation(c)

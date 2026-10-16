@@ -125,9 +125,9 @@ func (s *Shell) viewSettingsWebService(c *ui.Context) {
 	ui.Row(c).Gap(10).Children(func() {
 		ui.Text(c, "Web Service").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("ws-refresh2"), "Refresh").Clicked() {
+		iconButton(c, "ws-refresh2", iconRefresh, "Refresh", func() {
 			s.invalidate("web-status")
-		}
+		})
 	})
 	if e := s.errFor("web-status"); e != "" {
 		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
@@ -164,9 +164,9 @@ func (s *Shell) viewSettingsQuickMessages(c *ui.Context) {
 	ui.Row(c).Gap(10).Children(func() {
 		ui.Text(c, "Quick Messages").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("qm-refresh"), "Refresh").Clicked() {
+		iconButton(c, "qm-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("quick-messages")
-		}
+		})
 	})
 	if e := s.errFor("quick-messages"); e != "" {
 		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
@@ -213,9 +213,9 @@ func (s *Shell) viewSettingsAgents(c *ui.Context) {
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Agents").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("ag-refresh"), "Refresh").Clicked() {
+		iconButton(c, "ag-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("agents")
-		}
+		})
 	})
 	if e := s.errFor("agents"); e != "" {
 		ui.Text(c, "backend error: "+e).TextColor(t.Danger)
@@ -412,10 +412,10 @@ func (s *Shell) viewSettingsLogs(c *ui.Context) {
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Logs").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("log-refresh"), "Refresh").Clicked() {
+		iconButton(c, "log-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("log-files")
 			s.invalidate("log-settings")
-		}
+		})
 	})
 	if settings != nil {
 		ui.Row(c).Gap(8).Children(func() {
@@ -472,9 +472,9 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Skills").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("sk-refresh"), "Refresh").Clicked() {
+		iconButton(c, "sk-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate(s.skillsCacheKey())
-		}
+		})
 	})
 	ui.Text(c, "Skills YoYoCode can see in the selected agent's own store.").FontSize(12).TextColor(t.TextMuted)
 
@@ -624,9 +624,9 @@ func (s *Shell) viewSettingsChatChannels(c *ui.Context) {
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Chat Channels").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("cc-refresh"), "Refresh").Clicked() {
+		iconButton(c, "cc-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("chat-channels")
-		}
+		})
 	})
 	ui.Text(c, "Outbound chat integrations (Lark / Telegram / WeChat).").FontSize(12).TextColor(t.TextMuted)
 	list := asList(s.ensure("chat-channels", "list_chat_channels", nil))

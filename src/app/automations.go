@@ -51,12 +51,12 @@ func (s *Shell) viewAutomations(c *ui.Context) {
 	ui.Row(c.Key("au-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Automations").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("au-refresh"), "Refresh").Clicked() {
+		iconButton(c, "au-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("automations")
 			if s.autoSel != "" {
 				s.invalidate("auto-runs:" + s.autoSel)
 			}
-		}
+		})
 		if ui.PrimaryButton(c.Key("au-new"), "New automation").Clicked() {
 			s.startNewAutomation()
 		}
@@ -132,7 +132,7 @@ func (s *Shell) automationRow(c *ui.Context, a map[string]any, curID string) {
 	status := str(a, "last_run_status")
 	selected := id == curID
 
-	row := ui.Row(c.Key("au-row-"+id)).PaddingX(8).PaddingY(6).Gap(8).Radius(6).AlignItems(ui.Center)
+	row := ui.Row(c.Key("au-row-" + id)).PaddingX(8).PaddingY(6).Gap(8).Radius(6).AlignItems(ui.Center)
 	if selected {
 		row.Background(t.SurfacePressed)
 	}
@@ -431,15 +431,15 @@ func (s *Shell) automationSave() {
 		return
 	}
 	draft := map[string]any{
-		"name":            strings.TrimSpace(e.name),
-		"enabled":         e.enabled,
-		"trigger_kind":    e.trigger,
-		"cron":            e.cron,
-		"timezone":        firstNonEmpty(e.tz, "UTC"),
-		"agent_type":      e.agent,
-		"isolation":       firstNonEmpty(e.isolation, "worktree_per_run"),
+		"name":             strings.TrimSpace(e.name),
+		"enabled":          e.enabled,
+		"trigger_kind":     e.trigger,
+		"cron":             e.cron,
+		"timezone":         firstNonEmpty(e.tz, "UTC"),
+		"agent_type":       e.agent,
+		"isolation":        firstNonEmpty(e.isolation, "worktree_per_run"),
 		"is_remote_branch": false,
-		"config":          map[string]any{"display_text": e.prompt},
+		"config":           map[string]any{"display_text": e.prompt},
 	}
 	id := e.id
 	svc := s.svc

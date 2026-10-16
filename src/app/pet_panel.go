@@ -104,9 +104,9 @@ func (s *Shell) viewPetPanel(c *ui.Context) {
 			ui.Textf(c, "(%d)", len(sessions)).FontSize(12).TextColor(t.TextMuted)
 		}
 		ui.Spacer(c)
-		if ui.Button(c.Key("pp-refresh"), "Refresh").Clicked() {
+		iconButton(c, "pp-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("pet-sessions")
-		}
+		})
 	})
 	if e := s.errFor("pet-sessions"); e != "" {
 		ui.Text(c, "backend error: "+e).TextColor(t.Danger)

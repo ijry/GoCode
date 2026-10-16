@@ -102,14 +102,14 @@ func TestTasksBoardAndDetail(t *testing.T) {
 		t.Fatalf("click card: %v", err)
 	}
 	tt.Frame()
-	for _, want := range []string{"← Board", "Agent: claude_code", "ACTIVITY", "created · user"} {
+	for _, want := range []string{"Back to board", "Agent: claude_code", "ACTIVITY", "created · user"} {
 		if !tt.HasText(want) {
 			t.Errorf("detail missing %q; texts = %v", want, tt.Texts())
 		}
 	}
 	dumpFrame(t, tt, "tasks-detail")
 	// Back to the board.
-	if err := tt.Click("← Board"); err != nil {
+	if err := tt.Click("Back to board"); err != nil {
 		t.Fatalf("click back: %v", err)
 	}
 	tt.Frame()

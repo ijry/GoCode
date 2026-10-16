@@ -20,9 +20,9 @@ func (s *Shell) viewTerminal(c *ui.Context) {
 	ui.Row(c.Key("term-head")).AlignItems(ui.Center).Children(func() {
 		ui.Spacer(c)
 		if s.termID != "" {
-			if ui.Button(c.Key("term-refresh"), "Refresh").Clicked() {
+			iconButton(c, "term-refresh", iconRefresh, "Refresh", func() {
 				s.invalidate("term:" + s.termID)
-			}
+			})
 			if ui.Button(c.Key("term-kill"), "Kill").Clicked() {
 				s.killTerminal()
 			}

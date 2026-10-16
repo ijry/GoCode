@@ -11,9 +11,9 @@ func (s *Shell) viewSettingsScience(c *ui.Context) {
 	ui.Row(c.Key("sc-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Science").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("sc-refresh"), "Refresh").Clicked() {
+		iconButton(c, "sc-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("science-list")
-		}
+		})
 	})
 	ui.Text(c, "Bundled science skill packs, installable per agent.").FontSize(12).TextColor(t.TextMuted)
 	if e := s.errFor("science-list"); e != "" {

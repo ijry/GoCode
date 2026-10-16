@@ -136,7 +136,7 @@ func TestCanvasOpenBoardNodes(t *testing.T) {
 		t.Fatalf("click board: %v", err)
 	}
 	tt.Frame()
-	for _, want := range []string{"← Boards", "note", "Idea"} {
+	for _, want := range []string{"Back to boards", "note", "Idea"} {
 		if !tt.HasText(want) {
 			t.Fatalf("board view missing %q; texts = %v", want, tt.Texts())
 		}

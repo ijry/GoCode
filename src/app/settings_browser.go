@@ -15,10 +15,10 @@ func (s *Shell) viewSettingsBrowser(c *ui.Context) {
 	ui.Row(c.Key("br-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Browser").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("br-refresh"), "Refresh").Clicked() {
+		iconButton(c, "br-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("browser-tools")
 			s.invalidate("browser-bridge")
-		}
+		})
 	})
 	if e := s.errFor("browser-tools"); e != "" {
 		ui.Text(c, "backend error: "+e).TextColor(t.Danger)

@@ -66,9 +66,9 @@ func (s *Shell) viewTasks(c *ui.Context) {
 	ui.Row(c.Key("tk-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "To-dos").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("tk-refresh"), "Refresh").Clicked() {
+		iconButton(c, "tk-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate(s.tasksKey())
-		}
+		})
 		if ui.Button(c.Key("tk-startall"), "Start all").Clicked() {
 			s.taskStartAll()
 		}
@@ -108,7 +108,7 @@ func (s *Shell) viewTasks(c *ui.Context) {
 		for _, col := range taskColumns {
 			tasks := tasksInColumn(visible, col.id)
 			col := col
-			ui.Column(c.Key("tk-col-"+col.id)).Grow(1).FillHeight().Gap(6).Children(func() {
+			ui.Column(c.Key("tk-col-" + col.id)).Grow(1).FillHeight().Gap(6).Children(func() {
 				ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, col.label).FontSize(12).Bold().TextColor(t.TextMuted)
 					ui.Textf(c, "%d", len(tasks)).FontSize(11).TextColor(t.TextMuted)
@@ -153,7 +153,7 @@ func (s *Shell) taskCard(c *ui.Context, tk map[string]any) {
 	branch := str(tk, "work_branch")
 	files := intOf(tk["files_changed"])
 
-	card := ui.Column(c.Key("tk-card-"+id)).Gap(4).Padding(8).Background(t.Surface).Radius(8)
+	card := ui.Column(c.Key("tk-card-" + id)).Gap(4).Padding(8).Background(t.Surface).Radius(8)
 	card.Children(func() {
 		ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, title).Grow(1).MaxLines(2).TextColor(t.Text)
@@ -251,11 +251,11 @@ func (s *Shell) viewTaskDetail(c *ui.Context, tk map[string]any) {
 	status := str(tk, "status")
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c.Key("tk-detail")).Gap(12).Children(func() {
-			ui.Row(c).AlignItems(ui.Start).Children(func() {
-				if ui.Button(c.Key("tk-back"), "← Board").Clicked() {
+			ui.Row(c).AlignItems(ui.Center).Children(func() {
+				iconButton(c, "tk-back", iconBack, "Back to board", func() {
 					s.taskSel = ""
 					s.taskConfirm = ""
-				}
+				})
 			})
 			ui.Row(c.Key("tk-detail-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, firstNonEmpty(str(tk, "title"), "(untitled)")).FontSize(18).Bold()

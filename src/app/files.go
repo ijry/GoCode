@@ -22,9 +22,9 @@ func (s *Shell) viewFiles(c *ui.Context) {
 	if root != "" {
 		ui.Row(c.Key("files-head")).AlignItems(ui.Center).Children(func() {
 			ui.Spacer(c)
-			if ui.Button(c.Key("files-refresh"), "Refresh").Clicked() {
+			iconButton(c, "files-refresh", iconRefresh, "Refresh", func() {
 				s.invalidate("ft:" + s.fileCurAbs(root))
-			}
+			})
 		})
 	}
 	if s.selectedFolder == "" || root == "" {

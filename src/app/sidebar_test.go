@@ -95,8 +95,8 @@ func TestSidebarSearchFiltersConversations(t *testing.T) {
 		t.Errorf("search kept non-matching %q; texts = %v", "Refactor auth", tt.Texts())
 	}
 
-	// The ✕ clears the term and the whole list returns.
-	if err := tt.Click("✕"); err != nil {
+	// The clear control (an icon button) empties the term and the whole list returns.
+	if err := tt.Click("Clear search"); err != nil {
 		t.Fatalf("click clear: %v", err)
 	}
 	tt.Frame()

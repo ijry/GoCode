@@ -42,9 +42,9 @@ func (s *Shell) viewForge(c *ui.Context) {
 	ui.Row(c.Key("fg-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Repositories").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("fg-refresh"), "Refresh").Clicked() {
+		iconButton(c, "fg-refresh", iconRefresh, "Refresh", func() {
 			s.invalidateForge()
-		}
+		})
 	})
 	ui.Text(c, "Issues and pull requests for the selected folder's forge remote.").
 		FontSize(12).TextColor(t.TextMuted)
@@ -122,7 +122,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 				if active {
 					color = t.Text
 				}
-				pill := ui.Row(c.Key("fg-tab-"+tab.id)).PaddingX(11).PaddingY(4).Radius(12).AlignItems(ui.Center)
+				pill := ui.Row(c.Key("fg-tab-" + tab.id)).PaddingX(11).PaddingY(4).Radius(12).AlignItems(ui.Center)
 				if active {
 					pill.Background(t.SurfacePressed)
 				}

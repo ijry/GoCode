@@ -12,9 +12,9 @@ func (s *Shell) viewSettingsOfficeTools(c *ui.Context) {
 	ui.Row(c.Key("of-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Office Tools").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("of-refresh"), "Refresh").Clicked() {
+		iconButton(c, "of-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("officecli")
-		}
+		})
 	})
 	ui.Text(c, "Upstream merges this page into Skill Packs (Office tab); officecli is the bundled document helper.").
 		FontSize(11).TextColor(t.TextMuted).Wrap()

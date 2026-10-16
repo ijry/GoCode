@@ -56,15 +56,16 @@ func (s *Shell) viewCanvas(c *ui.Context) {
 	ui.Row(c.Key("cv-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Canvas").FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("cv-refresh"), "Refresh").Clicked() {
+		iconButton(c, "cv-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("canvas-boards")
-		}
+		})
 		if ui.PrimaryButton(c.Key("cv-new"), "New board").Clicked() {
 			s.startNewBoard()
 		}
 	})
 	ui.Text(c, "Spatial boards of conversations, notes and terminals.").FontSize(12).TextColor(t.TextMuted)
-	ui.Row(c.Key("cv-search-row")).Children(func() {
+	ui.Row(c.Key("cv-search-row")).Gap(6).AlignItems(ui.Center).Children(func() {
+		ui.Icon(c, iconSearch).Width(14).Height(14).TextColor(t.TextMuted)
 		ui.TextInput(c.Key("cv-search"), &s.canvasSearch).Grow(1).Placeholder("Search boards")
 	})
 
@@ -115,7 +116,7 @@ func (s *Shell) canvasBoardRow(c *ui.Context, item map[string]any) {
 	nodes := intOf(item["node_count"])
 	terms := intOf(item["terminal_count"])
 
-	card := ui.Column(c.Key("cv-row-"+id)).Gap(2).Padding(10).Background(t.Surface).Radius(8)
+	card := ui.Column(c.Key("cv-row-" + id)).Gap(2).Padding(10).Background(t.Surface).Radius(8)
 	card.Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Box(c).Width(8).Height(8).Radius(4).Background(canvasColor(t, str(board, "color")))
@@ -148,7 +149,7 @@ func (s *Shell) canvasBoardRow(c *ui.Context, item map[string]any) {
 	}
 	// Inline delete confirmation under the row.
 	if s.canvasConfirm == id {
-		ui.Row(c.Key("cv-confirm-"+id)).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Row(c.Key("cv-confirm-" + id)).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "Delete this board and its nodes?").FontSize(12).TextColor(t.Danger)
 			if ui.PrimaryButton(c.Key("cv-confirm-yes-"+id), "Delete").Clicked() {
 				s.canvasConfirm = ""
@@ -166,14 +167,14 @@ func (s *Shell) canvasBoardRow(c *ui.Context, item map[string]any) {
 func (s *Shell) viewCanvasBoard(c *ui.Context, boardID string) {
 	t := c.Theme()
 	ui.Row(c.Key("cv-board-head")).Gap(10).AlignItems(ui.Center).Children(func() {
-		if ui.Button(c.Key("cv-board-back"), "← Boards").Clicked() {
+		iconButton(c, "cv-board-back", iconBack, "Back to boards", func() {
 			s.canvasSel = ""
-		}
+		})
 		ui.Text(c, "Board "+boardID).FontSize(18).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("cv-board-refresh"), "Refresh").Clicked() {
+		iconButton(c, "cv-board-refresh", iconRefresh, "Refresh", func() {
 			s.invalidate("canvas-nodes:" + boardID)
-		}
+		})
 	})
 	snap := asObj(s.ensure("canvas-nodes:"+boardID, "canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)}))
 	if snap == nil {
@@ -191,7 +192,7 @@ func (s *Shell) viewCanvasBoard(c *ui.Context, boardID string) {
 				id := fmt.Sprintf("%v", n["id"])
 				kind := firstNonEmpty(str(n, "kind"), "node")
 				label := firstNonEmpty(str(n, "title"), str(n, "content"), str(n, "path"), "(untitled)")
-				ui.Row(c.Key("cv-node-"+id)).Gap(8).Padding(8).Background(t.Surface).Radius(6).AlignItems(ui.Center).Children(func() {
+				ui.Row(c.Key("cv-node-" + id)).Gap(8).Padding(8).Background(t.Surface).Radius(6).AlignItems(ui.Center).Children(func() {
 					ui.Box(c).Width(8).Height(8).Radius(4).Background(canvasColor(t, str(n, "color")))
 					ui.Text(c, kind).FontSize(11).TextColor(t.TextMuted).Width(80)
 					ui.Text(c, label).Grow(1).MaxLines(1).TextColor(t.Text)

@@ -46,4 +46,27 @@ var (
 	iconFile      = mustIcon(`<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/><path d="M13 3v5h5" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/></svg>`)
 	iconImage     = mustIcon(`<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="black" stroke-width="2"/><circle cx="8.5" cy="10" r="1.6" fill="black"/><path d="M5 18l5-5 4 4 3-3 4 4" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/></svg>`)
 	iconX         = mustIcon(`<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
+	// Generic affordances — use these, never a text stand-in like "✕"/"⟳"/"←".
+	iconRefresh  = mustIcon(`<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M20 3.5V8h-4.5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	iconBack     = mustIcon(`<svg viewBox="0 0 24 24"><path d="M19 12H5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M11 6l-6 6 6 6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	iconSearch   = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="black" stroke-width="2"/><line x1="15.6" y1="15.6" x2="20" y2="20" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
+	iconPlus     = mustIcon(`<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" stroke="black" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
+	iconMore     = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="black"/><circle cx="12" cy="12" r="1.8" fill="black"/><circle cx="19" cy="12" r="1.8" fill="black"/></svg>`)
+	iconExternal = mustIcon(`<svg viewBox="0 0 24 24"><path d="M14 4h6v6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 4l-8 8" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M18 15v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
 )
+
+// iconButton renders a compact icon-only button. label keeps it discoverable to
+// the mygo tester (Find/Click match on labels) and to assistive tech — so an
+// icon-only control is never an unlabelled mystery.
+func iconButton(c *ui.Context, key string, icon *ui.SVG, label string, onClick func()) {
+	t := c.Theme()
+	btn := ui.Row(c.Key(key)).Padding(4).Radius(6).AlignItems(ui.Center).Label(label)
+	btn.Children(func() {
+		if icon != nil {
+			ui.Icon(c, icon).Width(15).Height(15).TextColor(t.TextMuted)
+		}
+	})
+	if btn.Clicked() {
+		onClick()
+	}
+}

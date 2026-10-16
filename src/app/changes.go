@@ -22,12 +22,12 @@ func (s *Shell) viewChanges(c *ui.Context) {
 	if root != "" {
 		ui.Row(c.Key("ch-head")).AlignItems(ui.Center).Children(func() {
 			ui.Spacer(c)
-			if ui.Button(c.Key("ch-refresh"), "Refresh").Clicked() {
+			iconButton(c, "ch-refresh", iconRefresh, "Refresh", func() {
 				s.invalidate("gitstatus:" + root)
 				if s.diffSel != "" {
 					s.invalidate("gitdiff:" + s.diffSel)
 				}
-			}
+			})
 		})
 	}
 	if s.selectedFolder == "" || root == "" {
