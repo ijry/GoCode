@@ -308,7 +308,7 @@ func (s *Shell) viewToolCard(c *ui.Context, key string, tc *toolCard) {
 		if open {
 			ui.Divider(c)
 			ui.Column(c).FillWidth().Padding(12, 12, 12, 12).Gap(6).Children(func() {
-				s.viewToolBody(c, tc, t)
+				s.viewToolBody(c, tc, key, t)
 			})
 		}
 	})

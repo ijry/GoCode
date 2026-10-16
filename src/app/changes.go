@@ -149,6 +149,12 @@ func (s *Shell) viewDiff(c *ui.Context, root string) {
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
+		// A real git diff goes through mygo's editor.DiffView (ParsePatch), with
+		// line numbers, colored change marks and collapsed context; plain text is
+		// the fallback for anything the patch reader rejects.
+		if s.viewPatch(c, "ch-"+s.diffSel, text, t) {
+			return
+		}
 		ui.Text(c, text).FontSize(11).TextColor(t.Text).Wrap()
 	})
 }

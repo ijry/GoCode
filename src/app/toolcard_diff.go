@@ -13,12 +13,10 @@ package app
 
 import (
 	"encoding/json"
-	"fmt"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/editor"
 )
 
 // toolInput is the subset of a tool call's raw JSON arguments we surface: the
@@ -54,21 +52,23 @@ func looksLikeDiff(text string) bool {
 	return strings.Contains(text, "@@") || strings.Contains(text, "diff --git")
 }
 
-// viewToolBody renders the expanded tool-call body: a colorized diff when the
-// result or arguments carry a file change, highlighted code for Read/Write, a
-// command + output block for Bash, and a muted fallback otherwise.
-func (s *Shell) viewToolBody(c *ui.Context, tc *toolCard, t *ui.Theme) {
-	// A real unified diff in the result wins: colorize it as-is.
+// viewToolBody renders the expanded tool-call body: a diff when the result or
+// arguments carry a file change, highlighted code for Read/Write, a command +
+// output block for Bash, and a muted fallback otherwise. key identifies the card
+// so the diff views can keep their per-card state.
+func (s *Shell) viewToolBody(c *ui.Context, tc *toolCard, key string, t *ui.Theme) {
+	// A real unified diff in the result wins: show it as a patch.
 	if tc.output != "" && looksLikeDiff(tc.output) {
-		s.viewUnifiedDiff(c, t, tc.output)
-		return
+		if s.viewPatch(c, key, tc.output, t) {
+			return
+		}
 	}
 	in := parseToolInput(tc.rawInput)
 	switch strings.ToLower(tc.kind) {
 	case "edit":
 		s.viewFileHeader(c, t, in.FilePath)
 		if in.OldString != "" || in.NewString != "" {
-			s.viewUnifiedDiff(c, t, unifiedDiff(in.OldString, in.NewString, in.FilePath))
+			s.viewToolDiff(c, key, in.OldString, in.NewString, in.FilePath)
 			return
 		}
 	case "multi_edit":
@@ -79,7 +79,7 @@ func (s *Shell) viewToolBody(c *ui.Context, tc *toolCard, t *ui.Theme) {
 				continue
 			}
 			ui.Text(c, "edit "+itoa("", i+1)).FontSize(11).TextColor(t.TextMuted)
-			s.viewUnifiedDiff(c, t, unifiedDiff(e.OldString, e.NewString, in.FilePath))
+			s.viewToolDiff(c, itoa(key+"-e", i), e.OldString, e.NewString, in.FilePath)
 			rendered = true
 		}
 		if rendered {
@@ -128,148 +128,71 @@ func (s *Shell) viewHighlightedCode(c *ui.Context, t *ui.Theme, text, lang strin
 	}
 }
 
-// viewUnifiedDiff renders a unified-diff text with per-line coloring: removed
-// lines red, added lines green, headers and hunk marks muted, each line
-// fronted by its old/new line number in a narrow monospace gutter. Each line is
-// one RichText (gutter + content spans) rather than a Row of children, which
-// keeps the offscreen renderer cheap for large diffs.
-func (s *Shell) viewUnifiedDiff(c *ui.Context, t *ui.Theme, text string) {
-	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
-	// Drop a single trailing blank line so "a\nb\n" reads as two lines.
-	if len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
-		lines = lines[:len(lines)-1]
+// viewDiff renders old→new with mygo's editor.DiffView: a code editor on each
+// side carrying the editor's language highlighting, git's histogram line
+// alignment, word-level inline marks on changed lines, collapsed context lines
+// behind "N unmodified lines" separators, and +/− indicators in the gutter.
+// The state is kept per card so its expansions and scroll survive repaints.
+func (s *Shell) viewToolDiff(c *ui.Context, key, oldText, newText, path string) {
+	editor.DiffView(c, s.diffState(key, oldText, newText, path)).FillWidth()
+}
+
+// diffState returns the card's DiffState, rebuilding a buffer when its text
+// changed (an Edit's arguments can stream in more than once).
+func (s *Shell) diffState(key, oldText, newText, path string) *editor.DiffState {
+	if s.toolDiff == nil {
+		s.toolDiff = map[string]*editor.DiffState{}
 	}
-	oldNo, newNo := 0, 0
-	ui.Column(c).FillWidth().Gap(0).Children(func() {
-		for _, line := range lines {
-			line := line
-			switch {
-			case strings.HasPrefix(line, "diff --git"),
-				strings.HasPrefix(line, "index "),
-				strings.HasPrefix(line, "--- "),
-				strings.HasPrefix(line, "+++ "):
-				ui.RichText(c, ui.Span{Text: line, Font: monoFont, Color: t.TextMuted}).
-					FontSize(11)
-			case strings.HasPrefix(line, "@@"):
-				oldNo, newNo = parseHunkStart(line)
-				ui.RichText(c, ui.Span{Text: line, Font: monoFont, Color: t.TextMuted}).
-					FontSize(11)
-			default:
-				var col ui.Color
-				var lno, rno string
-				switch {
-				case strings.HasPrefix(line, "-"):
-					col = t.Danger
-					lno = itoa("", oldNo)
-					oldNo++
-				case strings.HasPrefix(line, "+"):
-					col = t.Success
-					rno = itoa("", newNo)
-					newNo++
-				default:
-					col = t.Text
-					lno = itoa("", oldNo)
-					rno = itoa("", newNo)
-					oldNo++
-					newNo++
-				}
-				content := line
-				if len(content) > 0 {
-					content = content[1:]
-				}
-				ui.RichText(c,
-					ui.Span{Text: pad3(lno) + " ", Font: monoFont, Color: t.TextMuted},
-					ui.Span{Text: pad3(rno) + " ", Font: monoFont, Color: t.TextMuted},
-					ui.Span{Text: content, Font: monoFont, Color: col},
-				).FontSize(11).Wrap()
-			}
+	lang := editor.LanguageFor(path)
+	d := s.toolDiff[key]
+	if d == nil {
+		old, nw := editor.NewBuffer(oldText), editor.NewBuffer(newText)
+		old.SetLanguage(lang)
+		nw.SetLanguage(lang)
+		d = &editor.DiffState{Old: old, New: nw, Layout: editor.DiffUnified,
+			Wrap: true, FitContent: true}
+		s.toolDiff[key] = d
+		return d
+	}
+	if d.Old.String() != oldText {
+		d.Old.Set(oldText)
+		d.Old.SetLanguage(lang)
+	}
+	if d.New.String() != newText {
+		d.New.Set(newText)
+		d.New.SetLanguage(lang)
+	}
+	return d
+}
+
+// viewPatch shows a real unified diff (git's output) through the editor's patch
+// reader, which numbers lines as the files do and puts each hunk under its
+// header. It reports whether the text was a patch it could show.
+func (s *Shell) viewPatch(c *ui.Context, key, patch string, t *ui.Theme) bool {
+	files, err := editor.ParsePatch(patch)
+	if err != nil || len(files) == 0 {
+		return false
+	}
+	if s.toolDiff == nil {
+		s.toolDiff = map[string]*editor.DiffState{}
+	}
+	for i := range files {
+		// The diff view draws the lines itself; keep the path in our own
+		// header (muted monospace) as the card's file label.
+		if name := firstNonEmpty(files[i].NewName, files[i].OldName); name != "" {
+			ui.RichText(c, ui.Span{Text: name, Font: monoFont, Color: t.TextMuted}).
+				FontSize(11)
 		}
-	})
-}
-
-// pad3 right-pads a line number to three columns so the gutter aligns.
-func pad3(s string) string {
-	for len(s) < 3 {
-		s = " " + s
-	}
-	return s
-}
-
-// reHunk matches a unified-diff hunk header like "@@ -1,4 +1,5 @@".
-var reHunk = regexp.MustCompile(`@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@`)
-
-// parseHunkStart returns the old/new starting line numbers from a hunk header.
-func parseHunkStart(line string) (int, int) {
-	m := reHunk.FindStringSubmatch(line)
-	if len(m) < 3 {
-		return 1, 1
-	}
-	a, _ := strconv.Atoi(m[1])
-	b, _ := strconv.Atoi(m[2])
-	return a, b
-}
-
-// unifiedDiff computes a minimal unified diff between two texts (one hunk
-// covering the whole file) using a longest-common-subsequence line alignment.
-func unifiedDiff(oldText, newText, path string) string {
-	oldLines := splitLines(oldText)
-	newLines := splitLines(newText)
-	n, m := len(oldLines), len(newLines)
-	if n == 0 && m == 0 {
-		return ""
-	}
-	// Longest-common-subsequence table for a minimal line diff.
-	dp := make([][]int, n+1)
-	for i := range dp {
-		dp[i] = make([]int, m+1)
-	}
-	for i := n - 1; i >= 0; i-- {
-		for j := m - 1; j >= 0; j-- {
-			if oldLines[i] == newLines[j] {
-				dp[i][j] = dp[i+1][j+1] + 1
-			} else if dp[i+1][j] >= dp[i][j+1] {
-				dp[i][j] = dp[i+1][j]
-			} else {
-				dp[i][j] = dp[i][j+1]
-			}
+		k := itoa(key+"-p", i)
+		d, ok := s.toolDiff[k]
+		if !ok {
+			d = &editor.DiffState{Layout: editor.DiffUnified, Wrap: true, FitContent: true}
+			s.toolDiff[k] = d
 		}
+		d.SetPatch(files[i])
+		editor.DiffView(c, d).FillWidth()
 	}
-	var b strings.Builder
-	b.WriteString("--- " + path + "\n")
-	b.WriteString("+++ " + path + "\n")
-	fmt.Fprintf(&b, "@@ -1,%d +1,%d @@\n", n, m)
-	i, j := 0, 0
-	for i < n && j < m {
-		if oldLines[i] == newLines[j] {
-			b.WriteString(" " + oldLines[i] + "\n")
-			i++
-			j++
-		} else if dp[i+1][j] >= dp[i][j+1] {
-			b.WriteString("-" + oldLines[i] + "\n")
-			i++
-		} else {
-			b.WriteString("+" + newLines[j] + "\n")
-			j++
-		}
-	}
-	for ; i < n; i++ {
-		b.WriteString("-" + oldLines[i] + "\n")
-	}
-	for ; j < m; j++ {
-		b.WriteString("+" + newLines[j] + "\n")
-	}
-	return strings.TrimRight(b.String(), "\n")
-}
-
-// splitLines turns text into lines on \n (normalizing \r\n) without inventing a
-// trailing empty line for a final newline.
-func splitLines(s string) []string {
-	s = strings.ReplaceAll(s, "\r\n", "\n")
-	s = strings.TrimSuffix(s, "\n")
-	if s == "" {
-		return nil
-	}
-	return strings.Split(s, "\n")
+	return true
 }
 
 // langFromFile infers a highlight language from a file path's extension.

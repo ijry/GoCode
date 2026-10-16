@@ -17,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/editor"
 	"github.com/egoist/mygo/ui/markdown"
 )
 
@@ -170,6 +171,12 @@ type Shell struct {
 	// frames and streams a half-written reply, so a token costs the same at the
 	// end of a long reply as at its start.
 	md markdown.Options
+
+	// toolDiff holds one editor.DiffState per diff a tool card shows (keyed by
+	// the card's key, and per sub-edit for multi_edit). The state keeps the
+	// collapsed-context expansions and the scroll position across frames, so it
+	// has to outlive the view function that first builds it.
+	toolDiff map[string]*editor.DiffState
 
 	mu       sync.Mutex
 	svc      ui.Services

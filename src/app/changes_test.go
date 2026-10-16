@@ -42,8 +42,11 @@ func TestChangesPanelListsAndDiffs(t *testing.T) {
 	if s.diffSel != "main.go" {
 		t.Errorf("diffSel = %q, want main.go", s.diffSel)
 	}
-	if !tt.HasText("+new") {
-		t.Errorf("diff missing content; texts = %v", tt.Texts())
+	// The diff view's own lines are painter-drawn (no text label), so the hunk
+	// header it builds from the patch is the tester-visible proof that the git
+	// diff went through mygo's editor.DiffView.
+	if !tt.HasText("@@ -1,1 +1,1 @@") {
+		t.Errorf("diff missing its hunk header; texts = %v", tt.Texts())
 	}
 	// The selected file's write actions are present.
 	if !tt.HasText("Stage") || !tt.HasText("Discard") {
