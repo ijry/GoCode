@@ -13,6 +13,9 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
+// monoFont is the monospace family the toolkit recognizes for code.
+const monoFont = "monospace"
+
 // reCodeTok matches, left to right, one comment / string / number / identifier.
 // Comments come first so `// "x"` is all comment; a quote before a `#` still
 // wins for the string because the leftmost match is taken.

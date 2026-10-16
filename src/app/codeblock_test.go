@@ -1,17 +1,20 @@
 package app
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 )
 
+// TestCodeBlockRendersWithCopyButton checks mygo's ui/markdown renders a fenced
+// code block with its language and Copy button. The turn is marked complete so
+// the reply is shown with View (a still-streaming reply is paced and its code
+// block has no Copy button until the fence closes).
 func TestCodeBlockRendersWithCopyButton(t *testing.T) {
 	s := conversationShellForTest(t)
-	// A code sample exercising every highlight class: comment (gray italic),
-	// string (green), number (orange) and keywords (accent). The string/number
-	// contrast is what the screenshot proves — the upstream theme keeps Accent
-	// close to Text by design, so keywords alone would look uniform.
+	// A code sample exercising the highlight classes: comment (gray italic),
+	// string (green), number (orange) and keywords (accent).
 	const body = "// greet returns a greeting\nfunc greet(name string) string {\n\treturn \"hi, \" + name + 42\n}"
 	s.stream.handle(&wsFrame{Type: "event", Envelope: map[string]any{
 		"connection_id": "c1",
@@ -19,6 +22,8 @@ func TestCodeBlockRendersWithCopyButton(t *testing.T) {
 		"type":          "content_delta",
 		"text":          "Here you go:\n\n```go\n" + body + "\n```\n",
 	}})
+	// The turn is done: the reply is complete, not streaming.
+	s.cache["snapshot:c1"] = json.RawMessage(`{"connection_id":"c1","status":"connected","active_tool_calls":[]}`)
 
 	tt := ui.NewTester(s.View, 1240, 820)
 	dumpFrame(t, tt, "codeblock")
@@ -37,7 +42,8 @@ func TestCodeBlockRendersWithCopyButton(t *testing.T) {
 	if err := tt.Click("Copy"); err != nil {
 		t.Fatalf("click Copy: %v", err)
 	}
-	if got := tt.Clipboard(); got != body {
-		t.Fatalf("clipboard = %q, want the code block body %q", got, body)
+	// The block's content is the lines between the fences, newline included.
+	if got, want := tt.Clipboard(), body+"\n"; got != want {
+		t.Fatalf("clipboard = %q, want the code block body %q", got, want)
 	}
 }

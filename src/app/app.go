@@ -17,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/markdown"
 )
 
 // Backend is a thin loopback client for the in-process upstream server.
@@ -163,6 +164,12 @@ type Shell struct {
 	// streaming turn can follow the end (see viewTranscript). It is UI-thread
 	// state, written by the scroll container and by the view itself.
 	transcriptScroll ui.ScrollState
+
+	// md is the shared Markdown renderer state (mygo's ui/markdown): one per app,
+	// given to every transcript bubble. It keeps each message's parse between
+	// frames and streams a half-written reply, so a token costs the same at the
+	// end of a long reply as at its start.
+	md markdown.Options
 
 	mu       sync.Mutex
 	svc      ui.Services

@@ -132,19 +132,6 @@ func TestBuildTranscript(t *testing.T) {
 	}
 }
 
-func TestInlineCodeSpan(t *testing.T) {
-	spans := mdInlineSpans("run `go test` now", themeLight)
-	if len(spans) != 3 {
-		t.Fatalf("spans = %d, want 3: %+v", len(spans), spans)
-	}
-	if spans[0].Text != "run " || spans[2].Text != " now" {
-		t.Fatalf("body spans = %+v", spans)
-	}
-	if spans[1].Text != "go test" || spans[1].Font == "" {
-		t.Fatalf("code span = %+v", spans[1])
-	}
-}
-
 func TestComposerStatus(t *testing.T) {
 	if composerStrip("connected", "") != "" {
 		t.Fatal("connected should have no strip")

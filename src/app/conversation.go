@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/markdown"
 )
 
 // ─── transcript view model ─────────────────────────────────────────────────
@@ -161,7 +162,10 @@ func (s *Shell) viewTranscript(c *ui.Context, turns []any, live []transcriptItem
 				key := itoa("tr", i)
 				switch it.kind {
 				case "message":
-					s.viewMessageBubble(c, key, it.role, it.text, it.atts)
+					// Only the assistant's tail bubble is still being written;
+					// the user's own echo is complete the moment it is sent.
+					s.viewMessageBubble(c, key, it.role, it.text, it.atts,
+						streaming && i == len(live)-1 && it.role != "user")
 				case "thinking":
 					s.viewThinkingRow(c, key, it.text)
 				case "tool":
@@ -199,14 +203,18 @@ func (s *Shell) viewStreamingCaret(c *ui.Context) {
 // user's is a right-aligned gray capsule hugging its content (max 88% wide),
 // the assistant's is plain full-width prose, and a system note is a muted
 // bordered card. Mirrors upstream Message + MessageContent.
-func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string, atts []attachmentItem) {
+//
+// Prose goes through mygo's ui/markdown (CommonMark + GFM: tables, task lists,
+// strikethrough, autolinks, footnotes, math) — Stream while the reply is still
+// being written so half-typed syntax settles in, View once it is complete.
+func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string, atts []attachmentItem, streaming bool) {
 	t := c.Theme()
 	switch role {
 	case "user":
 		ui.Row(c.Key(key)).FillWidth().Justify(ui.End).Children(func() {
 			ui.Column(c).MaxWidthPercent(88).Radius(8).Background(t.SurfaceHover).
 				Padding(12, 16, 12, 16).Children(func() {
-				s.viewMarkdown(c, key+"-md", text, t)
+				s.viewMarkdown(c, text, streaming)
 				s.viewAttachmentsInline(c, key+"-atts", atts)
 			})
 		})
@@ -217,10 +225,22 @@ func (s *Shell) viewMessageBubble(c *ui.Context, key, role, text string, atts []
 		})
 	default:
 		ui.Column(c.Key(key)).FillWidth().Children(func() {
-			s.viewMarkdown(c, key+"-md", text, t)
+			s.viewMarkdown(c, text, streaming)
 			s.viewAttachmentsInline(c, key+"-atts", atts)
 		})
 	}
+}
+
+// viewMarkdown renders prose with mygo's ui/markdown. A message still being
+// written streams (half-typed syntax shows as what it will become); a finished
+// one is shown as it reads. The renderer keeps its parse between frames, so a
+// token appended to a long reply is cheap.
+func (s *Shell) viewMarkdown(c *ui.Context, text string, streaming bool) {
+	if streaming {
+		markdown.Stream(c, text, &s.md)
+		return
+	}
+	markdown.View(c, text, &s.md)
 }
 
 // viewThinkingRow renders the agent's reasoning the way upstream does: italic,
@@ -436,7 +456,7 @@ func (s *Shell) viewHistoricalTurn(c *ui.Context, key string, m map[string]any) 
 	role := str(m, "role")
 	blocks, _ := m["blocks"].([]any)
 	if len(blocks) == 0 {
-		s.viewMessageBubble(c, key, role, turnText(m), nil)
+		s.viewMessageBubble(c, key, role, turnText(m), nil, false)
 		return
 	}
 	var prose strings.Builder
@@ -445,7 +465,7 @@ func (s *Shell) viewHistoricalTurn(c *ui.Context, key string, m map[string]any) 
 		if prose.Len() == 0 {
 			return
 		}
-		s.viewMessageBubble(c, key+"-p"+itoa("", part), role, prose.String(), nil)
+		s.viewMessageBubble(c, key+"-p"+itoa("", part), role, prose.String(), nil, false)
 		prose.Reset()
 		part++
 	}
