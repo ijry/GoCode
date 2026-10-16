@@ -20,6 +20,7 @@ var settingsPages = []struct{ id, label string }{
 	{"mcp", "MCP"},
 	{"quick-messages", "Quick Messages"},
 	{"web-service", "Web Service"},
+	{"servers", "Servers"},
 	{"shortcuts", "Shortcuts"},
 	{"skills", "Skills"},
 	{"skill-packs", "Skill Packs"},
@@ -65,6 +66,8 @@ func (s *Shell) viewSettings(c *ui.Context) {
 				s.viewSettingsAppearance(c)
 			case "web-service":
 				s.viewSettingsWebService(c)
+			case "servers":
+				s.viewSettingsServers(c)
 			case "quick-messages":
 				s.viewSettingsQuickMessages(c)
 			case "agents":

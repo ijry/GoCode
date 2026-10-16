@@ -51,6 +51,9 @@ func (s *Shell) connectToken(token string) {
 		case ok:
 			s.B.Token = token
 			s.loginErr = ""
+			// A remote connection's gate validates its token once; remember it
+			// so the next switch lands straight in the workspace.
+			s.persistActiveToken(token)
 			delete(s.cache, "appearance-mode")
 		case status == http.StatusUnauthorized:
 			s.loginErr = "Invalid token"

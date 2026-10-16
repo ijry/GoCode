@@ -203,6 +203,21 @@ func (s *Stream) AppendLocal(connID string, ev map[string]any) {
 	}
 }
 
+// Close drops the live websocket so a server switch can replace this stream
+// with one bound to the new backend. The read loop notices the closed conn and
+// returns; ready flips false so the status bar shows "connecting" again.
+func (s *Stream) Close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ready = false
+	if s.conn != nil {
+		s.conn.Close()
+		s.conn = nil
+	}
+	s.byConn = map[string]*connStream{}
+	s.attached = map[string]bool{}
+}
+
 // isReady reports whether the websocket is connected.
 func (s *Stream) isReady() bool {
 	if s == nil {

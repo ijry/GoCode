@@ -154,6 +154,14 @@ type Shell struct {
 	termInput           string            // Terminal route: pending input line
 	loginToken          string            // login gate: token input
 	loginErr            string            // login gate: last probe error
+	servers             []serverProfile   // saved remote connections (the local one is synthesized)
+	activeServer        string            // localServerID | saved profile id
+	localURL            string            // boot backend URL (the "local" connection's home)
+	localToken          string            // boot backend token
+	srvEditor           *serverEditor     // Settings → Servers: add/edit form (nil = closed)
+	srvErr              string            // Settings → Servers: last add/switch failure (inline)
+	srvConfirm          string            // Settings → Servers: profile id awaiting delete confirmation
+	epoch               uint64            // bumped on every backend switch; stale fetches are dropped
 	newSkillID          string            // Settings → Skills: new custom-skill id input
 	agentVer            map[string]string // Settings → Agents: last detected installed version
 	agentLatest         map[string]string // Settings → Agents: latest available (when newer)
@@ -203,6 +211,12 @@ func New(b *Backend) *Shell {
 		toolOpen:       map[string]bool{},
 		agentVer:       map[string]string{},
 		agentLatest:    map[string]string{},
+		// The in-process backend is always connection #0 ("local"); saved
+		// remotes come from ~/.yoyocode/servers.json.
+		localURL:     b.URL,
+		localToken:   b.Token,
+		servers:      loadServers(),
+		activeServer: localServerID,
 	}
 }
 
@@ -220,6 +234,7 @@ func (s *Shell) ensure(key, cmd string, body map[string]any) json.RawMessage {
 		return nil
 	}
 	s.inflight[key] = true
+	epoch := s.epoch // stamped so a server switch can drop this response
 	svc := s.svc
 	s.mu.Unlock()
 
@@ -227,6 +242,14 @@ func (s *Shell) ensure(key, cmd string, body map[string]any) json.RawMessage {
 		raw, err := s.B.raw(cmd, body)
 		s.mu.Lock()
 		s.inflight[key] = false
+		if epoch != s.epoch {
+			// The user switched servers while this was in flight: the response
+			// belongs to the previous backend, so drop it (the fresh cache the
+			// switch installed is never polluted with the old realm's data).
+			s.mu.Unlock()
+			svc.Invalidate()
+			return
+		}
 		if err != nil {
 			s.errs[key] = err.Error()
 			if ae, ok := err.(*apiError); ok {
@@ -413,6 +436,13 @@ func (s *Shell) viewStatusBar(c *ui.Context) {
 	ui.Row(c.Key("statusbar")).Background(t.Surface).PaddingX(12).PaddingY(5).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "\u25CF").FontSize(9).TextColor(dot)
 		ui.Text(c, label).FontSize(11).TextColor(t.TextMuted)
+		// Active server: a button because the whole workspace can be swapped to
+		// another one from Settings → Servers (single window, no second window).
+		srv := s.activeProfile()
+		if ui.Button(c.Key("sb-server"), srv.Name).Clicked() {
+			s.section = "settings"
+			s.settingsPage = "servers"
+		}
 		ui.Text(c, s.B.URL).FontSize(11).TextColor(t.TextMuted)
 		ui.Spacer(c)
 		// The two full-screen routes upstream opens as SEPARATE windows (never
