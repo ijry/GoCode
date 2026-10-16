@@ -690,6 +690,63 @@ func (s *Shell) sendPrompt(convID string) {
 	}()
 }
 
+// notify queues a transient outcome message for the window's toast manager —
+// mygo's c.Toast is a view-time call, so a mutation running on a goroutine
+// queues its message here and the next frame hands it over. A message that
+// reads as a failure (our error paths all say "… failed: …") shows as an error
+// toast. Replaces the per-panel status lines this app used to render itself.
+func (s *Shell) notify(msg string) {
+	to := ui.Toast{Title: msg}
+	if strings.Contains(msg, "failed") {
+		to.Type = "error"
+	}
+	s.toastMu.Lock()
+	s.toastQueue = append(s.toastQueue, to)
+	s.toastMu.Unlock()
+}
+
+// drainToasts hands the queued messages to mygo's toast manager. Called once a
+// frame from View. The lock is dropped BEFORE any toast is shown: showing one
+// asks the engine for a frame, which re-enters the view, and the view reaches
+// for s.mu — never hold one of our locks across AddToast.
+func (s *Shell) drainToasts(c *ui.Context) {
+	s.toastMu.Lock()
+	pending := s.toastQueue
+	s.toastQueue = nil
+	s.toastMu.Unlock()
+	for _, to := range pending {
+		c.AddToast(to)
+	}
+}
+
+// viewToasts draws the window's toasts with mygo's ToastBase (the same parts
+// the theme's look uses), in this view's own tree: bottom-centre, inverse
+// surface, an alert glyph for an error, and a close affordance. Building the
+// viewport ourselves — rather than leaving it to the theme's look — keeps it in
+// this tree, so it paints in offscreen renders too. Call it once a frame.
+func (s *Shell) viewToasts(c *ui.Context) {
+	t := c.Theme()
+	ui.ToastViewportBase(c, func(viewport ui.Element, toasts []ui.Toast) {
+		viewport.Bottom(t.Space(6)).AlignItems(ui.Center).Gap(t.Space(2))
+		for _, ts := range toasts {
+			toast := ui.ToastBase(c, ts)
+			root := toast.Root
+			root.Row().AlignItems(ui.Center).Gap(t.Space(3)).Padding(t.Space(2.5), t.Space(4)).
+				Radius(t.Space(2)).Background(t.Inverse).TextColor(t.InverseText).
+				MaxWidth(420).Shadow(0, 6, 20, 0, ui.RGBA(0, 0, 0, 0.25))
+			root.Children(func() {
+				if ts.Type == "error" {
+					ui.Icon(c, iconAlert).Width(14).Height(14).TextColor(t.Danger)
+				}
+				ui.Text(c, ts.Title)
+				toast.CloseButton().Label("Close toast").Children(func() {
+					ui.Icon(c, iconX).Width(12).Height(12).TextColor(t.InverseText)
+				})
+			})
+		}
+	})
+}
+
 func (s *Shell) setAction(msg string, svc ui.Services) {
 	s.mu.Lock()
 	s.actionMsg = msg

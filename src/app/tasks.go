@@ -540,9 +540,9 @@ func (s *Shell) taskSave() {
 		}
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "save failed: " + err.Error()
+			s.notify("save failed: " + err.Error())
 		} else {
-			s.actionMsg = "to-do saved"
+			s.notify("to-do saved")
 			s.taskEditor = nil
 		}
 		delete(s.cache, s.tasksKey())
@@ -558,9 +558,9 @@ func (s *Shell) taskTransition(cmd, id string) {
 		_, err := s.B.raw(cmd, map[string]any{"id": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = cmd + " failed: " + err.Error()
+			s.notify(cmd + " failed: " + err.Error())
 		} else {
-			s.actionMsg = "to-do updated"
+			s.notify("to-do updated")
 		}
 		delete(s.cache, s.tasksKey())
 		delete(s.cache, "task-events:"+id)
@@ -584,9 +584,9 @@ func (s *Shell) taskArchive(id string, archived bool) {
 		_, err := s.B.raw("work_task_archive", map[string]any{"id": numOrString(id), "archived": archived})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "archive failed: " + err.Error()
+			s.notify("archive failed: " + err.Error())
 		} else {
-			s.actionMsg = "to-do updated"
+			s.notify("to-do updated")
 		}
 		delete(s.cache, s.tasksKey())
 		s.mu.Unlock()
@@ -600,9 +600,9 @@ func (s *Shell) taskDelete(id string) {
 		_, err := s.B.raw("work_task_delete", map[string]any{"id": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "delete failed: " + err.Error()
+			s.notify("delete failed: " + err.Error())
 		} else {
-			s.actionMsg = "to-do deleted"
+			s.notify("to-do deleted")
 			if s.taskSel == id {
 				s.taskSel = ""
 			}
@@ -623,9 +623,9 @@ func (s *Shell) taskStartAll() {
 		_, err := s.B.raw("work_task_start_all", body)
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "start all failed: " + err.Error()
+			s.notify("start all failed: " + err.Error())
 		} else {
-			s.actionMsg = "started queued to-dos"
+			s.notify("started queued to-dos")
 		}
 		delete(s.cache, s.tasksKey())
 		s.mu.Unlock()

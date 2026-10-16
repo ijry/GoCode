@@ -321,9 +321,9 @@ func (s *Shell) canvasSave() {
 		}
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "save failed: " + err.Error()
+			s.notify("save failed: " + err.Error())
 		} else {
-			s.actionMsg = "board saved"
+			s.notify("board saved")
 			s.canvasEditor = nil
 		}
 		delete(s.cache, "canvas-boards")
@@ -338,9 +338,9 @@ func (s *Shell) canvasDeleteBoard(id string) {
 		_, err := s.B.raw("canvas_delete_board", map[string]any{"boardId": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "delete failed: " + err.Error()
+			s.notify("delete failed: " + err.Error())
 		} else {
-			s.actionMsg = "board deleted"
+			s.notify("board deleted")
 			if s.canvasSel == id {
 				s.canvasSel = ""
 			}
@@ -357,9 +357,9 @@ func (s *Shell) canvasDeleteNode(id string) {
 		_, err := s.B.raw("canvas_delete_node", map[string]any{"nodeId": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "delete failed: " + err.Error()
+			s.notify("delete failed: " + err.Error())
 		} else {
-			s.actionMsg = "node deleted"
+			s.notify("node deleted")
 		}
 		if s.canvasSel != "" {
 			delete(s.cache, "canvas-nodes:"+s.canvasSel)

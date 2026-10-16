@@ -119,6 +119,7 @@ type Shell struct {
 	actionMsg           string
 	errorMsg            string // last failed action, shown as a banner ("" = none)
 	errorHint           string // actionable next step for the error
+	toastQueue          []ui.Toast
 	renaming            bool
 	renameText          string
 	skillsAgent         string            // Settings → Skills: selected agent wire type
@@ -126,7 +127,6 @@ type Shell struct {
 	qmEditor            *quickMsgEditor   // Settings → Quick Messages: open create/edit form
 	qmErr               string            // Settings → Quick Messages: validation error
 	qmConfirm           string            // Settings → Quick Messages: id awaiting delete confirm
-	qmStatus            string            // Settings → Quick Messages: last action feedback
 	workbench           string            // "" (conversations) | automations | tasks | forge | canvas | files | …
 	autoSel             string            // Automations: selected automation id ("" = first row)
 	autoEditor          *automationEditor // Automations: open create/edit form (nil = closed)
@@ -179,6 +179,7 @@ type Shell struct {
 	toolDiff map[string]*editor.DiffState
 
 	mu       sync.Mutex
+	toastMu  sync.Mutex // guards toastQueue only; notify is often called with mu held
 	svc      ui.Services
 	cache    map[string]json.RawMessage
 	inflight map[string]bool
@@ -368,6 +369,9 @@ func (s *Shell) View(c *ui.Context) {
 	c.SetTheme(resolveTheme(s.appearanceMode)) // upstream neutral light/dark palette
 	s.svc = c.Services()
 	s.ensureStream()
+	// Mutation outcomes (queued by goroutines) surface as toasts, the way
+	// mygo's own apps report them.
+	s.drainToasts(c)
 	// Window = content row on top of a slim status bar (upstream's bottom chrome).
 	ui.Column(c).Fill().Children(func() {
 		// Computer-use strip, pinned above the content while anything is shared
@@ -388,6 +392,9 @@ func (s *Shell) View(c *ui.Context) {
 		ui.Divider(c)
 		s.viewStatusBar(c)
 	})
+	// The toast viewport overlays the window; build it after the content so its
+	// Bottom anchoring sits above the status bar.
+	s.viewToasts(c)
 }
 
 // viewStatusBar is the slim bottom chrome: a liveness dot + backend address on

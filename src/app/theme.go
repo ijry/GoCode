@@ -25,9 +25,14 @@ var themeLight = &ui.Theme{
 	Selection:      ui.Hex("#e4e4e7"),
 	Focus:          ui.Hex("#a1a1aa"),
 	Scrollbar:      ui.Hex("#d4d4d8"),
-	Radius:         8,
-	Spacing:        4,
-	FontSize:       14,
+	// The theme turned over: tooltips and toasts fill with it. mygo's own
+	// Theme.inverse() falls back to Text/Background when these are left zero,
+	// so naming them keeps both widgets correct in either mode.
+	Inverse:     ui.Hex("#18181b"),
+	InverseText: ui.Hex("#ffffff"),
+	Radius:      8,
+	Spacing:     4,
+	FontSize:    14,
 }
 
 // themeDark mirrors upstream's neutral dark tokens (globals.css
@@ -53,9 +58,12 @@ var themeDark = &ui.Theme{
 	Selection:      ui.Hex("#3f3f46"),
 	Focus:          ui.Hex("#71717a"),
 	Scrollbar:      ui.Hex("#52525b"),
-	Radius:         8,
-	Spacing:        4,
-	FontSize:       14,
+	// The theme turned over, as themeLight's — a light toast in the dark theme.
+	Inverse:     ui.Hex("#fafafa"),
+	InverseText: ui.Hex("#18181b"),
+	Radius:      8,
+	Spacing:     4,
+	FontSize:    14,
 }
 
 // resolveTheme picks the Theme for an appearance mode ("light" | "dark" |

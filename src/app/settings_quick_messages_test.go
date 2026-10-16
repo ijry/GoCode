@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -87,9 +88,14 @@ func TestQuickMessagesEmptyThenCreate(t *testing.T) {
 	if !waitText(t, tt, "Review checklist", true) {
 		t.Fatalf("created message not listed; texts = %v", tt.Texts())
 	}
+	// The outcome came back as a window toast (mygo's c.AddToast, drawn by our
+	// own viewport so it paints in offscreen renders too). It fades in over the
+	// first 200ms, so let real time pass before the frame is dumped.
 	if !tt.HasText("Saved.") {
 		t.Errorf("save feedback missing; texts = %v", tt.Texts())
 	}
+	time.Sleep(1200 * time.Millisecond)
+	tt.Frame()
 	dumpFrame(t, tt, "settings-quick-messages")
 }
 

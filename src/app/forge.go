@@ -331,9 +331,9 @@ func (s *Shell) forgeSetState(fid string, number int, action string) {
 		})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "forge update failed: " + err.Error()
+			s.notify("forge update failed: " + err.Error())
 		} else {
-			s.actionMsg = "issue " + action + "d"
+			s.notify("issue " + action + "d")
 		}
 		delete(s.cache, "forge-issues:"+fid+":"+s.forgeTab+":"+s.forgeState)
 		s.mu.Unlock()
@@ -356,9 +356,9 @@ func (s *Shell) forgeCreateIssue(fid string) {
 		})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "create issue failed: " + err.Error()
+			s.notify("create issue failed: " + err.Error())
 		} else {
-			s.actionMsg = "issue created"
+			s.notify("issue created")
 			s.forgeEditor = nil
 		}
 		delete(s.cache, "forge-issues:"+fid+":"+s.forgeTab+":"+s.forgeState)

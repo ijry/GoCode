@@ -452,9 +452,9 @@ func (s *Shell) automationSave() {
 		}
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "save failed: " + err.Error()
+			s.notify("save failed: " + err.Error())
 		} else {
-			s.actionMsg = "automation saved"
+			s.notify("automation saved")
 			s.autoEditor = nil
 		}
 		delete(s.cache, "automations")
@@ -469,11 +469,11 @@ func (s *Shell) automationSetEnabled(id string, on bool) {
 		_, err := s.B.raw("automation_set_enabled", map[string]any{"id": numOrString(id), "enabled": on})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "update failed: " + err.Error()
+			s.notify("update failed: " + err.Error())
 		} else if on {
-			s.actionMsg = "automation enabled"
+			s.notify("automation enabled")
 		} else {
-			s.actionMsg = "automation disabled"
+			s.notify("automation disabled")
 		}
 		delete(s.cache, "automations")
 		s.mu.Unlock()
@@ -487,9 +487,9 @@ func (s *Shell) automationRunNow(id string) {
 		_, err := s.B.raw("automation_run_now", map[string]any{"automationId": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "run failed: " + err.Error()
+			s.notify("run failed: " + err.Error())
 		} else {
-			s.actionMsg = "run started"
+			s.notify("run started")
 		}
 		delete(s.cache, "automations")
 		delete(s.cache, "auto-runs:"+id)
@@ -504,9 +504,9 @@ func (s *Shell) automationCancelRun(autoID, runID string) {
 		_, err := s.B.raw("automation_cancel_run", map[string]any{"runId": numOrString(runID)})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "cancel failed: " + err.Error()
+			s.notify("cancel failed: " + err.Error())
 		} else {
-			s.actionMsg = "run cancelled"
+			s.notify("run cancelled")
 		}
 		delete(s.cache, "automations")
 		delete(s.cache, "auto-runs:"+autoID)
@@ -521,9 +521,9 @@ func (s *Shell) automationDelete(id string) {
 		_, err := s.B.raw("automation_delete", map[string]any{"id": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "delete failed: " + err.Error()
+			s.notify("delete failed: " + err.Error())
 		} else {
-			s.actionMsg = "automation deleted"
+			s.notify("automation deleted")
 			if s.autoSel == id {
 				s.autoSel = ""
 			}

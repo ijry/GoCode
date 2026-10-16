@@ -44,11 +44,6 @@ func (s *Shell) viewSettingsQuickMessages(c *ui.Context) {
 	ui.Text(c, "Reusable snippets you can drop into the composer — e.g. a code-review checklist or a bug-report template.").
 		FontSize(12).TextColor(t.TextMuted).Wrap()
 
-	// Status feedback for the last save / delete.
-	if s.qmStatus != "" {
-		ui.Text(c, s.qmStatus).FontSize(12).TextColor(t.Success)
-	}
-
 	if s.qmEditor != nil {
 		s.viewQuickMessageEditor(c)
 		return
@@ -173,7 +168,6 @@ func (s *Shell) startNewQuickMessage() {
 	s.qmEditor = &quickMsgEditor{}
 	s.qmErr = ""
 	s.qmConfirm = ""
-	s.qmStatus = ""
 }
 
 func (s *Shell) startEditQuickMessage(m map[string]any) {
@@ -184,7 +178,6 @@ func (s *Shell) startEditQuickMessage(m map[string]any) {
 	}
 	s.qmErr = ""
 	s.qmConfirm = ""
-	s.qmStatus = ""
 }
 
 // validateQuickMessage is the page's own check — the backend stores whatever it
@@ -226,7 +219,7 @@ func (s *Shell) saveQuickMessage() {
 		if err != nil {
 			s.qmErr = "save failed: " + err.Error()
 		} else {
-			s.qmStatus = "Saved."
+			s.notify("Saved.")
 			s.qmEditor = nil
 			s.qmErr = ""
 		}
@@ -242,9 +235,9 @@ func (s *Shell) deleteQuickMessage(id string) {
 		_, err := s.B.raw("quick_messages_delete", map[string]any{"id": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.qmStatus = "delete failed: " + err.Error()
+			s.notify("delete failed: " + err.Error())
 		} else {
-			s.qmStatus = "Deleted."
+			s.notify("Deleted.")
 		}
 		delete(s.cache, "quick-messages")
 		s.mu.Unlock()
