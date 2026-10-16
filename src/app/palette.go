@@ -32,54 +32,55 @@ type paletteCommand struct {
 }
 
 // paletteCommands is the catalog, in the order shown when the query is empty.
-func (s *Shell) paletteCommands() []paletteCommand {
+func (s *Shell) paletteCommands(c *ui.Context) []paletteCommand {
+	settings := cat(c).SectionSettings()
 	return []paletteCommand{
-		{"new-chat", "New chat", "Chat", iconNewChat, func() {
+		{"new-chat", cat(c).ActionNewChat(), cat(c).PaletteChat(), iconNewChat, func() {
 			s.section = "workspace"
 			s.workbench = ""
 			s.createChatConversation()
 		}},
-		{"automations", "Automations", "Workbench", iconAutomations, func() {
+		{"automations", cat(c).NavAutomations(), cat(c).PaletteWorkbench(), iconAutomations, func() {
 			s.section = "workspace"
 			s.workbench = "automations"
 		}},
-		{"tasks", "To-dos", "Workbench", iconTasks, func() {
+		{"tasks", cat(c).NavTodos(), cat(c).PaletteWorkbench(), iconTasks, func() {
 			s.section = "workspace"
 			s.workbench = "tasks"
 		}},
-		{"forge", "Repositories", "Workbench", iconForge, func() {
+		{"forge", cat(c).NavRepositories(), cat(c).PaletteWorkbench(), iconForge, func() {
 			s.section = "workspace"
 			s.workbench = "forge"
 		}},
-		{"canvas", "Canvas", "Workbench", iconCanvas, func() {
+		{"canvas", cat(c).NavCanvas(), cat(c).PaletteWorkbench(), iconCanvas, func() {
 			s.section = "workspace"
 			s.workbench = "canvas"
 		}},
-		{"settings", "Settings", "Go to", iconSettings, func() {
+		{"settings", settings, cat(c).PaletteGoto(), iconSettings, func() {
 			s.section = "settings"
 		}},
-		{"pet", "Active sessions", "Go to", iconPet, func() {
+		{"pet", cat(c).ActiveSessions(), cat(c).PaletteGoto(), iconPet, func() {
 			s.section = "pet"
 		}},
-		{"settings-agents", "Settings: Agents", "Go to", iconSettings, func() {
+		{"settings-agents", settings + ": " + cat(c).NavAgents(), cat(c).PaletteGoto(), iconSettings, func() {
 			s.section, s.settingsPage = "settings", "agents"
 		}},
-		{"settings-version-control", "Settings: Version Control", "Go to", iconSettings, func() {
+		{"settings-version-control", settings + ": " + cat(c).NavVersionControl(), cat(c).PaletteGoto(), iconSettings, func() {
 			s.section, s.settingsPage = "settings", "version-control"
 		}},
-		{"settings-servers", "Settings: Servers", "Go to", iconSettings, func() {
+		{"settings-servers", settings + ": " + cat(c).NavServers(), cat(c).PaletteGoto(), iconSettings, func() {
 			s.section, s.settingsPage = "settings", "servers"
 		}},
-		{"theme-light", "Appearance: Light", "Theme", iconInfo, func() { s.setAppearanceMode("light") }},
-		{"theme-dark", "Appearance: Dark", "Theme", iconInfo, func() { s.setAppearanceMode("dark") }},
-		{"theme-system", "Appearance: System", "Theme", iconInfo, func() { s.setAppearanceMode("system") }},
+		{"theme-light", cat(c).NavAppearance() + ": " + cat(c).ThemeLight(), cat(c).PaletteTheme(), iconInfo, func() { s.setAppearanceMode("light") }},
+		{"theme-dark", cat(c).NavAppearance() + ": " + cat(c).ThemeDark(), cat(c).PaletteTheme(), iconInfo, func() { s.setAppearanceMode("dark") }},
+		{"theme-system", cat(c).NavAppearance() + ": " + cat(c).ThemeSystem(), cat(c).PaletteTheme(), iconInfo, func() { s.setAppearanceMode("system") }},
 	}
 }
 
 // filteredPaletteCommands narrows the catalog by the query (case-insensitive
 // substring on the label).
-func (s *Shell) filteredPaletteCommands() []paletteCommand {
-	all := s.paletteCommands()
+func (s *Shell) filteredPaletteCommands(c *ui.Context) []paletteCommand {
+	all := s.paletteCommands(c)
 	q := strings.ToLower(strings.TrimSpace(s.paletteQuery))
 	if q == "" {
 		return all
@@ -101,7 +102,7 @@ func (s *Shell) viewCommandPalette(c *ui.Context) {
 		return
 	}
 	t := c.Theme()
-	cmds := s.filteredPaletteCommands()
+	cmds := s.filteredPaletteCommands(c)
 	if s.paletteSel >= len(cmds) {
 		s.paletteSel = len(cmds) - 1
 	}
@@ -118,7 +119,7 @@ func (s *Shell) viewCommandPalette(c *ui.Context) {
 					OnTextKey(func(k ui.TextKey) bool {
 						switch {
 						case k.Key == ui.KeyEnter && k.Mods == 0:
-							s.runPaletteSelection()
+							s.runPaletteSelection(c)
 							return true
 						case k.Key == ui.KeyDown:
 							s.paletteSel++
@@ -173,8 +174,8 @@ func (s *Shell) paletteRow(c *ui.Context, i int, cmd paletteCommand) {
 }
 
 // runPaletteSelection runs the highlighted command (Enter in the palette).
-func (s *Shell) runPaletteSelection() {
-	cmds := s.filteredPaletteCommands()
+func (s *Shell) runPaletteSelection(c *ui.Context) {
+	cmds := s.filteredPaletteCommands(c)
 	if s.paletteSel < 0 || s.paletteSel >= len(cmds) {
 		return
 	}

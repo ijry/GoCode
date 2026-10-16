@@ -33,16 +33,16 @@ func (s *Shell) viewWorkspace(c *ui.Context) {
 					s.workbench = ""
 					s.createChatConversation()
 				})
-				s.navRow(c, "nav-autom", iconAutomations, "Automations", s.workbench == "automations", func() {
+				s.navRow(c, "nav-autom", iconAutomations, cat(c).NavAutomations(), s.workbench == "automations", func() {
 					s.workbench = "automations"
 				})
-				s.navRow(c, "nav-tasks", iconTasks, "To-dos", s.workbench == "tasks", func() {
+				s.navRow(c, "nav-tasks", iconTasks, cat(c).NavTodos(), s.workbench == "tasks", func() {
 					s.workbench = "tasks"
 				})
-				s.navRow(c, "nav-forge", iconForge, "Repositories", s.workbench == "forge", func() {
+				s.navRow(c, "nav-forge", iconForge, cat(c).NavRepositories(), s.workbench == "forge", func() {
 					s.workbench = "forge"
 				})
-				s.navRow(c, "nav-canvas", iconCanvas, "Canvas", s.workbench == "canvas", func() {
+				s.navRow(c, "nav-canvas", iconCanvas, cat(c).NavCanvas(), s.workbench == "canvas", func() {
 					s.workbench = "canvas"
 				})
 			})
@@ -54,9 +54,9 @@ func (s *Shell) viewWorkspace(c *ui.Context) {
 				if s.sidebarTab != "folders" {
 					ui.Row(c.Key("ws-search-row")).Gap(6).AlignItems(ui.Center).Children(func() {
 						ui.Icon(c, iconSearch).Width(14).Height(14).TextColor(t.TextMuted)
-						ui.TextInput(c.Key("ws-search"), &s.sidebarSearch).Grow(1).Placeholder("Search chats")
+						ui.TextInput(c.Key("ws-search"), &s.sidebarSearch).Grow(1).Placeholder(cat(c).SidebarSearchPlaceholder())
 						if s.sidebarSearch != "" {
-							iconButton(c, "ws-search-clear", iconX, "Clear search", func() {
+							iconButton(c, "ws-search-clear", iconX, cat(c).SidebarClearSearch(), func() {
 								s.sidebarSearch = ""
 							})
 						}
@@ -77,10 +77,10 @@ func (s *Shell) viewWorkspace(c *ui.Context) {
 				})
 				if s.sidebarTab == "folders" {
 					ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-						if ui.Button(c.Key("ws-open"), "Open folder…").Clicked() {
+						if ui.Button(c.Key("ws-open"), cat(c).SidebarOpenFolder()).Clicked() {
 							s.openFolder()
 						}
-						iconButton(c, "ws-reload", iconRefresh, "Reload folders", func() {
+						iconButton(c, "ws-reload", iconRefresh, cat(c).SidebarReloadFolders(), func() {
 							s.invalidate("folders")
 						})
 					})
@@ -107,9 +107,9 @@ func (s *Shell) sidebarSegmented(c *ui.Context) {
 	t := c.Theme()
 	ui.Row(c.Key("ws-seg")).Gap(6).Children(func() {
 		for _, seg := range []struct{ id, label string }{
-			{"recent", "Recent"},
-			{"pinned", "Pinned"},
-			{"folders", "Folders"},
+			{"recent", cat(c).SidebarTabRecent()},
+			{"pinned", cat(c).SidebarTabPinned()},
+			{"folders", cat(c).SidebarTabFolders()},
 		} {
 			active := s.sidebarTab == seg.id
 			color := t.TextMuted
@@ -135,7 +135,7 @@ func (s *Shell) sidebarSegmented(c *ui.Context) {
 func (s *Shell) convList(c *ui.Context, which string) {
 	t := c.Theme()
 	if s.selectedFolder == "" {
-		ui.Text(c, "Select a folder").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, cat(c).SidebarSelectFolder()).FontSize(12).TextColor(t.TextMuted)
 		return
 	}
 	convs := asList(s.ensure("convs:"+s.selectedFolder, "list_conversations", map[string]any{"folderId": numOrString(s.selectedFolder)}))
@@ -159,14 +159,14 @@ func (s *Shell) convList(c *ui.Context, which string) {
 		}
 	}
 	list := rest
-	emptyHint := "No conversations"
+	emptyHint := cat(c).SidebarNoConversations()
 	if which == "pinned" {
 		list = pinned
-		emptyHint = "No pinned chats"
+		emptyHint = cat(c).SidebarNoPinned()
 	}
 	ui.Text(c, cat(c).SidebarChatsCount(len(list))).FontSize(11).TextColor(t.TextMuted)
 	if strings.TrimSpace(s.sidebarSearch) != "" {
-		emptyHint = "No matches"
+		emptyHint = cat(c).SidebarNoMatches()
 	}
 	ui.Column(c).Gap(1).Children(func() {
 		if len(list) == 0 {
@@ -187,7 +187,7 @@ func (s *Shell) foldersList(c *ui.Context, folders []map[string]any) {
 		return
 	}
 	if len(folders) == 0 {
-		ui.Text(c, "No folders open").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, cat(c).SidebarNoFolders()).FontSize(12).TextColor(t.TextMuted)
 		return
 	}
 	ui.Column(c).Gap(1).Children(func() {
@@ -214,7 +214,7 @@ func (s *Shell) convRow(c *ui.Context, cv map[string]any) {
 	id := fmt.Sprintf("%v", cv["id"])
 	title := str(cv, "title")
 	if title == "" {
-		title = "(untitled)"
+		title = cat(c).Untitled()
 	}
 	sub := fmt.Sprintf("%s · %s", str(cv, "agent_type"), str(cv, "status"))
 	pinned := isPinned(cv)
@@ -223,23 +223,23 @@ func (s *Shell) convRow(c *ui.Context, cv map[string]any) {
 		s.workbench = ""
 		s.actionMsg = ""
 	}, func(m *ui.Menu) {
-		if m.Item("Rename").Chosen() {
+		if m.Item(cat(c).ActionRename()).Chosen() {
 			// Open the detail header's inline rename for this row.
 			s.selectedConv = id
 			s.renaming = true
 			s.renameText = title
 		}
 		if pinned {
-			if m.Item("Unpin").Chosen() {
+			if m.Item(cat(c).ActionUnpin()).Chosen() {
 				s.setPinned(id, false)
 			}
 		} else {
-			if m.Item("Pin").Chosen() {
+			if m.Item(cat(c).ActionPin()).Chosen() {
 				s.setPinned(id, true)
 			}
 		}
 		m.Separator()
-		if m.Item("Delete").Chosen() {
+		if m.Item(cat(c).ActionDelete()).Chosen() {
 			s.deleteConversation(id)
 		}
 	})
@@ -314,7 +314,7 @@ func (s *Shell) viewWorkbenchRoute(c *ui.Context, route string) {
 func (s *Shell) viewRoutePlaceholder(c *ui.Context, route string) {
 	t := c.Theme()
 	ui.Text(c, route).FontSize(22).Bold()
-	ui.Text(c, "This panel is not built yet.").TextColor(t.TextMuted).Wrap()
+	ui.Text(c, cat(c).RouteNotBuilt()).TextColor(t.TextMuted).Wrap()
 }
 
 // asObjVal converts an already-decoded value into an object, or nil.
@@ -438,8 +438,8 @@ func (s *Shell) viewConversationDetail(c *ui.Context) {
 		// ways in (start a chat, or open a folder to work in).
 		ui.Column(c.Key("ws-welcome")).Fill().Center().Gap(14).Children(func() {
 			ui.Column(c).Center().Gap(6).Children(func() {
-				ui.Text(c, "YoYoCode").FontSize(28).Bold()
-				ui.Text(c, "Your agents, your workspace — pick up a chat or open a folder to begin.").
+				ui.Text(c, cat(c).AppTitle()).FontSize(28).Bold()
+				ui.Text(c, cat(c).AppTagline()).
 					FontSize(13).TextColor(t.TextMuted)
 			})
 			ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
@@ -447,7 +447,7 @@ func (s *Shell) viewConversationDetail(c *ui.Context) {
 					s.workbench = ""
 					s.createChatConversation()
 				}
-				if ui.Button(c.Key("welcome-open"), "Open folder…").Clicked() {
+				if ui.Button(c.Key("welcome-open"), cat(c).SidebarOpenFolder()).Clicked() {
 					s.openFolder()
 				}
 			})
@@ -457,7 +457,7 @@ func (s *Shell) viewConversationDetail(c *ui.Context) {
 	cv := s.convByID(s.selectedConv)
 	title := str(cv, "title")
 	if title == "" {
-		title = "(untitled)"
+		title = cat(c).Untitled()
 	}
 	// Header: title (or inline rename) + management actions.
 	ui.Row(c.Key("conv-header")).Gap(8).Children(func() {

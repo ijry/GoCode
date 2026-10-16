@@ -699,9 +699,9 @@ func (s *Shell) viewSettingsAppearance(c *ui.Context) {
 	ui.Text(c, "Choose how YoYoCode looks. \u201cSystem\u201d follows the OS where supported.").FontSize(12).TextColor(t.TextMuted)
 	ui.Row(c).Gap(8).Children(func() {
 		for _, opt := range []struct{ id, label string }{
-			{"system", "System"},
-			{"light", "Light"},
-			{"dark", "Dark"},
+			{"system", cat(c).ThemeSystem()},
+			{"light", cat(c).ThemeLight()},
+			{"dark", cat(c).ThemeDark()},
 		} {
 			active := mode == opt.id
 			key := "appear-" + opt.id

@@ -123,3 +123,27 @@ func TestLanguagePickerSwitchesTheWindow(t *testing.T) {
 		t.Errorf("the nav did not return to the source language; texts = %v", tt.Texts())
 	}
 }
+
+// TestSidebarFollowsTheLanguage drives the workspace sidebar's nav, segmented
+// switcher and search box through a language change: those panel strings now
+// live in the catalogs, so switching the window re-says them at once.
+func TestSidebarFollowsTheLanguage(t *testing.T) {
+	s := shellForTest(t)
+	tt := ui.NewTester(s.View, 1240, 820)
+
+	// Source language first: the sidebar is English.
+	for _, want := range []string{"New chat", "Automations", "To-dos", "Repositories", "Canvas", "Recent", "Pinned", "Folders"} {
+		if !tt.HasText(want) {
+			t.Fatalf("english sidebar missing %q; texts = %v", want, tt.Texts())
+		}
+	}
+
+	// Chinese: the nav, the segmented switcher and the folder actions follow.
+	tt.SetLocale("zh-Hans")
+	tt.Frame()
+	for _, want := range []string{"新会话", "自动化", "待办", "代码仓库", "画布", "最近", "置顶", "文件夹", "选择一个文件夹", "打开文件夹…"} {
+		if !tt.HasText(want) {
+			t.Errorf("zh sidebar missing %q; texts = %v", want, tt.Texts())
+		}
+	}
+}

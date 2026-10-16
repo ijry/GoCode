@@ -544,6 +544,296 @@ func (msgs Messages) ActionKeep() string {
 	return Catalog.Format(msgs.locale, "actionKeep", nil)
 }
 
+// ActionRename says "Rename"
+// in the language the app shows.
+func ActionRename() string { return In(i18n.Locale()).ActionRename() }
+
+// ActionRename says "Rename"
+// in the language of msgs.
+func (msgs Messages) ActionRename() string {
+	return Catalog.Format(msgs.locale, "actionRename", nil)
+}
+
+// ActionPin says "Pin"
+// in the language the app shows.
+func ActionPin() string { return In(i18n.Locale()).ActionPin() }
+
+// ActionPin says "Pin"
+// in the language of msgs.
+func (msgs Messages) ActionPin() string {
+	return Catalog.Format(msgs.locale, "actionPin", nil)
+}
+
+// ActionUnpin says "Unpin"
+// in the language the app shows.
+func ActionUnpin() string { return In(i18n.Locale()).ActionUnpin() }
+
+// ActionUnpin says "Unpin"
+// in the language of msgs.
+func (msgs Messages) ActionUnpin() string {
+	return Catalog.Format(msgs.locale, "actionUnpin", nil)
+}
+
+// NavAutomations says "Automations"
+// in the language the app shows.
+func NavAutomations() string { return In(i18n.Locale()).NavAutomations() }
+
+// NavAutomations says "Automations"
+// in the language of msgs.
+func (msgs Messages) NavAutomations() string {
+	return Catalog.Format(msgs.locale, "navAutomations", nil)
+}
+
+// NavTodos says "To-dos"
+// in the language the app shows.
+func NavTodos() string { return In(i18n.Locale()).NavTodos() }
+
+// NavTodos says "To-dos"
+// in the language of msgs.
+func (msgs Messages) NavTodos() string {
+	return Catalog.Format(msgs.locale, "navTodos", nil)
+}
+
+// NavRepositories says "Repositories"
+// in the language the app shows.
+func NavRepositories() string { return In(i18n.Locale()).NavRepositories() }
+
+// NavRepositories says "Repositories"
+// in the language of msgs.
+func (msgs Messages) NavRepositories() string {
+	return Catalog.Format(msgs.locale, "navRepositories", nil)
+}
+
+// NavCanvas says "Canvas"
+// in the language the app shows.
+func NavCanvas() string { return In(i18n.Locale()).NavCanvas() }
+
+// NavCanvas says "Canvas"
+// in the language of msgs.
+func (msgs Messages) NavCanvas() string {
+	return Catalog.Format(msgs.locale, "navCanvas", nil)
+}
+
+// SidebarSearchPlaceholder says "Search chats"
+// in the language the app shows.
+func SidebarSearchPlaceholder() string { return In(i18n.Locale()).SidebarSearchPlaceholder() }
+
+// SidebarSearchPlaceholder says "Search chats"
+// in the language of msgs.
+func (msgs Messages) SidebarSearchPlaceholder() string {
+	return Catalog.Format(msgs.locale, "sidebarSearchPlaceholder", nil)
+}
+
+// SidebarClearSearch says "Clear search"
+// in the language the app shows.
+func SidebarClearSearch() string { return In(i18n.Locale()).SidebarClearSearch() }
+
+// SidebarClearSearch says "Clear search"
+// in the language of msgs.
+func (msgs Messages) SidebarClearSearch() string {
+	return Catalog.Format(msgs.locale, "sidebarClearSearch", nil)
+}
+
+// SidebarOpenFolder says "Open folder…"
+// in the language the app shows.
+func SidebarOpenFolder() string { return In(i18n.Locale()).SidebarOpenFolder() }
+
+// SidebarOpenFolder says "Open folder…"
+// in the language of msgs.
+func (msgs Messages) SidebarOpenFolder() string {
+	return Catalog.Format(msgs.locale, "sidebarOpenFolder", nil)
+}
+
+// SidebarReloadFolders says "Reload folders"
+// in the language the app shows.
+func SidebarReloadFolders() string { return In(i18n.Locale()).SidebarReloadFolders() }
+
+// SidebarReloadFolders says "Reload folders"
+// in the language of msgs.
+func (msgs Messages) SidebarReloadFolders() string {
+	return Catalog.Format(msgs.locale, "sidebarReloadFolders", nil)
+}
+
+// SidebarTabRecent says "Recent"
+// in the language the app shows.
+func SidebarTabRecent() string { return In(i18n.Locale()).SidebarTabRecent() }
+
+// SidebarTabRecent says "Recent"
+// in the language of msgs.
+func (msgs Messages) SidebarTabRecent() string {
+	return Catalog.Format(msgs.locale, "sidebarTabRecent", nil)
+}
+
+// SidebarTabPinned says "Pinned"
+// in the language the app shows.
+func SidebarTabPinned() string { return In(i18n.Locale()).SidebarTabPinned() }
+
+// SidebarTabPinned says "Pinned"
+// in the language of msgs.
+func (msgs Messages) SidebarTabPinned() string {
+	return Catalog.Format(msgs.locale, "sidebarTabPinned", nil)
+}
+
+// SidebarTabFolders says "Folders"
+// in the language the app shows.
+func SidebarTabFolders() string { return In(i18n.Locale()).SidebarTabFolders() }
+
+// SidebarTabFolders says "Folders"
+// in the language of msgs.
+func (msgs Messages) SidebarTabFolders() string {
+	return Catalog.Format(msgs.locale, "sidebarTabFolders", nil)
+}
+
+// SidebarSelectFolder says "Select a folder"
+// in the language the app shows.
+func SidebarSelectFolder() string { return In(i18n.Locale()).SidebarSelectFolder() }
+
+// SidebarSelectFolder says "Select a folder"
+// in the language of msgs.
+func (msgs Messages) SidebarSelectFolder() string {
+	return Catalog.Format(msgs.locale, "sidebarSelectFolder", nil)
+}
+
+// SidebarNoConversations says "No conversations"
+// in the language the app shows.
+func SidebarNoConversations() string { return In(i18n.Locale()).SidebarNoConversations() }
+
+// SidebarNoConversations says "No conversations"
+// in the language of msgs.
+func (msgs Messages) SidebarNoConversations() string {
+	return Catalog.Format(msgs.locale, "sidebarNoConversations", nil)
+}
+
+// SidebarNoPinned says "No pinned chats"
+// in the language the app shows.
+func SidebarNoPinned() string { return In(i18n.Locale()).SidebarNoPinned() }
+
+// SidebarNoPinned says "No pinned chats"
+// in the language of msgs.
+func (msgs Messages) SidebarNoPinned() string {
+	return Catalog.Format(msgs.locale, "sidebarNoPinned", nil)
+}
+
+// SidebarNoMatches says "No matches"
+// in the language the app shows.
+func SidebarNoMatches() string { return In(i18n.Locale()).SidebarNoMatches() }
+
+// SidebarNoMatches says "No matches"
+// in the language of msgs.
+func (msgs Messages) SidebarNoMatches() string {
+	return Catalog.Format(msgs.locale, "sidebarNoMatches", nil)
+}
+
+// SidebarNoFolders says "No folders open"
+// in the language the app shows.
+func SidebarNoFolders() string { return In(i18n.Locale()).SidebarNoFolders() }
+
+// SidebarNoFolders says "No folders open"
+// in the language of msgs.
+func (msgs Messages) SidebarNoFolders() string {
+	return Catalog.Format(msgs.locale, "sidebarNoFolders", nil)
+}
+
+// Untitled says "(untitled)"
+// in the language the app shows.
+func Untitled() string { return In(i18n.Locale()).Untitled() }
+
+// Untitled says "(untitled)"
+// in the language of msgs.
+func (msgs Messages) Untitled() string {
+	return Catalog.Format(msgs.locale, "untitled", nil)
+}
+
+// RouteNotBuilt says "This panel is not built yet."
+// in the language the app shows.
+func RouteNotBuilt() string { return In(i18n.Locale()).RouteNotBuilt() }
+
+// RouteNotBuilt says "This panel is not built yet."
+// in the language of msgs.
+func (msgs Messages) RouteNotBuilt() string {
+	return Catalog.Format(msgs.locale, "routeNotBuilt", nil)
+}
+
+// ActiveSessions says "Active sessions"
+// in the language the app shows.
+func ActiveSessions() string { return In(i18n.Locale()).ActiveSessions() }
+
+// ActiveSessions says "Active sessions"
+// in the language of msgs.
+func (msgs Messages) ActiveSessions() string {
+	return Catalog.Format(msgs.locale, "activeSessions", nil)
+}
+
+// ThemeLight says "Light"
+// in the language the app shows.
+func ThemeLight() string { return In(i18n.Locale()).ThemeLight() }
+
+// ThemeLight says "Light"
+// in the language of msgs.
+func (msgs Messages) ThemeLight() string {
+	return Catalog.Format(msgs.locale, "themeLight", nil)
+}
+
+// ThemeDark says "Dark"
+// in the language the app shows.
+func ThemeDark() string { return In(i18n.Locale()).ThemeDark() }
+
+// ThemeDark says "Dark"
+// in the language of msgs.
+func (msgs Messages) ThemeDark() string {
+	return Catalog.Format(msgs.locale, "themeDark", nil)
+}
+
+// ThemeSystem says "System"
+// in the language the app shows.
+func ThemeSystem() string { return In(i18n.Locale()).ThemeSystem() }
+
+// ThemeSystem says "System"
+// in the language of msgs.
+func (msgs Messages) ThemeSystem() string {
+	return Catalog.Format(msgs.locale, "themeSystem", nil)
+}
+
+// PaletteChat says "Chat"
+// in the language the app shows.
+func PaletteChat() string { return In(i18n.Locale()).PaletteChat() }
+
+// PaletteChat says "Chat"
+// in the language of msgs.
+func (msgs Messages) PaletteChat() string {
+	return Catalog.Format(msgs.locale, "paletteChat", nil)
+}
+
+// PaletteWorkbench says "Workbench"
+// in the language the app shows.
+func PaletteWorkbench() string { return In(i18n.Locale()).PaletteWorkbench() }
+
+// PaletteWorkbench says "Workbench"
+// in the language of msgs.
+func (msgs Messages) PaletteWorkbench() string {
+	return Catalog.Format(msgs.locale, "paletteWorkbench", nil)
+}
+
+// PaletteGoto says "Go to"
+// in the language the app shows.
+func PaletteGoto() string { return In(i18n.Locale()).PaletteGoto() }
+
+// PaletteGoto says "Go to"
+// in the language of msgs.
+func (msgs Messages) PaletteGoto() string {
+	return Catalog.Format(msgs.locale, "paletteGoto", nil)
+}
+
+// PaletteTheme says "Theme"
+// in the language the app shows.
+func PaletteTheme() string { return In(i18n.Locale()).PaletteTheme() }
+
+// PaletteTheme says "Theme"
+// in the language of msgs.
+func (msgs Messages) PaletteTheme() string {
+	return Catalog.Format(msgs.locale, "paletteTheme", nil)
+}
+
 // SidebarChatsCount says "{count, plural, =0 {No chats} one {# chat} other {# chats}}"
 // in the language the app shows.
 func SidebarChatsCount(count int) string { return In(i18n.Locale()).SidebarChatsCount(count) }
