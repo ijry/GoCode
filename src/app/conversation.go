@@ -19,7 +19,6 @@ package app
 
 import (
 	"encoding/json"
-	"math"
 	"strings"
 	"time"
 
@@ -145,40 +144,42 @@ func (s *Shell) viewTranscript(c *ui.Context, turns []any, live []transcriptItem
 		})
 		return
 	}
-	// Follow the end only while the transcript already sits at it: a user who
-	// scrolled back into history is never yanked forward (upstream's
-	// stick-to-bottom "at bottom" guard). MaxFloat32 is the end, per
-	// ui.ScrollState's contract.
-	if s.transcriptScroll.Y >= s.transcriptScroll.MaxY {
-		s.transcriptScroll.Y = math.MaxFloat32
+	// A virtual list (mygo's ui.List): only the rows in view are built, so a
+	// very long conversation scrolls as one of a few. FollowEnd is upstream's
+	// stick-to-bottom guard — it keeps the end in view while the user is at it,
+	// and stops the moment they scroll back into history (a user reading older
+	// messages is never yanked forward).
+	s.transcriptList.FollowEnd = true
+	n := len(turns) + len(live)
+	if streaming {
+		n++
 	}
-	ui.Scroll(c.Key("transcript")).Grow(1).TrackScroll(&s.transcriptScroll).Children(func() {
-		ui.Column(c).FillWidth().Gap(18).Padding(2).Children(func() {
-			for i, raw := range turns {
-				m, _ := raw.(map[string]any)
-				s.viewHistoricalTurn(c, itoa("turn", i), m)
+	ui.List(c.Key("transcript"), &s.transcriptList, n, func(i int) {
+		switch {
+		case i < len(turns):
+			m, _ := turns[i].(map[string]any)
+			s.viewHistoricalTurn(c, itoa("turn", i), m)
+		case i < len(turns)+len(live):
+			j := i - len(turns)
+			it := live[j]
+			key := itoa("tr", j)
+			switch it.kind {
+			case "message":
+				// Only the assistant's tail bubble is still being written; the
+				// user's own echo is complete the moment it is sent.
+				s.viewMessageBubble(c, key, it.role, it.text, it.atts,
+					streaming && j == len(live)-1 && it.role != "user")
+			case "thinking":
+				s.viewThinkingRow(c, key, it.text)
+			case "tool":
+				s.viewToolCard(c, key, it.tool)
+			case "note":
+				s.viewNoteRow(c, key, it.note)
 			}
-			for i, it := range live {
-				key := itoa("tr", i)
-				switch it.kind {
-				case "message":
-					// Only the assistant's tail bubble is still being written;
-					// the user's own echo is complete the moment it is sent.
-					s.viewMessageBubble(c, key, it.role, it.text, it.atts,
-						streaming && i == len(live)-1 && it.role != "user")
-				case "thinking":
-					s.viewThinkingRow(c, key, it.text)
-				case "tool":
-					s.viewToolCard(c, key, it.tool)
-				case "note":
-					s.viewNoteRow(c, key, it.note)
-				}
-			}
-			if streaming {
-				s.viewStreamingCaret(c)
-			}
-		})
-	})
+		default:
+			s.viewStreamingCaret(c)
+		}
+	}).Grow(1).GapY(18)
 }
 
 // viewStreamingCaret draws upstream's blinking block cursor at the tail of the

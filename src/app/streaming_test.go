@@ -53,27 +53,29 @@ func TestTranscriptPinsToEndWhenAtEnd(t *testing.T) {
 
 	tt := ui.NewTester(s.View, 1240, 320)
 	tt.Frame()
-	maxY := s.transcriptScroll.MaxY
-	if maxY <= 0 {
-		t.Skipf("transcript did not overflow this window (MaxY=%v)", maxY)
-	}
-	// Opens at the tail, not the top: a chat shows its most recent turn.
-	if s.transcriptScroll.Y < maxY-1 {
-		t.Errorf("conversation did not open at its tail: Y=%v MaxY=%v", s.transcriptScroll.Y, maxY)
+	// Opens at the tail, not the top: a chat shows its most recent turn
+	// (ListState.FollowEnd starts a list at its end).
+	if !s.transcriptList.AtEnd() {
+		t.Errorf("conversation did not open at its tail")
 	}
 
-	// Scrolled back into history: left exactly where the user put it.
-	s.transcriptScroll.Y = 10
+	// Scrolled back into history: left exactly where the user put it — the
+	// list stops following the end and never yanks the reader forward.
+	s.transcriptList.ScrollTo(0, ui.Start)
 	tt.Frame()
-	if s.transcriptScroll.Y != 10 {
-		t.Errorf("transcript yanked a scrolled-up viewer forward: Y=%v, want 10", s.transcriptScroll.Y)
+	if s.transcriptList.AtEnd() {
+		t.Errorf("transcript followed a scrolled-up viewer to the end")
+	}
+	tt.Frame()
+	if s.transcriptList.AtEnd() {
+		t.Errorf("transcript yanked a scrolled-up viewer forward")
 	}
 
 	// Reaching the end pins it again, so further streaming rows stay visible.
-	s.transcriptScroll.Y = s.transcriptScroll.MaxY
+	s.transcriptList.ScrollToEnd()
 	tt.Frame()
-	if s.transcriptScroll.Y != s.transcriptScroll.MaxY {
-		t.Errorf("at-end transcript is not pinned: Y=%v MaxY=%v", s.transcriptScroll.Y, s.transcriptScroll.MaxY)
+	if !s.transcriptList.AtEnd() {
+		t.Errorf("at-end transcript is not pinned")
 	}
 }
 

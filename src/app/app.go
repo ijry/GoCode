@@ -180,10 +180,13 @@ type Shell struct {
 	stream     *Stream
 	connByConv map[string]string // conversation id → live ACP connection id
 
-	// transcriptScroll tracks the conversation detail's scroll position so a
-	// streaming turn can follow the end (see viewTranscript). It is UI-thread
-	// state, written by the scroll container and by the view itself.
-	transcriptScroll ui.ScrollState
+	// transcriptList is the conversation detail's virtual list (mygo's
+	// ui.List): only the rows in view are built, so a very long conversation
+	// scrolls as one of a few. FollowEnd is the stick-to-bottom guard — it
+	// keeps a streaming turn's end in view while the user is at it, and stops
+	// as soon as they scroll back into history (see viewTranscript). It is
+	// UI-thread state.
+	transcriptList ui.ListState
 
 	// md is the shared Markdown renderer state (mygo's ui/markdown): one per app,
 	// given to every transcript bubble. It keeps each message's parse between
