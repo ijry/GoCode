@@ -16,7 +16,7 @@ func filesShellForTest(t *testing.T) *Shell {
 	s := New(newBackendForTest(t))
 	s.stream = newStreamForTest()
 	s.workbench = ""
-	s.detailTab = "files"
+	s.auxTab = "files"
 	s.selectedFolder = "1"
 	s.cache["appearance-mode"] = json.RawMessage(`{"mode":"light"}`)
 	s.cache["folders"] = json.RawMessage(`[{"id":1,"name":"demo","path":"/tmp/demo"}]`)

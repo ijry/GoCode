@@ -15,12 +15,14 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// viewFiles renders the folder file browser for the selected folder.
-func (s *Shell) viewFiles(c *ui.Context) {
+// viewFileTree is the aux panel's Files tab: the folder's directory list, which
+// you walk into, with a breadcrumb (upstream's aux-panel-file-tree-tab). The
+// selected file's preview opens in the main area's detail pane.
+func (s *Shell) viewFileTree(c *ui.Context) {
 	t := c.Theme()
 	root := s.folderPathByID(s.selectedFolder)
 	if root != "" {
-		ui.Row(c.Key("files-head")).AlignItems(ui.Center).Children(func() {
+		ui.Row(c.Key("files-head")).PaddingX(8).PaddingY(6).AlignItems(ui.Center).Children(func() {
 			ui.Spacer(c)
 			iconButton(c, "files-refresh", iconRefresh, "Refresh", func() {
 				s.invalidate("ft:" + s.fileCurAbs(root))
@@ -28,36 +30,24 @@ func (s *Shell) viewFiles(c *ui.Context) {
 		})
 	}
 	if s.selectedFolder == "" || root == "" {
-		ui.Text(c, "Select a folder to browse its files.").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, "Select a folder to browse its files.").FontSize(12).TextColor(t.TextMuted).Padding(10).Wrap()
 		return
 	}
 	curAbs := s.fileCurAbs(root)
-	ui.Row(c).Grow(1).Children(func() {
-		// Directory list column.
-		ui.Column(c.Key("files-list")).Width(320).FillHeight().Background(t.Surface).Children(func() {
-			ui.Row(c.Key("files-crumb")).PaddingX(8).PaddingY(6).Gap(6).AlignItems(ui.Center).Children(func() {
-				if s.fileDir != "" {
-					if ui.Button(c.Key("files-up"), "◂").Clicked() {
-						s.fileUp()
-					}
-				}
-				crumb := "/"
-				if s.fileDir != "" {
-					crumb = "/" + s.fileDir
-				}
-				ui.Text(c, crumb).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
-			})
-			ui.Divider(c)
-			ui.Scroll(c).Grow(1).Children(func() {
-				ui.Column(c).Gap(1).Children(func() {
-					s.fileListLevel(c, root, curAbs)
-				})
-			})
-		})
-		ui.Divider(c)
-		// Preview column.
-		ui.Column(c.Key("files-preview")).Grow(1).FillHeight().Padding(12).Gap(6).Children(func() {
-			s.viewFilePreview(c, root)
+	ui.Row(c.Key("files-crumb")).PaddingX(8).PaddingY(6).Gap(6).AlignItems(ui.Center).Children(func() {
+		if s.fileDir != "" {
+			iconButton(c, "files-up", iconBack, "Up one level", func() { s.fileUp() })
+		}
+		crumb := "/"
+		if s.fileDir != "" {
+			crumb = "/" + s.fileDir
+		}
+		ui.Text(c, crumb).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
+	})
+	ui.Divider(c)
+	ui.Scroll(c).Grow(1).Children(func() {
+		ui.Column(c).Gap(1).Children(func() {
+			s.fileListLevel(c, root, curAbs)
 		})
 	})
 }
@@ -116,19 +106,20 @@ func (s *Shell) viewFilePreview(c *ui.Context, root string) {
 		ui.Text(c, "Select a file to preview.").FontSize(12).TextColor(t.TextMuted)
 		return
 	}
+	ui.Row(c.Key("file-preview-head")).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, s.fileSel).FontSize(12).Bold().MaxLines(1).Grow(1)
+		iconButton(c, "file-preview-close", iconX, "Close", func() { s.fileSel = "" })
+	})
 	key := "filepreview:" + s.fileSel
 	raw := s.ensure(key, "read_file_preview", map[string]any{"rootPath": root, "path": s.fileSel})
 	if e := s.errFor(key); e != "" {
-		ui.Text(c, s.fileSel).FontSize(12).Bold().MaxLines(1)
 		ui.Text(c, "Cannot preview: "+e).FontSize(12).TextColor(t.Danger).Wrap()
 		return
 	}
 	if raw == nil {
-		ui.Text(c, s.fileSel).FontSize(12).Bold().MaxLines(1)
 		loadingState(c, "")
 		return
 	}
-	ui.Text(c, s.fileSel).FontSize(12).Bold().MaxLines(1)
 	ui.Divider(c)
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Text(c, str(asObj(raw), "content")).FontSize(12).TextColor(t.Text).Wrap()

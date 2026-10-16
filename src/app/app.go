@@ -149,7 +149,9 @@ type Shell struct {
 	diffSel             string            // Changes route: selected changed file (repo-relative)
 	commitMsg           string            // Changes route: commit message input
 	discardConfirm      string            // Changes route: file awaiting discard confirmation
-	detailTab           string            // Workspace main area tab: chat | files | changes | terminal
+	detailTab           string            // Workspace main area tab: chat | terminal
+	auxTab              string            // Workspace aux panel tab: session | files | changes | commits
+	commitSel           string            // Commits aux tab: selected commit hash ("" = none)
 	termID              string            // Terminal route: live PTY id ("" = none started)
 	termInput           string            // Terminal route: pending input line
 	loginToken          string            // login gate: token input

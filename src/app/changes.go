@@ -14,13 +14,14 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// viewChanges renders the folder's git changes, the selected diff and the write
-// actions.
-func (s *Shell) viewChanges(c *ui.Context) {
+// viewChangesList is the aux panel's Changes tab: the folder's working-tree
+// changes (git_status) and the commit box, mirroring upstream's
+// aux-panel-git-changes-tab. The selected file's diff opens in the detail pane.
+func (s *Shell) viewChangesList(c *ui.Context) {
 	t := c.Theme()
 	root := s.folderPathByID(s.selectedFolder)
 	if root != "" {
-		ui.Row(c.Key("ch-head")).AlignItems(ui.Center).Children(func() {
+		ui.Row(c.Key("ch-head")).PaddingX(8).PaddingY(6).AlignItems(ui.Center).Children(func() {
 			ui.Spacer(c)
 			iconButton(c, "ch-refresh", iconRefresh, "Refresh", func() {
 				s.invalidate("gitstatus:" + root)
@@ -31,75 +32,65 @@ func (s *Shell) viewChanges(c *ui.Context) {
 		})
 	}
 	if s.selectedFolder == "" || root == "" {
-		ui.Text(c, "Select a folder to see its git changes.").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, "Select a folder to see its git changes.").FontSize(12).TextColor(t.TextMuted).Padding(10).Wrap()
 		return
 	}
 	files := asList(s.ensure("gitstatus:"+root, "git_status", map[string]any{"path": root}))
-	if e := s.errFor("gitstatus:" + root); e != "" {
-		ui.Text(c, "Not a git repository (or git failed): "+e).FontSize(12).TextColor(t.TextMuted).Wrap()
+	if s.errFor("gitstatus:"+root) != "" {
+		ui.Column(c).Padding(10).Children(func() { s.errorState(c, "gitstatus:"+root, nil) })
 		return
 	}
-	ui.Row(c).Grow(1).Children(func() {
-		// Changed-files column + commit box.
-		ui.Column(c.Key("ch-list")).Width(320).FillHeight().Background(t.Surface).Children(func() {
-			ui.Scroll(c).Grow(1).Padding(6).Children(func() {
-				ui.Column(c).Gap(1).Children(func() {
-					if files == nil {
-						loadingState(c, "")
-						return
-					}
-					if len(files) == 0 {
-						ui.Text(c, "No changes").FontSize(12).TextColor(t.TextMuted)
-						return
-					}
-					for _, f := range files {
-						file := str(f, "file")
-						code := str(f, "status")
-						sel := s.diffSel == file
-						row := ui.Row(c.Key("ch-" + file)).PaddingX(8).PaddingY(4).Gap(8).AlignItems(ui.Center)
-						if sel {
-							row.Background(t.SurfacePressed)
-						}
-						// Porcelain code → accent: untracked/added green, deleted
-						// red, modified/renamed amber, anything else muted.
-						col := t.TextMuted
-						switch {
-						case code == "??" || strings.HasPrefix(code, "A"):
-							col = t.Success
-						case strings.HasPrefix(code, "D"):
-							col = t.Danger
-						case strings.Contains(code, "M") || strings.HasPrefix(code, "R"):
-							col = t.Warning
-						}
-						row.Children(func() {
-							ui.Text(c, code).FontSize(11).Width(24).TextColor(col)
-							ui.Text(c, file).MaxLines(1).TextColor(t.Text)
-						})
-						if row.Clicked() {
-							s.diffSel = file
-							s.discardConfirm = ""
-						}
-					}
-				})
-			})
-			ui.Divider(c)
-			ui.Column(c.Key("ch-commit")).Padding(8).Gap(6).Children(func() {
-				ui.Row(c).Children(func() {
-					ui.TextInput(c.Key("ch-msg"), &s.commitMsg).Placeholder("Commit message").Grow(1)
-				})
-				if ui.PrimaryButton(c.Key("ch-commit-btn"), "Commit all").Disabled(s.commitMsg == "" || len(files) == 0).Clicked() {
-					s.commitAll(root, files)
+	ui.Scroll(c).Grow(1).Padding(6).Children(func() {
+		ui.Column(c).Gap(1).Children(func() {
+			if files == nil {
+				loadingState(c, "")
+				return
+			}
+			if len(files) == 0 {
+				ui.Text(c, "No changes").FontSize(12).TextColor(t.TextMuted)
+				return
+			}
+			for _, f := range files {
+				file := str(f, "file")
+				code := str(f, "status")
+				sel := s.diffSel == file
+				row := ui.Row(c.Key("ch-" + file)).PaddingX(8).PaddingY(4).Gap(8).AlignItems(ui.Center)
+				if sel {
+					row.Background(t.SurfacePressed)
 				}
-				if s.actionMsg != "" {
-					ui.Text(c, s.actionMsg).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
+				// Porcelain code → accent: untracked/added green, deleted
+				// red, modified/renamed amber, anything else muted.
+				col := t.TextMuted
+				switch {
+				case code == "??" || strings.HasPrefix(code, "A"):
+					col = t.Success
+				case strings.HasPrefix(code, "D"):
+					col = t.Danger
+				case strings.Contains(code, "M") || strings.HasPrefix(code, "R"):
+					col = t.Warning
 				}
-			})
+				row.Children(func() {
+					ui.Text(c, code).FontSize(11).Width(24).TextColor(col)
+					ui.Text(c, file).MaxLines(1).TextColor(t.Text)
+				})
+				if row.Clicked() {
+					s.diffSel = file
+					s.discardConfirm = ""
+				}
+			}
 		})
-		ui.Divider(c)
-		// Diff column.
-		ui.Column(c.Key("ch-diff")).Grow(1).FillHeight().Padding(12).Gap(6).Children(func() {
-			s.viewDiff(c, root)
+	})
+	ui.Divider(c)
+	ui.Column(c.Key("ch-commit")).Padding(8).Gap(6).Children(func() {
+		ui.Row(c).Children(func() {
+			ui.TextInput(c.Key("ch-msg"), &s.commitMsg).Placeholder("Commit message").Grow(1)
 		})
+		if ui.PrimaryButton(c.Key("ch-commit-btn"), "Commit all").Disabled(s.commitMsg == "" || len(files) == 0).Clicked() {
+			s.commitAll(root, files)
+		}
+		if s.actionMsg != "" {
+			ui.Text(c, s.actionMsg).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
+		}
 	})
 }
 
@@ -130,6 +121,7 @@ func (s *Shell) viewDiff(c *ui.Context, root string) {
 		} else if ui.Button(c.Key("ch-discard"), "Discard").Clicked() {
 			s.discardConfirm = s.diffSel
 		}
+		iconButton(c, "ch-diff-close", iconX, "Close", func() { s.diffSel = "" })
 	})
 	key := "gitdiff:" + s.diffSel
 	raw := s.ensure(key, "git_diff", map[string]any{"path": root, "file": s.diffSel})

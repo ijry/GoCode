@@ -90,14 +90,33 @@ func (s *Shell) viewWorkspace(c *ui.Context) {
 			})
 		})
 		ui.Divider(c)
-		// Main area: a workbench route placeholder, or the conversation detail.
+		// Main area: a full-page workbench route, or the conversation detail
+		// beside the aux panel's detail pane (a file preview, a diff, a commit).
 		ui.Column(c.Key("ws-detail")).Grow(1).FillHeight().Padding(20).Gap(10).Children(func() {
 			if s.workbench != "" {
 				s.viewWorkbenchRoute(c, s.workbench)
 				return
 			}
-			s.viewDetailTabs(c)
+			ui.Row(c).Grow(1).Children(func() {
+				// A detail opened from the aux panel (a file preview, a diff, a
+				// commit) takes the main area; otherwise the conversation shows.
+				if s.auxDetailOpen() {
+					ui.Column(c.Key("aux-detail")).Grow(1).FillHeight().Padding(12).Gap(6).Children(func() {
+						s.viewAuxDetail(c)
+					})
+					return
+				}
+				ui.Column(c.Key("ws-main")).Grow(1).FillHeight().Children(func() {
+					s.viewDetailTabs(c)
+				})
+			})
 		})
+		// The right-hand aux panel (upstream's AuxPanel), hidden on a full-page
+		// workbench route.
+		if s.workbench == "" {
+			ui.Divider(c)
+			s.viewAuxPanel(c)
+		}
 	})
 }
 

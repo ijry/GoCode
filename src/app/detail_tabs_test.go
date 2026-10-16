@@ -1,8 +1,8 @@
 package app
 
-// detail_tabs_test.go covers the workspace main-area tab strip: the folder-scoped
-// panels (files/changes/terminal) live behind tabs, and switching a tab swaps the
-// content without touching the sidebar.
+// detail_tabs_test.go covers the workspace's tab regions: the main area's tabs
+// (Chat | Terminal) and the right-hand aux panel's tabs (Session | Files |
+// Changes | Commits), mirroring upstream's workspace skeleton.
 
 import (
 	"encoding/json"
@@ -20,19 +20,19 @@ func TestDetailTabsSwitch(t *testing.T) {
 	s.cache["ft:/tmp/demo"] = json.RawMessage(`[{"kind":"file","name":"main.go","path":"main.go"}]`)
 
 	tt := ui.NewTester(s.View, 1240, 820)
-	// The tab strip is present; the default tab is the conversation.
-	for _, want := range []string{"Chat", "Files", "Changes", "Terminal"} {
+	// The main-area tabs and the aux panel's tabs are both present.
+	for _, want := range []string{"Chat", "Terminal", "Session", "Files", "Changes", "Commits"} {
 		if !tt.HasText(want) {
 			t.Fatalf("tab strip missing %q; texts = %v", want, tt.Texts())
 		}
 	}
-	// Switching to the Files tab renders the folder's files.
+	// Switching the aux panel to Files renders the folder's files.
 	if err := tt.Click("Files"); err != nil {
 		t.Fatalf("click Files tab: %v", err)
 	}
 	tt.Frame()
-	if s.detailTab != "files" {
-		t.Errorf("detailTab = %q, want files", s.detailTab)
+	if s.auxTab != "files" {
+		t.Errorf("auxTab = %q, want files", s.auxTab)
 	}
 	if !tt.HasText("main.go") {
 		t.Errorf("files tab content missing; texts = %v", tt.Texts())
