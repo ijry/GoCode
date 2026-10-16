@@ -169,6 +169,9 @@ type Shell struct {
 	vcRotateToken       string            // Settings → Version Control: the new token typed in it
 	vcRemove            string            // Settings → Version Control: account id awaiting removal confirmation
 	vcAdd               *vcAddForm        // Settings → Version Control: add-account form (nil = closed)
+	paletteOpen         bool              // ⌘K command palette: open
+	paletteQuery        string            // ⌘K command palette: the filter query
+	paletteSel          int               // ⌘K command palette: the highlighted row
 	epoch               uint64            // bumped on every backend switch; stale fetches are dropped
 	newSkillID          string            // Settings → Skills: new custom-skill id input
 	agentVer            map[string]string // Settings → Agents: last detected installed version
@@ -400,6 +403,17 @@ func (s *Shell) View(c *ui.Context) {
 	c.SetTheme(resolveTheme(s.appearanceMode)) // upstream neutral light/dark palette
 	s.svc = c.Services()
 	s.ensureStream()
+	// Window-global shortcuts (UI_GAPS P2): ⌘K opens the command palette
+	// wherever the focus is; Esc stops the running turn while the palette is
+	// closed (the palette owns Esc while it is open).
+	if c.Shortcut(ui.Cmd, ui.KeyK) {
+		s.paletteOpen = true
+		s.paletteQuery = ""
+		s.paletteSel = 0
+	}
+	if !s.paletteOpen && c.Shortcut(0, ui.KeyEscape) {
+		s.stopActiveTurn()
+	}
 	// Mutation outcomes (queued by goroutines) surface as toasts, the way
 	// mygo's own apps report them.
 	s.drainToasts(c)
@@ -426,6 +440,8 @@ func (s *Shell) View(c *ui.Context) {
 	// The toast viewport overlays the window; build it after the content so its
 	// Bottom anchoring sits above the status bar.
 	s.viewToasts(c)
+	// The ⌘K command palette overlays everything, built last.
+	s.viewCommandPalette(c)
 }
 
 // viewStatusBar is the slim bottom chrome: a liveness dot + backend address on
@@ -452,6 +468,11 @@ func (s *Shell) viewStatusBar(c *ui.Context) {
 			s.settingsPage = "servers"
 		}
 		ui.Text(c, s.B.URL).FontSize(11).TextColor(t.TextMuted)
+		if ui.Button(c.Key("sb-palette"), modKeyLabel()+"K").Clicked() {
+			s.paletteOpen = true
+			s.paletteQuery = ""
+			s.paletteSel = 0
+		}
 		ui.Spacer(c)
 		// The two full-screen routes upstream opens as SEPARATE windows (never
 		// sidebar rows) are listed here in the single-window build.

@@ -508,7 +508,16 @@ func (s *Shell) viewComposerDock(c *ui.Context, connID, status, statusMsg string
 		Border(1, t.Text.Alpha(0.2)).Children(func() {
 		ui.Column(c).FillWidth().Padding(12, 12, 4, 12).Children(func() {
 			ui.TextInput(c.Key("composer-input"), &s.composer).
-				FillWidth().Placeholder("Message the agent…")
+				FillWidth().Placeholder("Message the agent…").
+				OnTextKey(func(k ui.TextKey) bool {
+					// ⌘Enter sends without reaching for the button; plain Enter
+					// stays in the field (this is a single-line draft).
+					if k.Key == ui.KeyEnter && k.Mods&ui.Cmd != 0 {
+						s.sendPrompt(s.selectedConv)
+						return true
+					}
+					return false
+				})
 			s.viewAttachmentTray(c)
 		})
 		if connID != "" {
@@ -534,6 +543,9 @@ func (s *Shell) viewComposerDock(c *ui.Context, connID, status, statusMsg string
 				if ui.Button(c.Key("cancel"), "Stop").Clicked() {
 					s.cancelTurn(connID)
 				}
+			}
+			if s.composer != "" {
+				ui.Text(c, modKeyLabel()+"↵").FontSize(11).TextColor(t.TextMuted)
 			}
 			if ui.PrimaryButton(c.Key("send"), cat(c).ActionSend()).
 				Disabled(s.composer == "" && len(s.stagedAttachments()) == 0).Clicked() {
