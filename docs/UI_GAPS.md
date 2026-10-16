@@ -49,6 +49,17 @@
   + New issue 表单。顺带：`apiError.hint()` 增加 `config_missing`/`auth_failed`，
   `ensure` 失败时把 hint 存入 `errHints` 供面板渲染。（2026-10-16）
   **P1-7 四个面板（automations / tasks / canvas / forge）全部完成。**
+- **P1-9 i18n 落地**（提交 760c664）：用上 mygo v0.5.5 的 i18n —— `locales/en.json` +
+  `locales/zh-Hans.json`（ARB + ICU MessageFormat + CLDR 复数/数字/日期，78 条消息），
+  `mygo generate` 产出带类型的 `locales/catalog_gen.go`（已提交，构建/测试不依赖 CLI）；
+  `mygo.json` 开 `i18n` 配置。Settings → General 新增「语言」区（每种语言用 `i18n.Autonym`
+  自称、当前项高亮、可跟随系统）。已迁移：状态栏、设置导航（21 页）、登录门、Servers 页、
+  New chat / Send、侧栏会话数（复数）；`autoAbsTime` 改走 `i18n.FormatDate`（随窗口语言变化）。
+  视图经 `cat(c)=locales.In(c.Locale())` 按窗口语言取消息 —— 真实应用里 mygo 让引擎语言与
+  App 语言同步，且 headless Tester 可用 `tt.SetLocale` 驱动整窗验证。
+  （坑：`mygo.App.Locale()` 首帧走主线程解析，无事件循环的测试里永久阻塞 → 视图只用 `c.Locale()`。）
+  剩余面板字符串可按批继续迁入。（2026-10-16）
+
 - **P1-6 侧栏搜索 + 会话右键菜单**（提交 d714778）：侧栏加会话搜索框（标题子串过滤、
   不区分大小写、✕ 清空、无命中提示 "No matches"）；每个会话行挂右键菜单
   `Rename / Pin↔Unpin / Delete`（Delete 走软删），与详情头部动作同源
@@ -92,7 +103,9 @@
 7. ~~**工作台深度**：automations/tasks/forge/canvas 多为「列表 + 基本动作」，缺详情/编辑/空态引导。~~
    （已完成 2026-10-15/16：automations 9a12ea4、tasks 2964bbb、canvas 480bcda、forge ac08d04。）
 8. **设置页深度**：16 页里若干只有开关/列表，缺表单校验、状态反馈、帮助文案。
-9. **无 i18n**。上游有 12+ 语言包；现在全英文硬编码。
+   （Quick Messages 全 CRUD + 校验/反馈/帮助文案已完成 2026-10-16，提交 ea51817；其余页待补。）
+9. ~~**无 i18n**。上游有 12+ 语言包；现在全英文硬编码。~~（已完成 2026-10-16，提交 760c664，
+   见「已修复」：zh-Hans catalog + 语言选择器 + CLDR 数字/日期；更多面板字符串可按批继续迁入。）
 
 ### P2 — 打磨
 
@@ -103,8 +116,8 @@
 
 ## 建议的推进顺序
 
-1. 设置页深度（P1-8）：16 页里若干只有开关/列表，缺表单校验、状态反馈、帮助文案。
-2. i18n（P1-9）：上游有 12+ 语言包，现在全英文硬编码。
-3. 其余 P2 逐项（快捷键、空态/加载态、Toast、虚拟滚动）。
+1. 设置页深度续（P1-8）：剩余只有开关/列表的页补表单校验 / 状态反馈 / 帮助文案。
+2. 其余 P2 逐项（快捷键、空态/加载态、Toast、虚拟滚动）。
+3. i18n 续：把各工作台面板的字符串按批迁入 locales/（外壳已中文化）。
 
 > 注：本文档只列 UI（前端）缺口；后端路由/契约层的剩余项见 `docs/ROUTE_INVENTORY.md`。
