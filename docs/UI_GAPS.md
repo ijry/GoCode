@@ -109,15 +109,23 @@
 
 ### P2 — 打磨
 
-10. 键盘快捷键（⌘K 命令面板、⌘Enter 发送、Esc 停止）。
-11. 空态/加载态/错误态的统一样式。
-12. 通知/Toast 系统（操作反馈）。
-13. 虚拟滚动（超长会话）。
+10. ~~**键盘快捷键**（⌘K 命令面板、⌘Enter 发送、Esc 停止）。~~
+    （已完成 2026-10-16，提交 fd8ee8b：`ui.Modal` 命令面板 + 全局 `c.Shortcut` + composer `OnTextKey`。）
+11. ~~**空态/加载态/错误态的统一样式**。~~
+    （已完成 2026-10-16，提交 525673c：`ui_states.go` 的 `loadingState`/`emptyState`/`errorState`，
+    errorState 带后端 hint + Retry。）
+12. ~~**通知/Toast 系统**（操作反馈）。~~（已完成，提交 a40b316：`c.AddToast` + `ToastViewportBase`。）
+13. ~~**虚拟滚动**（超长会话）。~~
+    （已完成 2026-10-16，提交 8bb372f：transcript 改用 mygo `ui.List` + `ListState.FollowEnd`，
+    只 build 视口内的行。**P2 全部清空。**）
 
 ## 建议的推进顺序
 
-1. 设置页深度续（P1-8）：剩余只有开关/列表的页补表单校验 / 状态反馈 / 帮助文案。
-2. 其余 P2 逐项（快捷键、空态/加载态、Toast、虚拟滚动）。
+1. ~~设置页深度续（P1-8）。~~（已完成：Version Control b0992e4；Quick Messages ea51817。）
+2. ~~其余 P2 逐项（快捷键、空态/加载态、Toast、虚拟滚动）。~~（**已全部完成**，2026-10-16。）
 3. i18n 续：把各工作台面板的字符串按批迁入 locales/（外壳已中文化）。
+
+> 2026-10-16 状态：**P0 / P1 / P2 全部清空**。Documents（NSDocument 式）也已落地（6fa3f54 + 0a01e1e）。
+> 剩余为「i18n 面板字符串批量迁入」这类持续性打磨，不再是阻塞「可用」的缺口。
 
 > 注：本文档只列 UI（前端）缺口；后端路由/契约层的剩余项见 `docs/ROUTE_INVENTORY.md`。
