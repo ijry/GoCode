@@ -152,6 +152,21 @@
   （`src/app/commit|merge|stash|push`）。本 build 做**整页路由**（`workbench`），
   后端 `git_log` / `git_branch` / `git_commit` / `git_diff` / `git_merge` / `git_push` /
   `git_stash` 已就绪。
+  **已完成（本次）**：`git_ops.go` 四个整页路由 `git-commit` / `git-stash` / `git-push` /
+  `git-merge`，入口是 aux 面板 Changes / Commits 头部的 «Git 操作» 菜单
+  （commit / push / merge / stash）。
+  - Commit：分支 + 作者事实、工作区改动（porcelain 码着色）、提交信息框 + Commit
+    （`git_commit` 暂存指定文件后提交）。
+  - Stash：创建（message + keep-index）、列表（ref / message / branch·date）
+    + Pop / Apply / Drop / Clear（Clear 二次确认）。
+  - Push：分支 / 跟踪远程事实（`git_push_info`）、remote 选择器 + Push
+    （`git_push`，首次推送自动设 upstream）。
+  - Merge：选分支合并（`git_merge`）；冲突时进冲突态——`git_list_conflicts` 列出未合并
+    路径 + Abort / Continue（`git_abort_operation` / `git_continue_operation`），
+    由 `git_has_merge_head` 门控。
+  - **最小切片**：上游 commit-dialog(1360 行) / push-workspace(903 行) 的完整工作台
+    （per-file 勾选暂存、diff hunk 级操作、force-with-lease、push 目标刷新等）未复刻；
+    本页是「能真正提交/暂存/推送/合并」的核心操作面。
 - [ ] **分支选择器**（composer 上的 branch picker，上游 `conversation-branch-tag`）。
 - [ ] **Terminal 移到底部面板**：上游 terminal 是「底部可折叠面板 + 多 terminal tab」，
   现在是主区的一个 tab——需改建为底栏。

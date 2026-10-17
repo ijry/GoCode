@@ -21,7 +21,7 @@ func (s *Shell) viewChangesList(c *ui.Context) {
 	t := c.Theme()
 	root := s.folderPathByID(s.selectedFolder)
 	if root != "" {
-		ui.Row(c.Key("ch-head")).PaddingX(8).PaddingY(6).AlignItems(ui.Center).Children(func() {
+		ui.Row(c.Key("ch-head")).PaddingX(8).PaddingY(6).Gap(4).AlignItems(ui.Center).Children(func() {
 			ui.Spacer(c)
 			iconButton(c, "ch-refresh", iconRefresh, "Refresh", func() {
 				s.invalidate("gitstatus:" + root)
@@ -29,6 +29,15 @@ func (s *Shell) viewChangesList(c *ui.Context) {
 					s.invalidate("gitdiff:" + s.diffSel)
 				}
 			})
+			// Git-operations menu (upstream's dropdown): commit / push / merge /
+			// stash, each a whole-page route in this single-window build.
+			more := ui.Row(c.Key("ch-more")).Padding(4).Radius(6).AlignItems(ui.Center).
+				Label(cat(c).GitOpsMenu())
+			more.Children(func() {
+				ui.Icon(c, iconMore).Width(15).Height(15).TextColor(t.TextMuted)
+			})
+			more.ContextMenu(func(m *ui.Menu) { s.gitMenuItems(m, c) })
+			more.Clicked() // mark clickable so the menu target resolves
 		})
 	}
 	if s.selectedFolder == "" || root == "" {

@@ -1185,3 +1185,541 @@ func ConvTabNone() string { return In(i18n.Locale()).ConvTabNone() }
 func (msgs Messages) ConvTabNone() string {
 	return Catalog.Format(msgs.locale, "convTabNone", nil)
 }
+
+// GitOpsMenu says "Git operations"
+// in the language the app shows.
+func GitOpsMenu() string { return In(i18n.Locale()).GitOpsMenu() }
+
+// GitOpsMenu says "Git operations"
+// in the language of msgs.
+func (msgs Messages) GitOpsMenu() string {
+	return Catalog.Format(msgs.locale, "gitOpsMenu", nil)
+}
+
+// GitBack says "Back to workspace"
+// in the language the app shows.
+func GitBack() string { return In(i18n.Locale()).GitBack() }
+
+// GitBack says "Back to workspace"
+// in the language of msgs.
+func (msgs Messages) GitBack() string {
+	return Catalog.Format(msgs.locale, "gitBack", nil)
+}
+
+// GitSelectFolder says "Select a folder to run git operations in it."
+// in the language the app shows.
+func GitSelectFolder() string { return In(i18n.Locale()).GitSelectFolder() }
+
+// GitSelectFolder says "Select a folder to run git operations in it."
+// in the language of msgs.
+func (msgs Messages) GitSelectFolder() string {
+	return Catalog.Format(msgs.locale, "gitSelectFolder", nil)
+}
+
+// GitCommitTitle says "Commit"
+// in the language the app shows.
+func GitCommitTitle() string { return In(i18n.Locale()).GitCommitTitle() }
+
+// GitCommitTitle says "Commit"
+// in the language of msgs.
+func (msgs Messages) GitCommitTitle() string {
+	return Catalog.Format(msgs.locale, "gitCommitTitle", nil)
+}
+
+// GitStashTitle says "Stash"
+// in the language the app shows.
+func GitStashTitle() string { return In(i18n.Locale()).GitStashTitle() }
+
+// GitStashTitle says "Stash"
+// in the language of msgs.
+func (msgs Messages) GitStashTitle() string {
+	return Catalog.Format(msgs.locale, "gitStashTitle", nil)
+}
+
+// GitPushTitle says "Push"
+// in the language the app shows.
+func GitPushTitle() string { return In(i18n.Locale()).GitPushTitle() }
+
+// GitPushTitle says "Push"
+// in the language of msgs.
+func (msgs Messages) GitPushTitle() string {
+	return Catalog.Format(msgs.locale, "gitPushTitle", nil)
+}
+
+// GitMergeTitle says "Merge"
+// in the language the app shows.
+func GitMergeTitle() string { return In(i18n.Locale()).GitMergeTitle() }
+
+// GitMergeTitle says "Merge"
+// in the language of msgs.
+func (msgs Messages) GitMergeTitle() string {
+	return Catalog.Format(msgs.locale, "gitMergeTitle", nil)
+}
+
+// GitBranchLabel says "Branch"
+// in the language the app shows.
+func GitBranchLabel() string { return In(i18n.Locale()).GitBranchLabel() }
+
+// GitBranchLabel says "Branch"
+// in the language of msgs.
+func (msgs Messages) GitBranchLabel() string {
+	return Catalog.Format(msgs.locale, "gitBranchLabel", nil)
+}
+
+// GitAuthorLabel says "Author"
+// in the language the app shows.
+func GitAuthorLabel() string { return In(i18n.Locale()).GitAuthorLabel() }
+
+// GitAuthorLabel says "Author"
+// in the language of msgs.
+func (msgs Messages) GitAuthorLabel() string {
+	return Catalog.Format(msgs.locale, "gitAuthorLabel", nil)
+}
+
+// GitCurrentLabel says "Current branch"
+// in the language the app shows.
+func GitCurrentLabel() string { return In(i18n.Locale()).GitCurrentLabel() }
+
+// GitCurrentLabel says "Current branch"
+// in the language of msgs.
+func (msgs Messages) GitCurrentLabel() string {
+	return Catalog.Format(msgs.locale, "gitCurrentLabel", nil)
+}
+
+// GitTrackingLabel says "Tracking"
+// in the language the app shows.
+func GitTrackingLabel() string { return In(i18n.Locale()).GitTrackingLabel() }
+
+// GitTrackingLabel says "Tracking"
+// in the language of msgs.
+func (msgs Messages) GitTrackingLabel() string {
+	return Catalog.Format(msgs.locale, "gitTrackingLabel", nil)
+}
+
+// GitRemoteLabel says "Remote"
+// in the language the app shows.
+func GitRemoteLabel() string { return In(i18n.Locale()).GitRemoteLabel() }
+
+// GitRemoteLabel says "Remote"
+// in the language of msgs.
+func (msgs Messages) GitRemoteLabel() string {
+	return Catalog.Format(msgs.locale, "gitRemoteLabel", nil)
+}
+
+// GitMergeIntoLabel says "Merge into current"
+// in the language the app shows.
+func GitMergeIntoLabel() string { return In(i18n.Locale()).GitMergeIntoLabel() }
+
+// GitMergeIntoLabel says "Merge into current"
+// in the language of msgs.
+func (msgs Messages) GitMergeIntoLabel() string {
+	return Catalog.Format(msgs.locale, "gitMergeIntoLabel", nil)
+}
+
+// GitNone says "none"
+// in the language the app shows.
+func GitNone() string { return In(i18n.Locale()).GitNone() }
+
+// GitNone says "none"
+// in the language of msgs.
+func (msgs Messages) GitNone() string {
+	return Catalog.Format(msgs.locale, "gitNone", nil)
+}
+
+// GitChangedFiles says "Changed files ({count})"
+// in the language the app shows.
+//
+// The commit page, the changed-file count.
+func GitChangedFiles(count int) string { return In(i18n.Locale()).GitChangedFiles(count) }
+
+// GitChangedFiles says "Changed files ({count})"
+// in the language of msgs.
+//
+// The commit page, the changed-file count.
+func (msgs Messages) GitChangedFiles(count int) string {
+	return Catalog.Format(msgs.locale, "gitChangedFiles", map[string]any{"count": count})
+}
+
+// GitMessageLabel says "Commit message"
+// in the language the app shows.
+func GitMessageLabel() string { return In(i18n.Locale()).GitMessageLabel() }
+
+// GitMessageLabel says "Commit message"
+// in the language of msgs.
+func (msgs Messages) GitMessageLabel() string {
+	return Catalog.Format(msgs.locale, "gitMessageLabel", nil)
+}
+
+// GitMessagePlaceholder says "Describe the change"
+// in the language the app shows.
+func GitMessagePlaceholder() string { return In(i18n.Locale()).GitMessagePlaceholder() }
+
+// GitMessagePlaceholder says "Describe the change"
+// in the language of msgs.
+func (msgs Messages) GitMessagePlaceholder() string {
+	return Catalog.Format(msgs.locale, "gitMessagePlaceholder", nil)
+}
+
+// GitCommitAction says "Commit"
+// in the language the app shows.
+func GitCommitAction() string { return In(i18n.Locale()).GitCommitAction() }
+
+// GitCommitAction says "Commit"
+// in the language of msgs.
+func (msgs Messages) GitCommitAction() string {
+	return Catalog.Format(msgs.locale, "gitCommitAction", nil)
+}
+
+// GitNoChanges says "No changes to commit"
+// in the language the app shows.
+func GitNoChanges() string { return In(i18n.Locale()).GitNoChanges() }
+
+// GitNoChanges says "No changes to commit"
+// in the language of msgs.
+func (msgs Messages) GitNoChanges() string {
+	return Catalog.Format(msgs.locale, "gitNoChanges", nil)
+}
+
+// GitStashCreate says "Create a stash"
+// in the language the app shows.
+func GitStashCreate() string { return In(i18n.Locale()).GitStashCreate() }
+
+// GitStashCreate says "Create a stash"
+// in the language of msgs.
+func (msgs Messages) GitStashCreate() string {
+	return Catalog.Format(msgs.locale, "gitStashCreate", nil)
+}
+
+// GitStashMessagePlaceholder says "Stash message (optional)"
+// in the language the app shows.
+func GitStashMessagePlaceholder() string { return In(i18n.Locale()).GitStashMessagePlaceholder() }
+
+// GitStashMessagePlaceholder says "Stash message (optional)"
+// in the language of msgs.
+func (msgs Messages) GitStashMessagePlaceholder() string {
+	return Catalog.Format(msgs.locale, "gitStashMessagePlaceholder", nil)
+}
+
+// GitStashKeepIndex says "Keep staged changes"
+// in the language the app shows.
+func GitStashKeepIndex() string { return In(i18n.Locale()).GitStashKeepIndex() }
+
+// GitStashKeepIndex says "Keep staged changes"
+// in the language of msgs.
+func (msgs Messages) GitStashKeepIndex() string {
+	return Catalog.Format(msgs.locale, "gitStashKeepIndex", nil)
+}
+
+// GitStashAction says "Stash"
+// in the language the app shows.
+func GitStashAction() string { return In(i18n.Locale()).GitStashAction() }
+
+// GitStashAction says "Stash"
+// in the language of msgs.
+func (msgs Messages) GitStashAction() string {
+	return Catalog.Format(msgs.locale, "gitStashAction", nil)
+}
+
+// GitStashList says "Stashes"
+// in the language the app shows.
+func GitStashList() string { return In(i18n.Locale()).GitStashList() }
+
+// GitStashList says "Stashes"
+// in the language of msgs.
+func (msgs Messages) GitStashList() string {
+	return Catalog.Format(msgs.locale, "gitStashList", nil)
+}
+
+// GitNoStashes says "No stashes"
+// in the language the app shows.
+func GitNoStashes() string { return In(i18n.Locale()).GitNoStashes() }
+
+// GitNoStashes says "No stashes"
+// in the language of msgs.
+func (msgs Messages) GitNoStashes() string {
+	return Catalog.Format(msgs.locale, "gitNoStashes", nil)
+}
+
+// GitStashPop says "Pop"
+// in the language the app shows.
+func GitStashPop() string { return In(i18n.Locale()).GitStashPop() }
+
+// GitStashPop says "Pop"
+// in the language of msgs.
+func (msgs Messages) GitStashPop() string {
+	return Catalog.Format(msgs.locale, "gitStashPop", nil)
+}
+
+// GitStashApply says "Apply"
+// in the language the app shows.
+func GitStashApply() string { return In(i18n.Locale()).GitStashApply() }
+
+// GitStashApply says "Apply"
+// in the language of msgs.
+func (msgs Messages) GitStashApply() string {
+	return Catalog.Format(msgs.locale, "gitStashApply", nil)
+}
+
+// GitStashDrop says "Drop"
+// in the language the app shows.
+func GitStashDrop() string { return In(i18n.Locale()).GitStashDrop() }
+
+// GitStashDrop says "Drop"
+// in the language of msgs.
+func (msgs Messages) GitStashDrop() string {
+	return Catalog.Format(msgs.locale, "gitStashDrop", nil)
+}
+
+// GitStashClear says "Clear all"
+// in the language the app shows.
+func GitStashClear() string { return In(i18n.Locale()).GitStashClear() }
+
+// GitStashClear says "Clear all"
+// in the language of msgs.
+func (msgs Messages) GitStashClear() string {
+	return Catalog.Format(msgs.locale, "gitStashClear", nil)
+}
+
+// GitStashClearConfirm says "Clear every stash?"
+// in the language the app shows.
+func GitStashClearConfirm() string { return In(i18n.Locale()).GitStashClearConfirm() }
+
+// GitStashClearConfirm says "Clear every stash?"
+// in the language of msgs.
+func (msgs Messages) GitStashClearConfirm() string {
+	return Catalog.Format(msgs.locale, "gitStashClearConfirm", nil)
+}
+
+// GitStashPopped says "stash popped"
+// in the language the app shows.
+func GitStashPopped() string { return In(i18n.Locale()).GitStashPopped() }
+
+// GitStashPopped says "stash popped"
+// in the language of msgs.
+func (msgs Messages) GitStashPopped() string {
+	return Catalog.Format(msgs.locale, "gitStashPopped", nil)
+}
+
+// GitStashApplied says "stash applied"
+// in the language the app shows.
+func GitStashApplied() string { return In(i18n.Locale()).GitStashApplied() }
+
+// GitStashApplied says "stash applied"
+// in the language of msgs.
+func (msgs Messages) GitStashApplied() string {
+	return Catalog.Format(msgs.locale, "gitStashApplied", nil)
+}
+
+// GitStashDropped says "stash dropped"
+// in the language the app shows.
+func GitStashDropped() string { return In(i18n.Locale()).GitStashDropped() }
+
+// GitStashDropped says "stash dropped"
+// in the language of msgs.
+func (msgs Messages) GitStashDropped() string {
+	return Catalog.Format(msgs.locale, "gitStashDropped", nil)
+}
+
+// GitStashCleared says "stashes cleared"
+// in the language the app shows.
+func GitStashCleared() string { return In(i18n.Locale()).GitStashCleared() }
+
+// GitStashCleared says "stashes cleared"
+// in the language of msgs.
+func (msgs Messages) GitStashCleared() string {
+	return Catalog.Format(msgs.locale, "gitStashCleared", nil)
+}
+
+// GitStashed says "stashed"
+// in the language the app shows.
+func GitStashed() string { return In(i18n.Locale()).GitStashed() }
+
+// GitStashed says "stashed"
+// in the language of msgs.
+func (msgs Messages) GitStashed() string {
+	return Catalog.Format(msgs.locale, "gitStashed", nil)
+}
+
+// GitNoRemotes says "No git remotes configured"
+// in the language the app shows.
+func GitNoRemotes() string { return In(i18n.Locale()).GitNoRemotes() }
+
+// GitNoRemotes says "No git remotes configured"
+// in the language of msgs.
+func (msgs Messages) GitNoRemotes() string {
+	return Catalog.Format(msgs.locale, "gitNoRemotes", nil)
+}
+
+// GitNoRemotesHelp says "Add a remote (for example origin) before pushing."
+// in the language the app shows.
+func GitNoRemotesHelp() string { return In(i18n.Locale()).GitNoRemotesHelp() }
+
+// GitNoRemotesHelp says "Add a remote (for example origin) before pushing."
+// in the language of msgs.
+func (msgs Messages) GitNoRemotesHelp() string {
+	return Catalog.Format(msgs.locale, "gitNoRemotesHelp", nil)
+}
+
+// GitPushAction says "Push"
+// in the language the app shows.
+func GitPushAction() string { return In(i18n.Locale()).GitPushAction() }
+
+// GitPushAction says "Push"
+// in the language of msgs.
+func (msgs Messages) GitPushAction() string {
+	return Catalog.Format(msgs.locale, "gitPushAction", nil)
+}
+
+// GitPushed says "pushed"
+// in the language the app shows.
+func GitPushed() string { return In(i18n.Locale()).GitPushed() }
+
+// GitPushed says "pushed"
+// in the language of msgs.
+func (msgs Messages) GitPushed() string {
+	return Catalog.Format(msgs.locale, "gitPushed", nil)
+}
+
+// GitMergeAction says "Merge"
+// in the language the app shows.
+func GitMergeAction() string { return In(i18n.Locale()).GitMergeAction() }
+
+// GitMergeAction says "Merge"
+// in the language of msgs.
+func (msgs Messages) GitMergeAction() string {
+	return Catalog.Format(msgs.locale, "gitMergeAction", nil)
+}
+
+// GitNoMergeTargets says "No other local branches to merge."
+// in the language the app shows.
+func GitNoMergeTargets() string { return In(i18n.Locale()).GitNoMergeTargets() }
+
+// GitNoMergeTargets says "No other local branches to merge."
+// in the language of msgs.
+func (msgs Messages) GitNoMergeTargets() string {
+	return Catalog.Format(msgs.locale, "gitNoMergeTargets", nil)
+}
+
+// GitMerged says "merged"
+// in the language the app shows.
+func GitMerged() string { return In(i18n.Locale()).GitMerged() }
+
+// GitMerged says "merged"
+// in the language of msgs.
+func (msgs Messages) GitMerged() string {
+	return Catalog.Format(msgs.locale, "gitMerged", nil)
+}
+
+// GitMergeInProgress says "A merge is in progress"
+// in the language the app shows.
+func GitMergeInProgress() string { return In(i18n.Locale()).GitMergeInProgress() }
+
+// GitMergeInProgress says "A merge is in progress"
+// in the language of msgs.
+func (msgs Messages) GitMergeInProgress() string {
+	return Catalog.Format(msgs.locale, "gitMergeInProgress", nil)
+}
+
+// GitConflictedFiles says "Conflicted files ({count})"
+// in the language the app shows.
+//
+// The merge page, the conflicted-file count.
+func GitConflictedFiles(count int) string { return In(i18n.Locale()).GitConflictedFiles(count) }
+
+// GitConflictedFiles says "Conflicted files ({count})"
+// in the language of msgs.
+//
+// The merge page, the conflicted-file count.
+func (msgs Messages) GitConflictedFiles(count int) string {
+	return Catalog.Format(msgs.locale, "gitConflictedFiles", map[string]any{"count": count})
+}
+
+// GitResolveHint says "Resolve the files, stage them, then Continue — or Abort to undo the merge."
+// in the language the app shows.
+func GitResolveHint() string { return In(i18n.Locale()).GitResolveHint() }
+
+// GitResolveHint says "Resolve the files, stage them, then Continue — or Abort to undo the merge."
+// in the language of msgs.
+func (msgs Messages) GitResolveHint() string {
+	return Catalog.Format(msgs.locale, "gitResolveHint", nil)
+}
+
+// GitAbort says "Abort"
+// in the language the app shows.
+func GitAbort() string { return In(i18n.Locale()).GitAbort() }
+
+// GitAbort says "Abort"
+// in the language of msgs.
+func (msgs Messages) GitAbort() string {
+	return Catalog.Format(msgs.locale, "gitAbort", nil)
+}
+
+// GitContinue says "Continue"
+// in the language the app shows.
+func GitContinue() string { return In(i18n.Locale()).GitContinue() }
+
+// GitContinue says "Continue"
+// in the language of msgs.
+func (msgs Messages) GitContinue() string {
+	return Catalog.Format(msgs.locale, "gitContinue", nil)
+}
+
+// GitMergeAborted says "merge aborted"
+// in the language the app shows.
+func GitMergeAborted() string { return In(i18n.Locale()).GitMergeAborted() }
+
+// GitMergeAborted says "merge aborted"
+// in the language of msgs.
+func (msgs Messages) GitMergeAborted() string {
+	return Catalog.Format(msgs.locale, "gitMergeAborted", nil)
+}
+
+// GitMergeCompleted says "merge completed"
+// in the language the app shows.
+func GitMergeCompleted() string { return In(i18n.Locale()).GitMergeCompleted() }
+
+// GitMergeCompleted says "merge completed"
+// in the language of msgs.
+func (msgs Messages) GitMergeCompleted() string {
+	return Catalog.Format(msgs.locale, "gitMergeCompleted", nil)
+}
+
+// GitCommitActionLabel says "Commit changes"
+// in the language the app shows.
+func GitCommitActionLabel() string { return In(i18n.Locale()).GitCommitActionLabel() }
+
+// GitCommitActionLabel says "Commit changes"
+// in the language of msgs.
+func (msgs Messages) GitCommitActionLabel() string {
+	return Catalog.Format(msgs.locale, "gitCommitActionLabel", nil)
+}
+
+// GitStashActionLabel says "Create stash"
+// in the language the app shows.
+func GitStashActionLabel() string { return In(i18n.Locale()).GitStashActionLabel() }
+
+// GitStashActionLabel says "Create stash"
+// in the language of msgs.
+func (msgs Messages) GitStashActionLabel() string {
+	return Catalog.Format(msgs.locale, "gitStashActionLabel", nil)
+}
+
+// GitPushActionLabel says "Push branch"
+// in the language the app shows.
+func GitPushActionLabel() string { return In(i18n.Locale()).GitPushActionLabel() }
+
+// GitPushActionLabel says "Push branch"
+// in the language of msgs.
+func (msgs Messages) GitPushActionLabel() string {
+	return Catalog.Format(msgs.locale, "gitPushActionLabel", nil)
+}
+
+// GitMergeActionLabel says "Merge branch"
+// in the language the app shows.
+func GitMergeActionLabel() string { return In(i18n.Locale()).GitMergeActionLabel() }
+
+// GitMergeActionLabel says "Merge branch"
+// in the language of msgs.
+func (msgs Messages) GitMergeActionLabel() string {
+	return Catalog.Format(msgs.locale, "gitMergeActionLabel", nil)
+}

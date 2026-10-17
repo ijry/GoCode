@@ -150,6 +150,14 @@ type Shell struct {
 	diffSel             string            // Changes route: selected changed file (repo-relative)
 	commitMsg           string            // Changes route: commit message input
 	discardConfirm      string            // Changes route: file awaiting discard confirmation
+	// Git-operation pages (git_ops.go): each page's own form state.
+	stashMsg          string // Stash page: message for the new stash
+	stashKeepIndex    bool   // Stash page: --keep-index
+	stashClearConfirm bool   // Stash page: Clear awaiting a second click
+	pushRemote        string // Push page: selected remote
+	pushBranch        string // Push page: branch being pushed
+	pushUpstreamSet   bool   // Push page: last push set upstream
+	mergeBranch       string // Merge page: selected branch to merge
 	detailTab           string            // Workspace main area tab: chat | terminal
 	auxTab              string            // Workspace aux panel tab: session | files | changes | commits
 	// Conversation tabs (upstream's TabBar / tab-store): the ordered set of

@@ -93,6 +93,18 @@ func (s *Shell) viewCommitsList(c *ui.Context) {
 		ui.Text(c, "Select a folder to see its commit history.").FontSize(12).TextColor(t.TextMuted).Padding(10).Wrap()
 		return
 	}
+	// Header with the git-operations menu (commit / push / merge / stash),
+	// mirroring upstream's commits-header dropdown.
+	ui.Row(c.Key("cm-head")).PaddingX(8).PaddingY(6).Gap(4).AlignItems(ui.Center).Children(func() {
+		ui.Spacer(c)
+		more := ui.Row(c.Key("cm-more")).Padding(4).Radius(6).AlignItems(ui.Center).
+			Label(cat(c).GitOpsMenu())
+		more.Children(func() {
+			ui.Icon(c, iconMore).Width(15).Height(15).TextColor(t.TextMuted)
+		})
+		more.ContextMenu(func(m *ui.Menu) { s.gitMenuItems(m, c) })
+		more.Clicked()
+	})
 	key := "gitlog:" + root
 	data := asObj(s.ensure(key, "git_log", map[string]any{"path": root, "limit": 60, "withFiles": false}))
 	if s.errFor(key) != "" {

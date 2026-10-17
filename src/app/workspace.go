@@ -308,6 +308,10 @@ func (s *Shell) navRow(c *ui.Context, key string, icon *ui.SVG, label string, ac
 
 // viewWorkbenchRoute dispatches a non-conversation route to its panel.
 func (s *Shell) viewWorkbenchRoute(c *ui.Context, route string) {
+	if isGitRoute(route) {
+		s.viewGitRoute(c, route)
+		return
+	}
 	switch route {
 	case "automations":
 		s.viewAutomations(c)
