@@ -158,6 +158,9 @@ type Shell struct {
 	pushBranch        string // Push page: branch being pushed
 	pushUpstreamSet   bool   // Push page: last push set upstream
 	mergeBranch       string // Merge page: selected branch to merge
+	// Branches page (git_ops.go): the create form and the delete confirmation.
+	branchNewName       string // Branches page: new-branch name input
+	branchDeleteConfirm string // Branches page: branch awaiting a second delete click
 	detailTab           string            // Workspace main area tab: chat | terminal
 	auxTab              string            // Workspace aux panel tab: session | files | changes | commits
 	// Conversation tabs (upstream's TabBar / tab-store): the ordered set of

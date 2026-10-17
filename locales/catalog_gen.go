@@ -1723,3 +1723,171 @@ func GitMergeActionLabel() string { return In(i18n.Locale()).GitMergeActionLabel
 func (msgs Messages) GitMergeActionLabel() string {
 	return Catalog.Format(msgs.locale, "gitMergeActionLabel", nil)
 }
+
+// GitBranchesTitle says "Branches"
+// in the language the app shows.
+func GitBranchesTitle() string { return In(i18n.Locale()).GitBranchesTitle() }
+
+// GitBranchesTitle says "Branches"
+// in the language of msgs.
+func (msgs Messages) GitBranchesTitle() string {
+	return Catalog.Format(msgs.locale, "gitBranchesTitle", nil)
+}
+
+// GitBranchChip says "Branch: {branch}"
+// in the language the app shows.
+//
+// The composer branch chip, the checked-out branch name.
+func GitBranchChip(branch string) string { return In(i18n.Locale()).GitBranchChip(branch) }
+
+// GitBranchChip says "Branch: {branch}"
+// in the language of msgs.
+//
+// The composer branch chip, the checked-out branch name.
+func (msgs Messages) GitBranchChip(branch string) string {
+	return Catalog.Format(msgs.locale, "gitBranchChip", map[string]any{"branch": branch})
+}
+
+// GitNewBranch says "Create a branch"
+// in the language the app shows.
+func GitNewBranch() string { return In(i18n.Locale()).GitNewBranch() }
+
+// GitNewBranch says "Create a branch"
+// in the language of msgs.
+func (msgs Messages) GitNewBranch() string {
+	return Catalog.Format(msgs.locale, "gitNewBranch", nil)
+}
+
+// GitNewBranchPlaceholder says "New branch name"
+// in the language the app shows.
+func GitNewBranchPlaceholder() string { return In(i18n.Locale()).GitNewBranchPlaceholder() }
+
+// GitNewBranchPlaceholder says "New branch name"
+// in the language of msgs.
+func (msgs Messages) GitNewBranchPlaceholder() string {
+	return Catalog.Format(msgs.locale, "gitNewBranchPlaceholder", nil)
+}
+
+// GitCreateBranchAction says "Create branch"
+// in the language the app shows.
+func GitCreateBranchAction() string { return In(i18n.Locale()).GitCreateBranchAction() }
+
+// GitCreateBranchAction says "Create branch"
+// in the language of msgs.
+func (msgs Messages) GitCreateBranchAction() string {
+	return Catalog.Format(msgs.locale, "gitCreateBranchAction", nil)
+}
+
+// GitCreateBranchLabel says "Create branch"
+// in the language the app shows.
+func GitCreateBranchLabel() string { return In(i18n.Locale()).GitCreateBranchLabel() }
+
+// GitCreateBranchLabel says "Create branch"
+// in the language of msgs.
+func (msgs Messages) GitCreateBranchLabel() string {
+	return Catalog.Format(msgs.locale, "gitCreateBranchLabel", nil)
+}
+
+// GitLocalBranches says "Local branches ({count})"
+// in the language the app shows.
+//
+// The branches page, the local-branch count.
+func GitLocalBranches(count int) string { return In(i18n.Locale()).GitLocalBranches(count) }
+
+// GitLocalBranches says "Local branches ({count})"
+// in the language of msgs.
+//
+// The branches page, the local-branch count.
+func (msgs Messages) GitLocalBranches(count int) string {
+	return Catalog.Format(msgs.locale, "gitLocalBranches", map[string]any{"count": count})
+}
+
+// GitNoBranches says "No local branches"
+// in the language the app shows.
+func GitNoBranches() string { return In(i18n.Locale()).GitNoBranches() }
+
+// GitNoBranches says "No local branches"
+// in the language of msgs.
+func (msgs Messages) GitNoBranches() string {
+	return Catalog.Format(msgs.locale, "gitNoBranches", nil)
+}
+
+// GitCurrentBadge says "current"
+// in the language the app shows.
+func GitCurrentBadge() string { return In(i18n.Locale()).GitCurrentBadge() }
+
+// GitCurrentBadge says "current"
+// in the language of msgs.
+func (msgs Messages) GitCurrentBadge() string {
+	return Catalog.Format(msgs.locale, "gitCurrentBadge", nil)
+}
+
+// GitSwitchAction says "Switch"
+// in the language the app shows.
+func GitSwitchAction() string { return In(i18n.Locale()).GitSwitchAction() }
+
+// GitSwitchAction says "Switch"
+// in the language of msgs.
+func (msgs Messages) GitSwitchAction() string {
+	return Catalog.Format(msgs.locale, "gitSwitchAction", nil)
+}
+
+// GitForceDelete says "Force delete"
+// in the language the app shows.
+func GitForceDelete() string { return In(i18n.Locale()).GitForceDelete() }
+
+// GitForceDelete says "Force delete"
+// in the language of msgs.
+func (msgs Messages) GitForceDelete() string {
+	return Catalog.Format(msgs.locale, "gitForceDelete", nil)
+}
+
+// GitWorktreesLabel says "Worktrees"
+// in the language the app shows.
+func GitWorktreesLabel() string { return In(i18n.Locale()).GitWorktreesLabel() }
+
+// GitWorktreesLabel says "Worktrees"
+// in the language of msgs.
+func (msgs Messages) GitWorktreesLabel() string {
+	return Catalog.Format(msgs.locale, "gitWorktreesLabel", nil)
+}
+
+// GitRemotesLabel says "Remotes"
+// in the language the app shows.
+func GitRemotesLabel() string { return In(i18n.Locale()).GitRemotesLabel() }
+
+// GitRemotesLabel says "Remotes"
+// in the language of msgs.
+func (msgs Messages) GitRemotesLabel() string {
+	return Catalog.Format(msgs.locale, "gitRemotesLabel", nil)
+}
+
+// GitSwitched says "branch switched"
+// in the language the app shows.
+func GitSwitched() string { return In(i18n.Locale()).GitSwitched() }
+
+// GitSwitched says "branch switched"
+// in the language of msgs.
+func (msgs Messages) GitSwitched() string {
+	return Catalog.Format(msgs.locale, "gitSwitched", nil)
+}
+
+// GitBranchCreated says "branch created"
+// in the language the app shows.
+func GitBranchCreated() string { return In(i18n.Locale()).GitBranchCreated() }
+
+// GitBranchCreated says "branch created"
+// in the language of msgs.
+func (msgs Messages) GitBranchCreated() string {
+	return Catalog.Format(msgs.locale, "gitBranchCreated", nil)
+}
+
+// GitBranchDeleted says "branch deleted"
+// in the language the app shows.
+func GitBranchDeleted() string { return In(i18n.Locale()).GitBranchDeleted() }
+
+// GitBranchDeleted says "branch deleted"
+// in the language of msgs.
+func (msgs Messages) GitBranchDeleted() string {
+	return Catalog.Format(msgs.locale, "gitBranchDeleted", nil)
+}

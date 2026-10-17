@@ -219,5 +219,25 @@
   "gitCommitActionLabel": "Commit changes",
   "gitStashActionLabel": "Create stash",
   "gitPushActionLabel": "Push branch",
-  "gitMergeActionLabel": "Merge branch"
+  "gitMergeActionLabel": "Merge branch",
+
+  "gitBranchesTitle": "Branches",
+  "gitBranchChip": "Branch: {branch}",
+  "gitNewBranch": "Create a branch",
+  "gitNewBranchPlaceholder": "New branch name",
+  "gitCreateBranchAction": "Create branch",
+  "gitCreateBranchLabel": "Create branch",
+  "gitLocalBranches": "Local branches ({count})",
+  "gitNoBranches": "No local branches",
+  "gitCurrentBadge": "current",
+  "gitSwitchAction": "Switch",
+  "gitForceDelete": "Force delete",
+  "gitWorktreesLabel": "Worktrees",
+  "gitRemotesLabel": "Remotes",
+  "gitSwitched": "branch switched",
+  "gitBranchCreated": "branch created",
+  "gitBranchDeleted": "branch deleted",
+
+  "@gitBranchChip": {"description": "The composer branch chip, the checked-out branch name.", "placeholders": {"branch": {"type": "String", "example": "main"}}},
+  "@gitLocalBranches": {"description": "The branches page, the local-branch count.", "placeholders": {"count": {"type": "int", "example": "4"}}}
 }

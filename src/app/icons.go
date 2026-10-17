@@ -52,6 +52,8 @@ var (
 	iconSearch   = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="black" stroke-width="2"/><line x1="15.6" y1="15.6" x2="20" y2="20" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
 	iconPlus     = mustIcon(`<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" stroke="black" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
 	iconMore     = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="black"/><circle cx="12" cy="12" r="1.8" fill="black"/><circle cx="19" cy="12" r="1.8" fill="black"/></svg>`)
+	// Git branch: the two-commit fork upstream's branch chip uses.
+	iconBranch = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="7" cy="6" r="2.2" fill="none" stroke="black" stroke-width="2"/><circle cx="7" cy="18" r="2.2" fill="none" stroke="black" stroke-width="2"/><circle cx="17" cy="10" r="2.2" fill="none" stroke="black" stroke-width="2"/><path d="M7 8.2v7.6" fill="none" stroke="black" stroke-width="2"/><path d="M7 11c0-2.2 1.8-4 4-4h3.8" fill="none" stroke="black" stroke-width="2"/></svg>`)
 	iconExternal = mustIcon(`<svg viewBox="0 0 24 24"><path d="M14 4h6v6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 4l-8 8" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M18 15v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
 )
 

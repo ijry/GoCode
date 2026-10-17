@@ -37,16 +37,17 @@ import (
 
 // Git-operation workbench routes. All are folder-scoped, whole-page panels.
 const (
-	gitRouteCommit = "git-commit"
-	gitRouteStash  = "git-stash"
-	gitRoutePush   = "git-push"
-	gitRouteMerge  = "git-merge"
+	gitRouteCommit   = "git-commit"
+	gitRouteStash    = "git-stash"
+	gitRoutePush     = "git-push"
+	gitRouteMerge    = "git-merge"
+	gitRouteBranches = "git-branches"
 )
 
 // isGitRoute reports whether a workbench route is one of the git-operation pages.
 func isGitRoute(route string) bool {
 	switch route {
-	case gitRouteCommit, gitRouteStash, gitRoutePush, gitRouteMerge:
+	case gitRouteCommit, gitRouteStash, gitRoutePush, gitRouteMerge, gitRouteBranches:
 		return true
 	}
 	return false
@@ -66,6 +67,8 @@ func (s *Shell) viewGitRoute(c *ui.Context, route string) {
 		title = cat(c).GitPushTitle()
 	case gitRouteMerge:
 		title = cat(c).GitMergeTitle()
+	case gitRouteBranches:
+		title = cat(c).GitBranchesTitle()
 	}
 	// Page header: back to the workspace, the title, the folder name.
 	ui.Row(c.Key("git-head")).Gap(8).AlignItems(ui.Center).Children(func() {
@@ -91,6 +94,8 @@ func (s *Shell) viewGitRoute(c *ui.Context, route string) {
 				s.viewGitPushPage(c, root)
 			case gitRouteMerge:
 				s.viewGitMergePage(c, root)
+			case gitRouteBranches:
+				s.viewGitBranchesPage(c, root)
 			}
 		})
 	})
@@ -108,6 +113,9 @@ func (s *Shell) gitMenuItems(m *ui.Menu, c *ui.Context) {
 	}
 	if m.Item(cat(c).GitMergeTitle()).Chosen() {
 		s.workbench = gitRouteMerge
+	}
+	if m.Item(cat(c).GitBranchesTitle()).Chosen() {
+		s.workbench = gitRouteBranches
 	}
 	m.Separator()
 	if m.Item(cat(c).GitStashTitle()).Chosen() {
@@ -477,6 +485,150 @@ func (s *Shell) folderNameByID(id string) string {
 	return ""
 }
 
+// ─── branch picker ────────────────────────────────────────────────────────
+
+// gitBranches is the folder's branch inventory (git_list_all_branches):
+// local, remote, worktree lists plus the main worktree's branch.
+type gitBranches struct {
+	local              []string
+	remote             []string
+	worktreeBranches   []string
+	mainWorktreeBranch string
+}
+
+// branchesOf decodes a git_list_all_branches response.
+func branchesOf(raw json.RawMessage) *gitBranches {
+	m := asObj(raw)
+	if m == nil {
+		return nil
+	}
+	b := &gitBranches{
+		local:            asStringList(m["local"]),
+		remote:           asStringList(m["remote"]),
+		worktreeBranches: asStringList(m["worktree_branches"]),
+	}
+	if v, ok := m["main_worktree_branch"].(string); ok {
+		b.mainWorktreeBranch = v
+	}
+	return b
+}
+
+// viewBranchChip is the composer's branch picker — upstream's BranchDropdown
+// entry point: a one-line "① branch" chip beneath the input that opens the
+// Branches page. It self-hides outside a git folder (a folderless chat has no
+// branch), mirroring upstream's isChatMode self-hide.
+func (s *Shell) viewBranchChip(c *ui.Context, root string) {
+	if root == "" {
+		return
+	}
+	t := c.Theme()
+	branch := decodeString(s.peek("gitbranch:" + root))
+	if branch == "" {
+		// Not a repo (or not fetched yet): the chip stays hidden rather than
+		// showing a promise it cannot keep.
+		s.ensure("gitbranch:"+root, "get_git_branch", map[string]any{"path": root})
+		return
+	}
+	ui.Row(c.Key("composer-branch")).FillWidth().Gap(4).AlignItems(ui.Center).Children(func() {
+		chip := ui.Row(c.Key("branch-chip")).Padding(2, 8, 2, 8).Radius(6).
+			Gap(5).AlignItems(ui.Center).Background(t.SurfaceHover).
+			Label(cat(c).GitBranchChip(branch))
+		chip.Children(func() {
+			ui.Icon(c, iconBranch).Width(12).Height(12).TextColor(t.TextMuted)
+			ui.Text(c, branch).FontSize(11).TextColor(t.Text)
+		})
+		if chip.Clicked() {
+			s.workbench = gitRouteBranches
+		}
+	})
+}
+
+// viewGitBranchesPage renders the branch workspace: the current branch, the
+// local branches to switch to (git_checkout), a create-branch form
+// (git_new_branch), and each other branch's merge / delete actions
+// (git_merge / git_delete_branch). Upstream's BranchDropdown carries the same
+// set plus worktrees and rebase; those are the recorded slice boundary.
+func (s *Shell) viewGitBranchesPage(c *ui.Context, root string) {
+	t := c.Theme()
+	current := decodeString(s.ensure("gitbranch:"+root, "get_git_branch", map[string]any{"path": root}))
+	raw := s.ensure("allbranches:"+root, "git_list_all_branches", map[string]any{"path": root})
+	if raw == nil {
+		loadingState(c, "")
+		return
+	}
+	br := branchesOf(raw)
+	if br == nil {
+		loadingState(c, "")
+		return
+	}
+	ui.Row(c.Key("gb-facts")).Gap(16).Children(func() {
+		gitFact(c, cat(c).GitCurrentLabel(), firstNonEmpty(current, "—"))
+		gitFact(c, cat(c).GitWorktreesLabel(), itoa("", len(br.worktreeBranches)))
+	})
+	ui.Divider(c)
+
+	// Create a branch (git_new_branch): a name box + Create, then it becomes
+	// the checked-out branch.
+	ui.Column(c.Key("gb-create")).Gap(6).MaxWidth(720).Children(func() {
+		ui.Text(c, cat(c).GitNewBranch()).FontSize(12).Bold()
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.TextInput(c.Key("gb-new-name"), &s.branchNewName).
+				Placeholder(cat(c).GitNewBranchPlaceholder()).Grow(1)
+			createBtn := ui.PrimaryButton(c.Key("gb-create-btn"), cat(c).GitCreateBranchAction())
+			createBtn.Label(cat(c).GitCreateBranchLabel())
+			if createBtn.Disabled(strings.TrimSpace(s.branchNewName) == "").Clicked() {
+				s.gitNewBranch(root, s.branchNewName)
+				s.branchNewName = ""
+			}
+		})
+	})
+	ui.Divider(c)
+
+	ui.Text(c, cat(c).GitLocalBranches(len(br.local))).FontSize(12).Bold()
+	if len(br.local) == 0 {
+		emptyState(c, iconInfo, cat(c).GitNoBranches(), "")
+		return
+	}
+	ui.Column(c).Gap(1).MaxWidth(720).Children(func() {
+		for _, b := range br.local {
+			isCurrent := b == current
+			ui.Row(c.Key("gb-"+b)).PaddingX(8).PaddingY(5).Gap(8).AlignItems(ui.Center).Children(func() {
+				if isCurrent {
+					ui.Icon(c, iconCheck).Width(12).Height(12).TextColor(t.Success)
+				} else {
+					ui.Icon(c, iconBranch).Width(12).Height(12).TextColor(t.TextMuted)
+				}
+				ui.Text(c, b).Grow(1).MaxLines(1).
+					TextColor(condColor(isCurrent, t.Text, t.TextMuted))
+				if isCurrent {
+					ui.Text(c, cat(c).GitCurrentBadge()).FontSize(10).TextColor(t.Success)
+					return
+				}
+				if ui.Button(c.Key("gb-co-"+b), cat(c).GitSwitchAction()).Clicked() {
+					s.gitCheckout(root, b)
+				}
+				if ui.Button(c.Key("gb-mg-"+b), cat(c).GitMergeAction()).Clicked() {
+					s.gitMerge(root, b)
+				}
+				// Delete asks for a second click: -d refuses unmerged work, and
+				// the force variant would throw it away.
+				if s.branchDeleteConfirm == b {
+					if ui.Button(c.Key("gb-del-yes-"+b), cat(c).GitForceDelete()).Clicked() {
+						s.gitDeleteBranch(root, b, true)
+						s.branchDeleteConfirm = ""
+					}
+					if ui.Button(c.Key("gb-del-no-"+b), cat(c).ActionCancel()).Clicked() {
+						s.branchDeleteConfirm = ""
+					}
+				} else if ui.Button(c.Key("gb-del-"+b), cat(c).ActionDelete()).Clicked() {
+					s.branchDeleteConfirm = b
+				}
+			})
+		}
+	})
+	s.viewActionOrError(c)
+}
+
 // ─── write operations ─────────────────────────────────────────────────────
 
 // gitWrite runs a git mutation off the UI thread, refreshing the git caches on
@@ -560,6 +712,32 @@ func (s *Shell) gitContinue(root string) {
 		catMsg("merge completed"), "git_continue_operation", map[string]any{"path": root, "operation": "merge"})
 }
 
+// gitCheckout switches the working tree to an existing branch (git_checkout),
+// then refreshes everything the branch change touches.
+func (s *Shell) gitCheckout(root, branch string) {
+	s.gitWrite([]string{"gitbranch:" + root, "allbranches:" + root, "gitstatus:" + root, "gitlog:" + root},
+		catMsg("switched"), "git_checkout", map[string]any{"path": root, "branchName": branch})
+}
+
+// gitNewBranch creates a branch and checks it out (git_new_branch).
+func (s *Shell) gitNewBranch(root, name string) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return
+	}
+	s.gitWrite([]string{"gitbranch:" + root, "allbranches:" + root, "gitstatus:" + root},
+		catMsg("branch created"), "git_new_branch", map[string]any{"path": root, "branchName": name})
+}
+
+// gitDeleteBranch deletes a local branch (git_delete_branch); force uses -D,
+// which discards unmerged commits.
+func (s *Shell) gitDeleteBranch(root, branch string, force bool) {
+	s.gitWrite([]string{"allbranches:" + root, "gitbranch:" + root},
+		catMsg("branch deleted"), "git_delete_branch", map[string]any{
+			"path": root, "branchName": branch, "force": force,
+		})
+}
+
 // catMsg says a short status message in the app's language when the catalogs
 // carry one, else the English fallback. These outcomes are written from a
 // goroutine (no *ui.Context), so they go through the package-level accessors,
@@ -584,6 +762,12 @@ func catMsg(key string) string {
 		return locales.GitMergeAborted()
 	case "merge completed":
 		return locales.GitMergeCompleted()
+	case "switched":
+		return locales.GitSwitched()
+	case "branch created":
+		return locales.GitBranchCreated()
+	case "branch deleted":
+		return locales.GitBranchDeleted()
 	default:
 		return key
 	}

@@ -519,6 +519,10 @@ func (s *Shell) viewComposerDock(c *ui.Context, connID, status, statusMsg string
 					}
 					return false
 				})
+			// The branch picker (upstream's BranchDropdown chip): the folder's
+			// checked-out branch, one click from the branch workspace. Hidden in
+			// a folderless chat — there is no git branch to show.
+			s.viewBranchChip(c, s.folderPathByID(s.selectedFolder))
 			s.viewAttachmentTray(c)
 		})
 		if connID != "" {

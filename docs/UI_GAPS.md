@@ -168,6 +168,13 @@
     （per-file 勾选暂存、diff hunk 级操作、force-with-lease、push 目标刷新等）未复刻；
     本页是「能真正提交/暂存/推送/合并」的核心操作面。
 - [ ] **分支选择器**（composer 上的 branch picker，上游 `conversation-branch-tag`）。
+  **已完成（本次）**：composer 输入框下方的**分支 chip**（`viewBranchChip`）+ **Branches 整页路由**
+  （`git-branches`，也从 «Git 操作» 菜单进）。chip 显示当前 checkout 的分支名，点击进 Branches 页；
+  Branches 页：当前分支 + worktree 数事实、新建分支表单（`git_new_branch`）、本地分支列表
+  （当前项打勾 + current 徽标；其他项 Switch `git_checkout` / Merge `git_merge` / Delete
+  `git_delete_branch`，Delete 二次确认并给 Force delete）。folderless chat 不显示 chip（无分支）。
+  **最小切片**：上游 `branch-dropdown.tsx`(860 行) 的 worktree 创建/切换/移除、rebase、
+  remote branch checkout into worktree、branch tree 分组未复刻。
 - [ ] **Terminal 移到底部面板**：上游 terminal 是「底部可折叠面板 + 多 terminal tab」，
   现在是主区的一个 tab——需改建为底栏。
 - [ ] **project-boot / import-sessions 实体化**：现在可从状态栏进入，面板仍是薄壳。

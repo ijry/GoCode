@@ -234,3 +234,90 @@ func TestGitMergePage(t *testing.T) {
 	}
 	dumpFrame(t, tt, "git-merge")
 }
+
+// TestGitBranchesPage switches branches, creates one and deletes one through
+// the branch workspace, checking the git state each action leaves behind.
+func TestGitBranchesPage(t *testing.T) {
+	s, repo := gitTestRepo(t, gitRouteBranches)
+	run := func(args ...string) {
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v (%s)", args, err, out)
+		}
+	}
+	// A second branch to switch to (not checked out).
+	run("branch", "feature")
+
+	tt := ui.NewTester(s.View, 1240, 900)
+	if !waitUntil(t, tt, func() bool { return tt.HasText("feature") }) {
+		t.Fatalf("branch list missing; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "git-branches")
+
+	// Switch to feature: the checked-out branch follows.
+	tt.Frame()
+	if err := tt.Click("Switch"); err != nil {
+		t.Fatalf("click Switch: %v", err)
+	}
+	if !waitUntil(t, tt, func() bool {
+		out, err := exec.Command("git", "-C", repo, "rev-parse", "--abbrev-ref", "HEAD").Output()
+		return err == nil && strings.TrimSpace(string(out)) == "feature"
+	}) {
+		t.Fatalf("branch never switched; texts = %v", tt.Texts())
+	}
+
+	// Create a branch from the page: it becomes the checked-out branch. The
+	// switch above invalidated the branch list, so wait for the page to settle
+	// before clicking (a loading frame has no button).
+	s.branchNewName = "from-ui"
+	if !waitUntil(t, tt, func() bool { return tt.HasText("Create branch") }) {
+		t.Fatalf("create-branch form missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Create branch"); err != nil {
+		t.Fatalf("click Create branch: %v", err)
+	}
+	if !waitUntil(t, tt, func() bool {
+		out, err := exec.Command("git", "-C", repo, "rev-parse", "--abbrev-ref", "HEAD").Output()
+		return err == nil && strings.TrimSpace(string(out)) == "from-ui"
+	}) {
+		t.Fatalf("branch never created; texts = %v", tt.Texts())
+	}
+}
+
+// TestComposerBranchChip checks the composer's branch chip: it appears once the
+// folder's branch resolves, names the checked-out branch, and clicking it opens
+// the branches workspace. A folderless chat shows no chip.
+func TestComposerBranchChip(t *testing.T) {
+	s, repo := gitTestRepo(t, "")
+	// A conversation so the detail (and its composer) renders.
+	s.selectedConv = "1"
+	s.cache["convs:1"] = json.RawMessage(`[{"id":1,"folder_id":1,"title":"t","agent_type":"claude_code","status":"in_progress"}]`)
+	s.cache["turns:1"] = json.RawMessage(`{"turns":[]}`)
+
+	tt := ui.NewTester(s.View, 1240, 900)
+	// The branch resolves asynchronously (peek → fetch → next frame renders).
+	// The chip's label carries the branch name, so look it up rather than
+	// clicking a prefix (Tester.Click matches labels exactly).
+	if !waitUntil(t, tt, func() bool { return tt.HasText("Branch: ") }) {
+		t.Fatalf("branch chip missing; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "composer-branch-chip")
+	label := ""
+	for _, txt := range tt.Texts() {
+		if strings.HasPrefix(txt, "Branch: ") {
+			label = txt
+			break
+		}
+	}
+	if label == "" {
+		t.Fatalf("no branch chip label; texts = %v", tt.Texts())
+	}
+	if err := tt.Click(label); err != nil {
+		t.Fatalf("click the branch chip: %v", err)
+	}
+	tt.Frame()
+	if s.workbench != gitRouteBranches {
+		t.Errorf("chip click left workbench = %q, want %q", s.workbench, gitRouteBranches)
+	}
+	_ = repo
+}

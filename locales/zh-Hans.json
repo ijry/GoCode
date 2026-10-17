@@ -188,5 +188,25 @@
   "gitCommitActionLabel": "提交改动",
   "gitStashActionLabel": "创建暂存",
   "gitPushActionLabel": "推送分支",
-  "gitMergeActionLabel": "合并分支"
+  "gitMergeActionLabel": "合并分支",
+
+  "gitBranchesTitle": "分支",
+  "gitBranchChip": "分支：{branch}",
+  "gitNewBranch": "新建分支",
+  "gitNewBranchPlaceholder": "新分支名",
+  "gitCreateBranchAction": "新建分支",
+  "gitCreateBranchLabel": "新建分支",
+  "gitLocalBranches": "本地分支（{count}）",
+  "gitNoBranches": "暂无本地分支",
+  "gitCurrentBadge": "当前",
+  "gitSwitchAction": "切换",
+  "gitForceDelete": "强制删除",
+  "gitWorktreesLabel": "工作树",
+  "gitRemotesLabel": "远程仓库",
+  "gitSwitched": "分支已切换",
+  "gitBranchCreated": "分支已新建",
+  "gitBranchDeleted": "分支已删除",
+
+  "@gitBranchChip": {"description": "The composer branch chip, the checked-out branch name.", "placeholders": {"branch": {"type": "String", "example": "main"}}},
+  "@gitLocalBranches": {"description": "The branches page, the local-branch count.", "placeholders": {"count": {"type": "int", "example": "4"}}}
 }
