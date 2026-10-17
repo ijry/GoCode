@@ -117,5 +117,12 @@
   "autoNextRun": "下次运行：{when}",
   "autoLastRun": "上次运行：{when}",
   "autoNever": "从未",
-  "tasksUpdated": "更新于：{when}"
+  "tasksUpdated": "更新于：{when}",
+
+  "convTabNew": "新建会话",
+  "convTabTerminal": "终端",
+  "convTabClose": "关闭标签页",
+  "convTabCloseOthers": "关闭其他标签页",
+  "convTabCloseAll": "关闭全部标签页",
+  "convTabNone": "没有打开的会话"
 }

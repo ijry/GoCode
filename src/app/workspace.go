@@ -238,13 +238,11 @@ func (s *Shell) convRow(c *ui.Context, cv map[string]any) {
 	sub := fmt.Sprintf("%s · %s", str(cv, "agent_type"), str(cv, "status"))
 	pinned := isPinned(cv)
 	s.sideRow(c, "cv"+id, iconChat, title, sub, id == s.selectedConv, func() {
-		s.selectedConv = id
-		s.workbench = ""
-		s.actionMsg = ""
+		s.openConversationRow(cv)
 	}, func(m *ui.Menu) {
 		if m.Item(cat(c).ActionRename()).Chosen() {
 			// Open the detail header's inline rename for this row.
-			s.selectedConv = id
+			s.openConversationRow(cv)
 			s.renaming = true
 			s.renameText = title
 		}
@@ -607,9 +605,16 @@ func turnText(m map[string]any) string {
 	return ""
 }
 
-// convByID reads the selected folder's cached conversation list for one row.
+// convByID reads the selected folder's cached conversation list for one row,
+// falling back to the all-conversations list — the tab strip already reads
+// that one, so the detail header and its tab never disagree about a title.
 func (s *Shell) convByID(id string) map[string]any {
 	for _, cv := range asList(s.peek("convs:" + s.selectedFolder)) {
+		if fmt.Sprintf("%v", cv["id"]) == id {
+			return cv
+		}
+	}
+	for _, cv := range asList(s.peek("all-convs")) {
 		if fmt.Sprintf("%v", cv["id"]) == id {
 			return cv
 		}
@@ -634,18 +639,26 @@ func (s *Shell) createConversation(folderID any, agent string) {
 	go func() {
 		raw, err := s.B.raw("create_conversation", map[string]any{"folderId": folderID, "agentType": agent})
 		s.mu.Lock()
+		newID := ""
 		if err != nil {
 			s.actionMsg = "create failed: " + err.Error()
 		} else {
-			var cv map[string]any
-			_ = json.Unmarshal(raw, &cv)
-			if id, ok := cv["id"]; ok {
-				s.selectedConv = fmt.Sprintf("%v", id)
+			// create_conversation answers with a bare id (Json<i32>), the same
+			// shape upstream's endpoint returns.
+			var id float64
+			_ = json.Unmarshal(raw, &id)
+			if id != 0 {
+				newID = fmt.Sprintf("%v", int64(id))
 			}
 			s.actionMsg = "conversation created"
 			delete(s.cache, folderKey)
 		}
 		s.mu.Unlock()
+		if newID != "" {
+			// Open the new conversation as a tab (upstream: creating a
+			// conversation opens its tab).
+			s.openConversationTab(newID, s.selectedFolder, agent, "")
+		}
 		svc.Invalidate()
 	}()
 }
@@ -945,6 +958,7 @@ func (s *Shell) renameConversation(convID, title string) {
 			s.renaming = false
 		}
 		delete(s.cache, folderKey)
+		delete(s.cache, "all-convs")
 		s.mu.Unlock()
 		svc.Invalidate()
 	}()
@@ -965,6 +979,7 @@ func (s *Shell) setPinned(convID string, pinned bool) {
 			s.actionMsg = "unpinned"
 		}
 		delete(s.cache, folderKey)
+		delete(s.cache, "all-convs")
 		s.mu.Unlock()
 		svc.Invalidate()
 	}()
@@ -981,13 +996,16 @@ func (s *Shell) deleteConversation(convID string) {
 			s.actionMsg = "delete failed: " + err.Error()
 		} else {
 			s.actionMsg = "deleted"
-			if s.selectedConv == convID {
-				s.selectedConv = ""
-			}
 			s.renaming = false
 		}
 		delete(s.cache, folderKey)
+		delete(s.cache, "all-convs")
 		s.mu.Unlock()
+		if err == nil {
+			// The conversation is gone: its tab goes with it (upstream's
+			// closeConversationTab{recordForReopen:false}).
+			s.closeConversationTab(convID)
+		}
 		svc.Invalidate()
 	}()
 }
@@ -1032,24 +1050,30 @@ func (s *Shell) createChatConversation() {
 	go func() {
 		raw, err := s.B.raw("create_chat_conversation", map[string]any{"agentType": agent})
 		s.mu.Lock()
+		newConv, folder := "", ""
 		if err != nil {
 			s.actionMsg = "new chat failed: " + err.Error()
 		} else {
 			var res map[string]any
 			_ = json.Unmarshal(raw, &res)
 			if fid, ok := res["folderId"]; ok {
-				s.selectedFolder = fmt.Sprintf("%v", fid)
+				folder = fmt.Sprintf("%v", fid)
+				s.selectedFolder = folder
 			}
 			if cid, ok := res["conversationId"]; ok {
-				s.selectedConv = fmt.Sprintf("%v", cid)
+				newConv = fmt.Sprintf("%v", cid)
 			}
 			s.actionMsg = ""
 			delete(s.cache, "folders")
-			if s.selectedFolder != "" {
-				delete(s.cache, "convs:"+s.selectedFolder)
+			if folder != "" {
+				delete(s.cache, "convs:"+folder)
 			}
 		}
 		s.mu.Unlock()
+		if newConv != "" {
+			// The new chat opens as a tab, exactly like the sidebar's New chat.
+			s.openConversationTab(newConv, folder, agent, "")
+		}
 		svc.Invalidate()
 	}()
 }

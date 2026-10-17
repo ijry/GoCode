@@ -15,6 +15,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
@@ -151,6 +152,15 @@ type Shell struct {
 	discardConfirm      string            // Changes route: file awaiting discard confirmation
 	detailTab           string            // Workspace main area tab: chat | terminal
 	auxTab              string            // Workspace aux panel tab: session | files | changes | commits
+	// Conversation tabs (upstream's TabBar / tab-store): the ordered set of
+	// open conversations, hydrated once from list_opened_tabs and written back
+	// through save_opened_tabs. tabsVersion is the CAS guard the save echoes;
+	// tabsOrigin tags the writer so a future multi-window build can skip its
+	// own broadcast echo.
+	openTabs    []tabItem
+	tabsLoaded  bool
+	tabsVersion int64
+	tabsOrigin  string
 	commitSel           string            // Commits aux tab: selected commit hash ("" = none)
 	termID              string            // Terminal route: live PTY id ("" = none started)
 	termInput           string            // Terminal route: pending input line
@@ -219,6 +229,7 @@ func New(b *Backend) *Shell {
 		settingsPage:   "general",
 		appearanceMode: "system",
 		sidebarTab:     "recent",
+		tabsOrigin:     fmt.Sprintf("yoyocode-%d", time.Now().UnixNano()),
 		cache:          map[string]json.RawMessage{},
 		inflight:       map[string]bool{},
 		errs:           map[string]string{},

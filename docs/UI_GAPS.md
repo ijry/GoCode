@@ -128,4 +128,35 @@
 > 2026-10-16 状态：**P0 / P1 / P2 全部清空**。Documents（NSDocument 式）也已落地（6fa3f54 + 0a01e1e）。
 > 剩余为「i18n 面板字符串批量迁入」这类持续性打磨，不再是阻塞「可用」的缺口。
 
+## 宏观结构对齐（2026-10-17 起）
+
+> 用户指令：「细节可以尽量使用原生控件，但是**宏观上 UI 功能都必须参照上游复刻**」。
+> 即：上面 P0–P2 的「可用性」缺口清空后，转入**按上游的信息架构补齐宏观结构**——
+> 上游有的主面板 / 路由 / 工作台，我们不能缺。
+
+逐步对照 `_upstream/ref/src/app/` + `src/components/` 逐项补齐，按结构影响排序：
+
+- [x] **AuxPanel 右栏**（提交 dce25e3）：工作台右侧固定栏，Session / Files / Changes /
+  Commits 四个 tab；选中项在主区**整体替换**显示明细（原并排布局会把明细挤到 ~300px
+  导致按钮点不到）。上游 `components/layout/aux-panel.tsx`。
+- [x] **会话标签条 Conversation Tabs**（本次）：工作台主区顶部的浏览器式标签条——
+  每个打开的会话一个 tab（状态点 / 标题 / 关闭按钮），点击切换、右键
+  `Close / Close Others / Close All`、尾部「新建会话」按钮 + Terminal 开关；
+  经 `list_opened_tabs` / `save_opened_tabs` **按 CAS 版本持久化**（切 tab 写回
+  `is_active`，重启/多窗口一致）。上游 `components/tabs/tab-bar.tsx` + `tab-item.tsx`
+  + `stores/tab-store.ts`。
+  **未做（有意）**：上游的 IDEA 式分屏组（`groupLayout` / 跨组拖拽 / tile 模式）与
+  设备本地 draft tab——两者都是独立大子系统，且非「条本身可用」所必需；本 build 的
+  「新建会话」已直接 `create_chat_conversation`，故无需 draft 概念。
+- [ ] **Git 操作面**：上游是 commit / merge / stash / push 四个**独立窗口**
+  （`src/app/commit|merge|stash|push`）。本 build 做**整页路由**（`workbench`），
+  后端 `git_log` / `git_branch` / `git_commit` / `git_diff` / `git_merge` / `git_push` /
+  `git_stash` 已就绪。
+- [ ] **分支选择器**（composer 上的 branch picker，上游 `conversation-branch-tag`）。
+- [ ] **Terminal 移到底部面板**：上游 terminal 是「底部可折叠面板 + 多 terminal tab」，
+  现在是主区的一个 tab——需改建为底栏。
+- [ ] **project-boot / import-sessions 实体化**：现在可从状态栏进入，面板仍是薄壳。
+- [ ] **命令运行器 command runner**、**clone / remote-manage / workspace-folder / upload 对话框**。
+- [ ] **token-usage 工作台**、**browser 面板**、**settings → model-providers 页**。
+
 > 注：本文档只列 UI（前端）缺口；后端路由/契约层的剩余项见 `docs/ROUTE_INVENTORY.md`。

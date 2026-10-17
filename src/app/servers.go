@@ -163,6 +163,11 @@ func (s *Shell) commitServerSwitch(p serverProfile) {
 	s.copiedCode = map[string]bool{}
 	s.connByConv = map[string]string{}
 	s.selectedFolder, s.selectedConv = "", ""
+	// The open-tab strip belongs to the old realm: drop it and let the new
+	// backend's list_opened_tabs rehydrate.
+	s.openTabs = nil
+	s.tabsLoaded = false
+	s.tabsVersion = 0
 	s.sidebarSearch, s.composer = "", ""
 	s.composerAttachments = nil
 	s.workbench = ""

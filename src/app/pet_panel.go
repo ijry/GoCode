@@ -232,4 +232,16 @@ func (s *Shell) jumpToSession(sess map[string]any) {
 	if s.selectedFolder != "" {
 		s.invalidate("convs:" + s.selectedFolder)
 	}
+	// Give the jumped-to session a tab of its own, so the strip matches the
+	// detail the jump just revealed (a later frame reconciles the rest).
+	s.mu.Lock()
+	if s.selectedConv != "" && s.tabIndexOf(s.selectedConv) < 0 {
+		s.tabsLoaded = true
+		s.openTabs = append(s.openTabs, tabItem{
+			convID:   s.selectedConv,
+			folderID: s.selectedFolder,
+			agent:    str(target, "agent_type"),
+		})
+	}
+	s.mu.Unlock()
 }

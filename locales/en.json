@@ -148,5 +148,12 @@
     "placeholders": {
       "when": { "type": "String", "example": "10/16/26, 09:30" }
     }
-  }
+  },
+
+  "convTabNew": "New conversation",
+  "convTabTerminal": "Terminal",
+  "convTabClose": "Close tab",
+  "convTabCloseOthers": "Close Others",
+  "convTabCloseAll": "Close All",
+  "convTabNone": "No open conversations"
 }

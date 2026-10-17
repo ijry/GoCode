@@ -146,4 +146,9 @@ func TestSidebarFollowsTheLanguage(t *testing.T) {
 			t.Errorf("zh sidebar missing %q; texts = %v", want, tt.Texts())
 		}
 	}
+	// The conversation tab strip's own messages follow too (its terminal toggle
+	// rides the strip's tail; the new/close verbs are in the catalogs).
+	if !tt.HasText("终端") {
+		t.Errorf("zh tab strip missing the terminal toggle; texts = %v", tt.Texts())
+	}
 }

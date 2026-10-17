@@ -254,10 +254,11 @@ func (s *Shell) ensureStream() {
 			}
 		}
 		// A server-side conversation mutation (create/delete/title/status, incl.
-		// the agent's auto-title) refreshes the sidebar lists without a manual
-		// Refresh.
+		// the agent's auto-title) refreshes the sidebar lists — and the tab
+		// strip's decoration, which reads the all-conversations list.
 		if channel == "conversation://changed" {
 			sh.invalidate("folders")
+			sh.invalidate("all-convs")
 			sh.mu.Lock()
 			folder := sh.selectedFolder
 			sh.mu.Unlock()

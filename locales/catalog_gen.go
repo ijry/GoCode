@@ -1125,3 +1125,63 @@ func TasksUpdated(when string) string { return In(i18n.Locale()).TasksUpdated(wh
 func (msgs Messages) TasksUpdated(when string) string {
 	return Catalog.Format(msgs.locale, "tasksUpdated", map[string]any{"when": when})
 }
+
+// ConvTabNew says "New conversation"
+// in the language the app shows.
+func ConvTabNew() string { return In(i18n.Locale()).ConvTabNew() }
+
+// ConvTabNew says "New conversation"
+// in the language of msgs.
+func (msgs Messages) ConvTabNew() string {
+	return Catalog.Format(msgs.locale, "convTabNew", nil)
+}
+
+// ConvTabTerminal says "Terminal"
+// in the language the app shows.
+func ConvTabTerminal() string { return In(i18n.Locale()).ConvTabTerminal() }
+
+// ConvTabTerminal says "Terminal"
+// in the language of msgs.
+func (msgs Messages) ConvTabTerminal() string {
+	return Catalog.Format(msgs.locale, "convTabTerminal", nil)
+}
+
+// ConvTabClose says "Close tab"
+// in the language the app shows.
+func ConvTabClose() string { return In(i18n.Locale()).ConvTabClose() }
+
+// ConvTabClose says "Close tab"
+// in the language of msgs.
+func (msgs Messages) ConvTabClose() string {
+	return Catalog.Format(msgs.locale, "convTabClose", nil)
+}
+
+// ConvTabCloseOthers says "Close Others"
+// in the language the app shows.
+func ConvTabCloseOthers() string { return In(i18n.Locale()).ConvTabCloseOthers() }
+
+// ConvTabCloseOthers says "Close Others"
+// in the language of msgs.
+func (msgs Messages) ConvTabCloseOthers() string {
+	return Catalog.Format(msgs.locale, "convTabCloseOthers", nil)
+}
+
+// ConvTabCloseAll says "Close All"
+// in the language the app shows.
+func ConvTabCloseAll() string { return In(i18n.Locale()).ConvTabCloseAll() }
+
+// ConvTabCloseAll says "Close All"
+// in the language of msgs.
+func (msgs Messages) ConvTabCloseAll() string {
+	return Catalog.Format(msgs.locale, "convTabCloseAll", nil)
+}
+
+// ConvTabNone says "No open conversations"
+// in the language the app shows.
+func ConvTabNone() string { return In(i18n.Locale()).ConvTabNone() }
+
+// ConvTabNone says "No open conversations"
+// in the language of msgs.
+func (msgs Messages) ConvTabNone() string {
+	return Catalog.Format(msgs.locale, "convTabNone", nil)
+}
