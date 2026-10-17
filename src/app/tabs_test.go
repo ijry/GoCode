@@ -229,3 +229,37 @@ func TestAuxPanelTabs(t *testing.T) {
 		t.Errorf("files tab content missing; texts = %v", tt.Texts())
 	}
 }
+
+// TestAuxGitOpsMenu checks the aux panel's «Git operations» entry point: the
+// Changes header carries the menu, and each row routes the main area to its
+// git page.
+func TestAuxGitOpsMenu(t *testing.T) {
+	s := New(newBackendForTest(t))
+	s.stream = newStreamForTest()
+	s.selectedFolder = "1"
+	s.cache["appearance-mode"] = json.RawMessage(`{"mode":"light"}`)
+	s.cache["folders"] = json.RawMessage(`[{"id":1,"name":"demo","path":"/tmp/demo"}]`)
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Changes"); err != nil {
+		t.Fatalf("click Changes tab: %v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("Git operations") {
+		t.Fatalf("the git-operations entry point is missing; texts = %v", tt.Texts())
+	}
+	if err := tt.RightClick("Git operations"); err != nil {
+		t.Fatalf("open the git menu: %v", err)
+	}
+	menu := tt.Menu()
+	if len(menu) < 4 {
+		t.Fatalf("git menu has %d items, want the four pages: %v", len(menu), menu)
+	}
+	if err := tt.ChooseMenuItem("Stash"); err != nil {
+		t.Fatalf("choose Stash: %v", err)
+	}
+	tt.Frame()
+	if s.workbench != gitRouteStash {
+		t.Errorf("workbench = %q, want %q", s.workbench, gitRouteStash)
+	}
+}
