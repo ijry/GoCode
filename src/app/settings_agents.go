@@ -35,12 +35,31 @@ type customAgentEditor struct {
 	skillsDir    string // optional, absolute or ~/…
 }
 
+// agentPreflight returns the latest preflight verdict per agent type. It is
+// fetched once and cached like any other ensure() result, so every card shares
+// one honest availability picture.
+func (s *Shell) agentPreflight(c *ui.Context) map[string]map[string]any {
+	raw := s.ensure("agent-preflight", "acp_preflight", nil)
+	list := asList(raw)
+	if list == nil {
+		return nil
+	}
+	out := map[string]map[string]any{}
+	for _, row := range list {
+		if at := str(row, "agent_type"); at != "" {
+			out[at] = row
+		}
+	}
+	return out
+}
+
 // viewSettingsAgents renders the built-in catalog, its check feedback, and the
 // custom-agent section.
 func (s *Shell) viewSettingsAgents(c *ui.Context) {
 	t := c.Theme()
 	m := cat(c)
 	agents := asList(s.ensure("agents", "acp_list_agents", nil))
+	pf := s.agentPreflight(c)
 
 	ui.Row(c.Key("ag-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, m.NavAgents()).FontSize(22).Bold()
@@ -48,6 +67,7 @@ func (s *Shell) viewSettingsAgents(c *ui.Context) {
 		iconButton(c, "ag-refresh", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidate("agents")
 			s.invalidate("custom-agents")
+			s.invalidate("agent-preflight")
 		})
 		if ui.PrimaryButton(c.Key("ag-add-custom"), m.SetAddCustomAgent()).Clicked() {
 			s.startCustomAgent()
@@ -72,7 +92,7 @@ func (s *Shell) viewSettingsAgents(c *ui.Context) {
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Gap(6).Children(func() {
 			for i, a := range agents {
-				s.viewAgentCard(c, itoa("ag", i), a)
+				s.viewAgentCard(c, itoa("ag", i), a, pf)
 			}
 			ui.Divider(c)
 			s.viewCustomAgents(c)
@@ -81,13 +101,24 @@ func (s *Shell) viewSettingsAgents(c *ui.Context) {
 }
 
 // viewAgentCard renders one built-in agent plus its last check outcome.
-func (s *Shell) viewAgentCard(c *ui.Context, key string, a map[string]any) {
+func (s *Shell) viewAgentCard(c *ui.Context, key string, a map[string]any, pf map[string]map[string]any) {
 	t := c.Theme()
 	m := cat(c)
 	name := firstNonEmpty(str(a, "name"), str(a, "agent_type"))
 	at := str(a, "agent_type")
 	desc := str(a, "description")
+
+	// preflight is the honest availability source; the catalog's `available`
+	// stays false until preflight runs, so prefer the preflight verdict.
 	available := asBool(a["available"])
+	installable := false
+	pfReason := ""
+	if p, ok := pf[at]; ok {
+		available = asBool(p["available"])
+		installable = asBool(p["installable"])
+		pfReason = str(p, "reason")
+	}
+
 	s.mu.Lock()
 	ver := s.agentVer[at]
 	latest := s.agentLatest[at]
@@ -95,6 +126,10 @@ func (s *Shell) viewAgentCard(c *ui.Context, key string, a map[string]any) {
 	checkErr := s.agentCheckErr[at]
 	checking := s.agentChecking == at
 	busy := s.agentChecking != ""
+	installing := s.agentInstalling == at
+	installBusy := s.agentInstalling != ""
+	installErr := s.agentInstallErr[at]
+	installNote := s.agentInstallNote[at]
 	s.mu.Unlock()
 
 	ui.Column(c.Key(key)).Gap(2).Padding(10).Background(t.Surface).Radius(8).Children(func() {
@@ -106,6 +141,8 @@ func (s *Shell) viewAgentCard(c *ui.Context, key string, a map[string]any) {
 				ui.Text(c, "v"+ver).FontSize(11).TextColor(t.Success)
 			} else if available {
 				ui.Text(c, m.SetAgentAvailable()).FontSize(11).TextColor(t.Success)
+			} else if installNote != "" {
+				ui.Text(c, installNote).FontSize(11).TextColor(t.Success)
 			} else {
 				ui.Text(c, m.SetAgentNotInstalled()).FontSize(11).TextColor(t.TextMuted)
 			}
@@ -118,6 +155,17 @@ func (s *Shell) viewAgentCard(c *ui.Context, key string, a map[string]any) {
 			if btn.Clicked() {
 				s.checkAgentVersion(c, name, at)
 			}
+			if !available && installable {
+				il := m.SetAgentInstall()
+				if installing {
+					il = m.SetAgentInstalling()
+				}
+				ibtn := ui.PrimaryButton(c.Key(key+"-install"), il)
+				ibtn.Disabled(installBusy)
+				if ibtn.Clicked() {
+					s.installAgent(c, name, at)
+				}
+			}
 		})
 		if latest != "" {
 			ui.Text(c, m.SetUpdateAvailable(latest)).FontSize(11).TextColor(t.Warning)
@@ -125,10 +173,21 @@ func (s *Shell) viewAgentCard(c *ui.Context, key string, a map[string]any) {
 		if note != "" {
 			ui.Text(c, note).FontSize(11).TextColor(t.Warning)
 		}
+		// For a missing runtime (npx/uvx) there is nothing to fetch here — say
+		// why, so the row is not a dead end.
+		if !available && !installable && pfReason != "" {
+			ui.Text(c, pfReason).FontSize(11).TextColor(t.TextMuted).Wrap()
+		}
 		if checkErr != "" {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				ui.Icon(c, iconAlert).Width(12).Height(12).TextColor(t.Danger)
 				ui.Text(c, checkErr).FontSize(11).TextColor(t.Danger).Wrap()
+			})
+		}
+		if installErr != "" {
+			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, iconAlert).Width(12).Height(12).TextColor(t.Danger)
+				ui.Text(c, installErr).FontSize(11).TextColor(t.Danger).Wrap()
 			})
 		}
 		if desc != "" {
@@ -188,6 +247,43 @@ func (s *Shell) checkAgentVersion(c *ui.Context, name, agentType string) {
 		}
 		s.mu.Unlock()
 		s.notify(locales.In(loc).SetAgentChecked(name))
+		s.svc.Invalidate()
+	}()
+}
+
+// installAgent downloads a binary agent's current-platform build (unless cached)
+// and refreshes the preflight + catalog so the card flips to "available". A
+// failed download is reported honestly rather than left as a silent dead end.
+func (s *Shell) installAgent(c *ui.Context, name, agentType string) {
+	loc := c.Locale()
+	s.mu.Lock()
+	if s.agentInstalling != "" {
+		s.mu.Unlock()
+		return
+	}
+	s.agentInstalling = agentType
+	delete(s.agentInstallErr, agentType)
+	delete(s.agentInstallNote, agentType)
+	s.mu.Unlock()
+
+	go func() {
+		_, err := s.B.raw("acp_install_agent_binary", map[string]any{"agentType": agentType})
+		s.mu.Lock()
+		s.agentInstalling = ""
+		if err != nil {
+			s.agentInstallErr[agentType] = locales.In(loc).SetAgentInstallFailed(err.Error())
+			delete(s.agentInstallNote, agentType)
+		} else {
+			s.agentInstallNote[agentType] = locales.In(loc).SetAgentInstalled()
+			delete(s.agentInstallErr, agentType)
+		}
+		s.mu.Unlock()
+		// Re-pull availability so the row reflects the installed binary.
+		s.invalidate("agent-preflight")
+		s.invalidate("agents")
+		if err == nil {
+			s.notify(locales.In(loc).SetAgentInstalledToast(name))
+		}
 		s.svc.Invalidate()
 	}()
 }

@@ -28,6 +28,9 @@ var binaryCacheRoot string
 // SetBinaryCacheRoot records the cache root (the app data dir).
 func SetBinaryCacheRoot(dir string) { binaryCacheRoot = dir }
 
+// BinaryCacheRoot returns the configured cache root (empty until SetBinaryCacheRoot).
+func BinaryCacheRoot() string { return binaryCacheRoot }
+
 // EnsureAgentBinary downloads (unless already cached) the current platform's
 // archive for a binary agent and returns the launch entry path. A custom
 // version is refused unless it templates the pinned URL — the built-ins do not,

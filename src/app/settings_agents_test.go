@@ -238,3 +238,26 @@ func TestCustomAgentRules(t *testing.T) {
 		}
 	}
 }
+
+// TestSettingsAgentsInstallSurface pins the new preflight-driven affordances: an
+// installable-but-missing binary agent shows an Install button, while an agent
+// whose runner is absent (npx/uvx) shows why rather than a dead end.
+func TestSettingsAgentsInstallSurface(t *testing.T) {
+	s, _ := agentsShellForTest(t)
+	s.cache["agent-preflight"] = json.RawMessage(`[
+		{"agent_type":"open_code","available":false,"installable":true,"reason":""},
+		{"agent_type":"fake_npx","available":false,"installable":false,"reason":"Node.js / npx not found on PATH"}
+	]`)
+	s.cache["agents"] = json.RawMessage(`[
+		{"agent_type":"open_code","name":"OpenCode","description":"binary agent","available":false},
+		{"agent_type":"fake_npx","name":"Fake Npx","description":"npx agent","available":false}
+	]`)
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Install") {
+		t.Errorf("Install button missing for installable agent; texts = %v", tt.Texts())
+	}
+	if !tt.HasText("Node.js / npx not found on PATH") {
+		t.Errorf("missing-runtime reason missing; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "settings-agents-install")
+}

@@ -688,6 +688,11 @@
   "setAgentsCount": "内置目录中共有 {count} 个 agent",
   "setAgentAvailable": "● 可用",
   "setAgentNotInstalled": "○ 未安装",
+  "setAgentInstall": "安装",
+  "setAgentInstalling": "安装中…",
+  "setAgentInstalled": "已安装",
+  "setAgentInstalledToast": "已安装 {name}",
+  "setAgentInstallFailed": "安装失败：{message}",
   "setCheck": "检查",
   "setChecking": "检查中…",
   "setUpdateAvailable": "有新版本：v{version}",
@@ -1773,6 +1778,24 @@
       "message": {
         "type": "String",
         "example": "npm not found"
+      }
+    }
+  },
+  "@setAgentInstalledToast": {
+    "description": "The settings agents page, the toast after a binary agent install succeeds.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "OpenCode"
+      }
+    }
+  },
+  "@setAgentInstallFailed": {
+    "description": "The settings agents page, a failed binary agent install.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "download failed: HTTP 404"
       }
     }
   },

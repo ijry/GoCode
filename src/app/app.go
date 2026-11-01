@@ -323,6 +323,10 @@ type Shell struct {
 	agentChecking   string            // agent type whose probe is running ("" = idle)
 	agentCheckNote  map[string]string // post-check note per agent (not installed, …)
 	agentCheckErr   map[string]string // probe failure per agent
+	// agentInstalling is the agent type whose binary download is in flight ("" = idle).
+	agentInstalling string
+	agentInstallErr map[string]string // install failure per agent
+	agentInstallNote map[string]string // post-install note per agent (Installed, …)
 	caEditor        *customAgentEditor
 	caErr           string // custom-agent form validation / save error
 	caDeleteConfirm string // custom-agent registry id awaiting a second remove click
@@ -474,6 +478,8 @@ func New(b *Backend) *Shell {
 		agentLatest:    map[string]string{},
 		agentCheckNote: map[string]string{},
 		agentCheckErr:  map[string]string{},
+		agentInstallErr: map[string]string{},
+		agentInstallNote: map[string]string{},
 		importSel:      map[string]bool{},
 		pbSkillAgents:  map[string]bool{},
 		pbType:         pbTypeShadcn,

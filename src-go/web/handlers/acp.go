@@ -168,7 +168,26 @@ func RegisterACP(reg *Registry) {
 		return res, nil
 	})
 	reg.web.Register("acp_preflight", func(c *web.Context) (any, error) {
-		return map[string]any{"ok": true}, nil
+		return map[string]any{"agents": acp.Preflight()}, nil
+	})
+	// acp_install_agent_binary downloads (unless cached) the current platform's
+	// binary for a binary-distributed agent and returns its launch path. npx/uvx
+	// agents are not installable through this route (they fetch via their own
+	// package manager), so requesting one is a clear client error.
+	reg.web.Register("acp_install_agent_binary", func(c *web.Context) (any, error) {
+		agentType := strVal(c.Body["agentType"], c.Body["agent_type"])
+		if agentType == "" {
+			return nil, web.ErrInvalidInput("agentType required")
+		}
+		root := acp.BinaryCacheRoot()
+		if root == "" {
+			return nil, web.ErrTaskExecution("binary cache not configured")
+		}
+		path, err := acp.EnsureAgentBinary(agentType, root, "", nil)
+		if err != nil {
+			return nil, web.ErrTaskExecution(err.Error())
+		}
+		return map[string]any{"ok": true, "path": path}, nil
 	})
 	reg.web.Register("acp_set_mode", func(c *web.Context) (any, error) {
 		st := c.State.(*appstate.AppState)

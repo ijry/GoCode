@@ -6382,6 +6382,70 @@ func (msgs Messages) SetAgentNotInstalled() string {
 	return Catalog.Format(msgs.locale, "setAgentNotInstalled", nil)
 }
 
+// SetAgentInstall says "Install"
+// in the language the app shows.
+func SetAgentInstall() string { return In(i18n.Locale()).SetAgentInstall() }
+
+// SetAgentInstall says "Install"
+// in the language of msgs.
+func (msgs Messages) SetAgentInstall() string {
+	return Catalog.Format(msgs.locale, "setAgentInstall", nil)
+}
+
+// SetAgentInstalling says "Installing…"
+// in the language the app shows.
+func SetAgentInstalling() string { return In(i18n.Locale()).SetAgentInstalling() }
+
+// SetAgentInstalling says "Installing…"
+// in the language of msgs.
+func (msgs Messages) SetAgentInstalling() string {
+	return Catalog.Format(msgs.locale, "setAgentInstalling", nil)
+}
+
+// SetAgentInstalled says "Installed"
+// in the language the app shows.
+func SetAgentInstalled() string { return In(i18n.Locale()).SetAgentInstalled() }
+
+// SetAgentInstalled says "Installed"
+// in the language of msgs.
+func (msgs Messages) SetAgentInstalled() string {
+	return Catalog.Format(msgs.locale, "setAgentInstalled", nil)
+}
+
+// SetAgentInstalledToast says "Installed {name}"
+// in the language the app shows.
+//
+// The settings agents page, the toast after a binary agent install
+// succeeds.
+func SetAgentInstalledToast(name string) string {
+	return In(i18n.Locale()).SetAgentInstalledToast(name)
+}
+
+// SetAgentInstalledToast says "Installed {name}"
+// in the language of msgs.
+//
+// The settings agents page, the toast after a binary agent install
+// succeeds.
+func (msgs Messages) SetAgentInstalledToast(name string) string {
+	return Catalog.Format(msgs.locale, "setAgentInstalledToast", map[string]any{"name": name})
+}
+
+// SetAgentInstallFailed says "Install failed: {message}"
+// in the language the app shows.
+//
+// The settings agents page, a failed binary agent install.
+func SetAgentInstallFailed(message string) string {
+	return In(i18n.Locale()).SetAgentInstallFailed(message)
+}
+
+// SetAgentInstallFailed says "Install failed: {message}"
+// in the language of msgs.
+//
+// The settings agents page, a failed binary agent install.
+func (msgs Messages) SetAgentInstallFailed(message string) string {
+	return Catalog.Format(msgs.locale, "setAgentInstallFailed", map[string]any{"message": message})
+}
+
 // SetCheck says "Check"
 // in the language the app shows.
 func SetCheck() string { return In(i18n.Locale()).SetCheck() }

@@ -225,7 +225,7 @@ go test ./...         → acp / app_error / web 全绿
 - [~] 连接表 / Manager（`src-go/acp/manager.go`，内存态）
 - [x] JSON-RPC 2.0 over stdio：传输层 `acp/jsonrpc.go` + 子进程 spawn `acp/agent_process.go`（stdio 接 Peer、stderr tail、env 合并）
 - [x] 内置 agent registry（`acp/registry.go`，15 个内置 agent：wire 名/registry_id/distribution/is_acp_adapter），`acp_list_agents` 返回忠实 AcpAgentInfo
-- [ ] `preflight` / 依赖探测 / 二进制下载
+- [x] **`preflight` / 依赖探测 / 二进制下载** —— 完成（2026-11-02）：`acp_preflight` 从桩改为真实离线探测（npx/uvx 查 PATH、binary 查缓存+PATH）；新增 `acp_install_agent_binary` 路由复用 `EnsureAgentBinary` 下载安装二进制 agent；Settings → Agents 按 preflight 显示「可用 / 未安装」、对可装二进制 agent 给 Install 按钮（安装中→成功/诚实报错）、对缺运行时的 agent 显示原因而非死路。验证：`preflight_test.go`（DetectAgent / Preflight 离线）、`acp_preflight_test.go`（结构化返回 + 非二进制拒绝 + 缺参）、`settings_agents_test.go` 的 Install 表面测试。
 - [x] 权限请求：`session/request_permission` → emit permission_request → `acp_respond_permission` HTTP → ResolvePermission 全链路打通
 - [ ] 提问请求 → `pending_question` → `acp_answer_question`
 - [x] session 驱动 `acp/agent_session.go` + 活连接生命周期 `acp/connection.go`：spawn→握手→注册 SessionRegistry→prompt/permission/cancel/disconnect，HTTP handler 全部接到真实引擎
