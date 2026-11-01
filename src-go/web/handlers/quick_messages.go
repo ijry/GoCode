@@ -6,8 +6,8 @@ package handlers
 import (
 	"database/sql"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // quickMessageInfo mirrors models::QuickMessageInfo:

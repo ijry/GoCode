@@ -1,4 +1,4 @@
-// yoyocode-server is the standalone server binary — the Go analog of upstream
+// gocode-server is the standalone server binary — the Go analog of upstream
 // src-tauri/src/bin/upstream_server.rs. It serves /api/* and /ws/events on
 // 0.0.0.0:3080 by default, using the same protocol as upstream so that
 // mcode-app can connect without changes.
@@ -17,25 +17,25 @@ import (
 	"syscall"
 	"time"
 
-	"yoyocode/src-go/app_state"
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
-	"yoyocode/src-go/web/handlers"
+	"gocode/src-go/app_state"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
+	"gocode/src-go/web/handlers"
 )
 
 func main() {
 	var dataDir string
 	var token string
-	flag.StringVar(&dataDir, "data-dir", "", "data directory (default: ~/.yoyocode)")
-	flag.StringVar(&token, "token", "", "access token (defaults to env YOYOCODE_TOKEN)")
+	flag.StringVar(&dataDir, "data-dir", "", "data directory (default: ~/.gocode)")
+	flag.StringVar(&token, "token", "", "access token (defaults to env GOCODE_TOKEN)")
 	flag.Parse()
 
-	host := os.Getenv("YOYOCODE_HOST")
+	host := os.Getenv("GOCODE_HOST")
 	if host == "" {
 		host = "0.0.0.0"
 	}
 	port := uint16(web.DEFAULT_WEB_SERVICE_PORT)
-	if p := os.Getenv("YOYOCODE_PORT"); p != "" {
+	if p := os.Getenv("GOCODE_PORT"); p != "" {
 		var parsed int
 		if _, err := fmt.Sscanf(p, "%d", &parsed); err == nil && parsed > 0 {
 			port = uint16(parsed)
@@ -44,9 +44,9 @@ func main() {
 
 	// Resolve data dir.
 	if dataDir == "" {
-		dataDir = filepath.Join(homeDir(), ".yoyocode")
+		dataDir = filepath.Join(homeDir(), ".gocode")
 	}
-	if env := os.Getenv("YOYOCODE_DATA_DIR"); env != "" {
+	if env := os.Getenv("GOCODE_DATA_DIR"); env != "" {
 		dataDir = env
 	}
 
@@ -59,7 +59,7 @@ func main() {
 
 	// Resolve token: env → persisted → generated.
 	if token == "" {
-		token = os.Getenv("YOYOCODE_TOKEN")
+		token = os.Getenv("GOCODE_TOKEN")
 	}
 	if token == "" {
 		token = strings.TrimSpace(resolvePersistedToken(database))
@@ -96,7 +96,7 @@ func main() {
 		companionHost = "127.0.0.1"
 	}
 	st.ACP.SetCompanionBackend(fmt.Sprintf("http://%s:%d", companionHost, actualPort), token)
-	fmt.Fprintf(os.Stderr, "[SERVER] yoyocode-server v0.1.0\n")
+	fmt.Fprintf(os.Stderr, "[SERVER] gocode-server v0.1.0\n")
 	fmt.Fprintf(os.Stderr, "[SERVER] Data directory: %s\n", dataDir)
 	fmt.Fprintf(os.Stderr, "[SERVER] Token: %s\n", token)
 	fmt.Fprintf(os.Stderr, "[SERVER] Listening on http://%s:%d\n", localAddr.IP, actualPort)

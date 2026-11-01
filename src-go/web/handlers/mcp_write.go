@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // ─── JSON writing ───────────────────────────────────────────────────────────

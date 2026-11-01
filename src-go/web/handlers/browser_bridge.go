@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 var errBadURL = errors.New("missing scheme or host")

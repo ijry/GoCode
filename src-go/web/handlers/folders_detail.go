@@ -11,8 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const folderDetailCols = `SELECT id, name, path, git_branch, default_agent_type, last_opened_at, sort_order, color, parent_id, kind, alias, folder_group_id FROM folder`

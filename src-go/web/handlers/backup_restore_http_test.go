@@ -2,16 +2,16 @@ package handlers_test
 
 // backup_restore_stage / backup_discard_pending over HTTP: prepare + stage a
 // backup (→ needsRestart), refuse a second stage while one is pending, then
-// discard it. Isolated via YOYOCODE_HOME.
+// discard it. Isolated via GOCODE_HOME.
 
 import (
 	"testing"
 
-	"yoyocode/src-go/backup"
+	"gocode/src-go/backup"
 )
 
 func TestBackupRestoreStageAndDiscardHTTP(t *testing.T) {
-	t.Setenv("YOYOCODE_HOME", t.TempDir())
+	t.Setenv("GOCODE_HOME", t.TempDir())
 	srv := newTestServer(t)
 
 	// Prepare a source from an uploaded backup.

@@ -20,7 +20,7 @@ import (
 // profile persistence never touches the real home.
 func serversShellForTest(t *testing.T) *Shell {
 	t.Helper()
-	t.Setenv("YOYOCODE_DATA_DIR", t.TempDir())
+	t.Setenv("GOCODE_DATA_DIR", t.TempDir())
 	b := newBackendForTest(t)
 	s := New(b)
 	s.stream = newStreamForTest()
@@ -65,7 +65,7 @@ func TestNormalizeServerURL(t *testing.T) {
 
 func TestServerProfilesPersistRoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("YOYOCODE_DATA_DIR", dir)
+	t.Setenv("GOCODE_DATA_DIR", dir)
 	want := []serverProfile{
 		{ID: "srv-1", Name: "Studio box", URL: "http://192.168.1.9:8787", Token: "tok"},
 		{ID: "srv-2", Name: "VPS", URL: "https://codeg.example.com", Token: ""},
@@ -254,7 +254,7 @@ func TestServersDeleteAsksFirst(t *testing.T) {
 	s.servers = []serverProfile{{ID: "srv-1", Name: "Studio box", URL: s.localURL, Token: "tok"}}
 	s.activeServer = "srv-1"
 	s.mu.Unlock()
-	s.deleteServer("srv-1")
+	s.deleteServer("en", "srv-1")
 	tt.Frame()
 	if !waitUntil(t, tt, func() bool {
 		s.mu.Lock()

@@ -7,7 +7,7 @@ func TestConfigSyncSettingsRoundTrip(t *testing.T) {
 
 	// defaults
 	_, def := call(t, srv, "config_sync_get_settings", map[string]any{})
-	if def["enabled"] != false || def["remoteDir"] != "yoyocode" || def["profile"] != "default" {
+	if def["enabled"] != false || def["remoteDir"] != "gocode" || def["profile"] != "default" {
 		t.Fatalf("unexpected defaults: %v", def)
 	}
 	if def["autoSync"] != true || def["intervalMinutes"].(float64) != 5 {

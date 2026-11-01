@@ -2,7 +2,7 @@ package handlers
 
 // Computer-use endpoints (upstream web/handlers/computer.rs). Computer use lets
 // web clients drive the screen the server runs on, and is offered ONLY by a
-// desktop session that opted in (YOYOCODE_COMPUTER_USE=1) — the headless Go server
+// desktop session that opted in (GOCODE_COMPUTER_USE=1) — the headless Go server
 // build has no computer-use service wired, so computer_available answers
 // available=false and every operating call is refused up front with the same
 // configuration_invalid message the upstream uses. This keeps mcode-app's
@@ -12,7 +12,7 @@ package handlers
 import (
 	"runtime"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func computerPlatformName() string {
@@ -26,7 +26,7 @@ func computerPlatformName() string {
 	}
 }
 
-const computerUnavailableMsg = "computer use is not available here: yoyocode-server offers it only when started with YOYOCODE_COMPUTER_USE=1 in a desktop session, and the desktop app only in its own window"
+const computerUnavailableMsg = "computer use is not available here: gocode-server offers it only when started with GOCODE_COMPUTER_USE=1 in a desktop session, and the desktop app only in its own window"
 
 func computerUnavailable() error { return web.ErrConfigInvalid(computerUnavailableMsg) }
 

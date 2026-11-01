@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func RegisterGitWrite(reg *Registry) {
@@ -383,14 +383,14 @@ func appDataDir(c *web.Context) string {
 // from env based on the prompt (Username vs Password) and returns its path.
 func ensureAskpass(dataDir string) (string, error) {
 	if runtime.GOOS == "windows" {
-		p := filepath.Join(dataDir, "yoyocode-askpass.bat")
+		p := filepath.Join(dataDir, "gocode-askpass.bat")
 		body := "@echo off\r\necho %* | findstr /C:\"Username\" >nul\r\nif %errorlevel%==0 (echo %GIT_CRED_USER%) else (echo %GIT_CRED_PASS%)\r\n"
 		if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
 			return "", err
 		}
 		return p, nil
 	}
-	p := filepath.Join(dataDir, "yoyocode-askpass.sh")
+	p := filepath.Join(dataDir, "gocode-askpass.sh")
 	body := "#!/bin/sh\ncase \"$1\" in\n  *Username*) printf '%s\\n' \"$GIT_CRED_USER\" ;;\n  *) printf '%s\\n' \"$GIT_CRED_PASS\" ;;\nesac\n"
 	if err := os.WriteFile(p, []byte(body), 0o755); err != nil {
 		return "", err

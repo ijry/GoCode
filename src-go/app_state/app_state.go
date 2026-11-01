@@ -4,11 +4,11 @@ package appstate
 import (
 	"sync"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/terminal"
-	"yoyocode/src-go/web"
-	"yoyocode/src-go/workspace"
+	"gocode/src-go/acp"
+	"gocode/src-go/db"
+	"gocode/src-go/terminal"
+	"gocode/src-go/web"
+	"gocode/src-go/workspace"
 )
 
 // ServerState tracks the web server lifecycle (port, token, running flag).

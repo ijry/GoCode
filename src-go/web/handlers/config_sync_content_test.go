@@ -8,7 +8,7 @@ import (
 
 func TestConfigSyncContentRoundTrip(t *testing.T) {
 	setHome(t)
-	t.Setenv("YOYOCODE_HOME", t.TempDir()) // isolate config-snapshots from the real ~/.yoyocode
+	t.Setenv("GOCODE_HOME", t.TempDir()) // isolate config-snapshots from the real ~/.gocode
 	srv := newTestServer(t)
 
 	// seed a quick message (a portable domain)

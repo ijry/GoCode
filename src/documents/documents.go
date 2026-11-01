@@ -1,4 +1,4 @@
-// Package documents wires mygo.NewDocuments so YoYoCode can open, edit and
+// Package documents wires mygo.NewDocuments so GoCode can open, edit and
 // autosave Markdown and plain-text files in their own windows — the NSDocument
 // / SwiftUI DocumentGroup model: a window per file, the File menu (New, Open,
 // Open Recent, Save, Save As, Duplicate, Rename, Move To, Revert), autosave in

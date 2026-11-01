@@ -37,7 +37,7 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/officewatch"
+	"gocode/src-go/officewatch"
 )
 
 // OfficeWatchProxyPrefix is the public route prefix for the preview proxy.

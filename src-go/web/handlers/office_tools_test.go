@@ -33,7 +33,7 @@ func TestOfficeToolsDetectAndSkills(t *testing.T) {
 	}
 
 	// read_content against a central skill
-	skillDir := filepath.Join(home, ".yoyocode", "skills", "office-skill")
+	skillDir := filepath.Join(home, ".gocode", "skills", "office-skill")
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)
 	}

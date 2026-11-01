@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // ─── wire types (snake_case) ─────────────────────────────────────────────────

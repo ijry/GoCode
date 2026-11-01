@@ -7,6 +7,7 @@ package app
 // event) accumulate so the chat detail can render streaming agent output.
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 	"sync"
@@ -23,17 +24,55 @@ type connStream struct {
 // Stream owns the websocket connection and the per-connection event buffers.
 type Stream struct {
 	b        *Backend
-	onChange func(connID, channel string) // repaint request (goroutine-safe); connID "" for firehose, channel set for firehose frames
+	onChange func(connID, channel string, payload json.RawMessage) // repaint request (goroutine-safe); connID "" for firehose, channel set for firehose frames
 
 	mu       sync.Mutex
 	conn     *websocket.Conn
 	ready    bool
 	byConn   map[string]*connStream
 	attached map[string]bool
+	// usage is each connection's last context-window reading, folded from the
+	// stream's usage_update events so the composer meter moves mid-turn.
+	usage map[string]contextUsage
+	// plan is each connection's latest plan entries (raw JSON array), folded
+	// from plan_update events so the plan card tracks a running turn.
+	plan map[string]json.RawMessage
+	// last keeps the payload of the most recent frame of each firehose channel,
+	// for the app-level channels whose body the hook needs (pet://oneshot's
+	// kind, pet://state's state).
+	last map[string]json.RawMessage
 }
 
-func newStream(b *Backend, onChange func(connID, channel string)) *Stream {
-	s := &Stream{b: b, onChange: onChange, byConn: map[string]*connStream{}, attached: map[string]bool{}}
+// Payload returns the payload of the most recent frame on channel.
+func (s *Stream) Payload(channel string) json.RawMessage {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.last[channel]
+}
+
+// Plan returns a connection's latest plan entries as raw JSON.
+func (s *Stream) Plan(connID string) json.RawMessage {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.plan[connID]
+}
+
+// contextUsage is an agent's context-window reading (ACP `usage_update`).
+type contextUsage struct {
+	Used uint64
+	Size uint64
+}
+
+// Usage returns a connection's last context-window reading.
+func (s *Stream) Usage(connID string) (contextUsage, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.usage[connID]
+	return u, ok
+}
+
+func newStream(b *Backend, onChange func(connID, channel string, payload json.RawMessage)) *Stream {
+	s := &Stream{b: b, onChange: onChange, byConn: map[string]*connStream{}, attached: map[string]bool{}, usage: map[string]contextUsage{}, last: map[string]json.RawMessage{}}
 	go s.run()
 	return s
 }
@@ -78,6 +117,7 @@ func (s *Stream) run() {
 // attach-protocol ServerMsg ({type,…}); only one family's keys are set.
 type wsFrame struct {
 	Channel      string           `json:"channel"`
+	Payload      json.RawMessage  `json:"payload"`
 	Type         string           `json:"type"`
 	ConnectionID string           `json:"connection_id"`
 	EventSeq     uint64           `json:"event_seq"`
@@ -94,6 +134,11 @@ func (s *Stream) handle(f *wsFrame) {
 	if f.Channel != "" {
 		// Firehose: any change is worth a repaint; the view refetches as needed.
 		channel = f.Channel
+		s.mu.Lock()
+		if len(f.Payload) > 0 {
+			s.last[f.Channel] = f.Payload
+		}
+		s.mu.Unlock()
 		changed = true
 	} else {
 		switch f.Type {
@@ -128,6 +173,29 @@ func (s *Stream) handle(f *wsFrame) {
 				if seq, ok := f.Envelope["seq"].(float64); ok {
 					cs.lastSeq = uint64(seq)
 				}
+				if f.Envelope["type"] == "usage_update" {
+					if s.usage == nil {
+						s.usage = map[string]contextUsage{}
+					}
+					u := contextUsage{}
+					if v, ok := f.Envelope["used"].(float64); ok && v > 0 {
+						u.Used = uint64(v)
+					}
+					if v, ok := f.Envelope["size"].(float64); ok && v > 0 {
+						u.Size = uint64(v)
+					}
+					s.usage[connID] = u
+				}
+				if f.Envelope["type"] == "plan_update" {
+					if s.plan == nil {
+						s.plan = map[string]json.RawMessage{}
+					}
+					if entries, ok := f.Envelope["entries"]; ok && entries != nil {
+						if b, err := json.Marshal(entries); err == nil {
+							s.plan[connID] = b
+						}
+					}
+				}
 				s.mu.Unlock()
 				changedConn = connID
 				changed = true
@@ -135,7 +203,11 @@ func (s *Stream) handle(f *wsFrame) {
 		}
 	}
 	if changed && s.onChange != nil {
-		s.onChange(changedConn, channel)
+		var payload json.RawMessage
+		if channel != "" {
+			payload = s.Payload(channel)
+		}
+		s.onChange(changedConn, channel, payload)
 	}
 }
 
@@ -199,7 +271,7 @@ func (s *Stream) AppendLocal(connID string, ev map[string]any) {
 	cs.events = append(cs.events, ev)
 	s.mu.Unlock()
 	if s.onChange != nil {
-		s.onChange(connID, "")
+		s.onChange(connID, "", nil)
 	}
 }
 
@@ -238,19 +310,16 @@ func (s *Shell) ensureStream() {
 	}
 	svc := s.svc
 	sh := s
-	s.stream = newStream(s.B, func(connID, channel string) {
+	s.stream = newStream(s.B, func(connID, channel string, payload json.RawMessage) {
 		if connID != "" {
 			sh.invalidate("snapshot:" + connID)
 		}
 		// Live terminal output (terminal://output/{id} / terminal://exit/{id})
-		// carries no body on the firehose; refresh the active terminal's snapshot
-		// so its buffered text refetches.
+		// carries no body on the firehose; drop that terminal's snapshot so its
+		// buffered text refetches, whether or not its tab is active.
 		if strings.HasPrefix(channel, "terminal://") {
-			sh.mu.Lock()
-			id := sh.termID
-			sh.mu.Unlock()
-			if id != "" {
-				sh.invalidate("term:" + id)
+			if i := strings.LastIndexByte(channel, '/'); i >= 0 && i+1 < len(channel) {
+				sh.invalidate("term:" + channel[i+1:])
 			}
 		}
 		// A server-side conversation mutation (create/delete/title/status, incl.
@@ -264,6 +333,28 @@ func (s *Shell) ensureStream() {
 			sh.mu.Unlock()
 			if folder != "" {
 				sh.invalidate("convs:" + folder)
+			}
+		}
+		// A live-feedback settings save (this window or another) re-reads the
+		// flag so the composer's feedback entry converges.
+		if strings.HasPrefix(channel, "feedback-settings://") {
+			sh.invalidate("feedback-settings")
+		}
+		// The pet channels drive the floating sprite window: a one-shot plays its
+		// animation, a state change moves the ambient animation, and a new active
+		// pet swaps the sheet in place (upstream's usePetOneShot / usePetState /
+		// PetWindow subscriptions).
+		if strings.HasPrefix(channel, "pet://") {
+			sh.invalidate("pet-config")
+			if w := sh.petWindow(); w != nil {
+				switch channel {
+				case "pet://oneshot":
+					w.playOneShot(petEventString(payload))
+				case "pet://state":
+					w.setAmbient(petEventString(payload))
+				case "pet://active-changed":
+					w.reload()
+				}
 			}
 		}
 		svc.Invalidate()

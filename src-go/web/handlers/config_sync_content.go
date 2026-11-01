@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const configSnapshotSchemaVersion = 1
@@ -75,7 +75,7 @@ type configManifest struct {
 }
 
 type configExportFile struct {
-	YoyocodeConfigExport int            `json:"codegConfigExport"`
+	GocodeConfigExport int            `json:"codegConfigExport"`
 	Manifest             configManifest `json:"manifest"`
 	Config               configSnapshot `json:"config"`
 }
@@ -341,7 +341,7 @@ func buildExport(d *db.Database) (configExportFile, error) {
 		return configExportFile{}, err
 	}
 	return configExportFile{
-		YoyocodeConfigExport: 1,
+		GocodeConfigExport: 1,
 		Manifest:             buildManifest(bytes, snapshotCounts(snapshot)),
 		Config:               snapshot,
 	}, nil
@@ -352,10 +352,10 @@ func buildExport(d *db.Database) (configExportFile, error) {
 func parseConfigSnapshot(bytes []byte) (configSnapshot, error) {
 	var s configSnapshot
 	if err := json.Unmarshal(bytes, &s); err != nil {
-		return configSnapshot{}, web.ErrInvalidInput("Not a YoYoCode config snapshot").WithDetail(err.Error())
+		return configSnapshot{}, web.ErrInvalidInput("Not a GoCode config snapshot").WithDetail(err.Error())
 	}
 	if s.SchemaVersion > configSnapshotSchemaVersion {
-		return configSnapshot{}, web.ErrInvalidInput("Snapshot was written by a newer version of YoYoCode")
+		return configSnapshot{}, web.ErrInvalidInput("Snapshot was written by a newer version of GoCode")
 	}
 	return s, nil
 }
@@ -366,15 +366,15 @@ func parseExportBytes(bytes []byte) (configExportFile, error) {
 	}
 	var probe map[string]json.RawMessage
 	if err := json.Unmarshal(bytes, &probe); err != nil {
-		return configExportFile{}, web.ErrInvalidInput("Not a YoYoCode config file").WithDetail(err.Error())
+		return configExportFile{}, web.ErrInvalidInput("Not a GoCode config file").WithDetail(err.Error())
 	}
 	if _, ok := probe["codegConfigExport"]; ok {
 		var export configExportFile
 		if err := json.Unmarshal(bytes, &export); err != nil {
-			return configExportFile{}, web.ErrInvalidInput("Malformed YoYoCode config export").WithDetail(err.Error())
+			return configExportFile{}, web.ErrInvalidInput("Malformed GoCode config export").WithDetail(err.Error())
 		}
 		if export.Config.SchemaVersion > configSnapshotSchemaVersion {
-			return configExportFile{}, web.ErrInvalidInput("Snapshot was written by a newer version of YoYoCode")
+			return configExportFile{}, web.ErrInvalidInput("Snapshot was written by a newer version of GoCode")
 		}
 		return export, nil
 	}
@@ -386,7 +386,7 @@ func parseExportBytes(bytes []byte) (configExportFile, error) {
 	canonical, _ := serializeSnapshot(snapshot)
 	m := buildManifest(canonical, snapshotCounts(snapshot))
 	m.AppVersion = "unknown"
-	return configExportFile{YoyocodeConfigExport: 1, Manifest: m, Config: snapshot}, nil
+	return configExportFile{GocodeConfigExport: 1, Manifest: m, Config: snapshot}, nil
 }
 
 // ── apply ──
@@ -541,9 +541,9 @@ func applyDomain(tx *sql.Tx, id string, rawJSON []byte) (int, error) {
 // ── rollback files ──
 
 func configSnapshotDir() string {
-	root := strings.TrimSpace(os.Getenv("YOYOCODE_HOME"))
+	root := strings.TrimSpace(os.Getenv("GOCODE_HOME"))
 	if root == "" {
-		root = filepath.Join(skillHomeDir(), ".yoyocode")
+		root = filepath.Join(skillHomeDir(), ".gocode")
 	}
 	return filepath.Join(root, "config-snapshots")
 }

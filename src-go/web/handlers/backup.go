@@ -7,7 +7,7 @@ package handlers
 //     restore to original locations. The headless build tracks no live ACP
 //     agents at this layer, so it reports none (advisory only).
 //   - backup_list_safety_snapshots: the restore safety snapshots on disk under
-//     <data_dir>/.yoyocode-restore-backup/, newest first.
+//     <data_dir>/.gocode-restore-backup/, newest first.
 // The write/transfer surface (ticket/upload/stage/restore/rollback/cancel/
 // download) is a larger archive-streaming subsystem handled separately.
 
@@ -28,16 +28,16 @@ import (
 	"sync"
 	"time"
 
-	"yoyocode/src-go/backup"
-	"yoyocode/src-go/web"
+	"gocode/src-go/backup"
+	"gocode/src-go/web"
 )
 
 const (
-	backupSafetyDir        = ".yoyocode-restore-backup"
-	backupSnapshotManifest = ".yoyocode-snapshot.json"
+	backupSafetyDir        = ".gocode-restore-backup"
+	backupSnapshotManifest = ".gocode-snapshot.json"
 	// backupUploadTmpDir is where restore uploads land (upstream UPLOAD_TMP_DIR
 	// ".codeg-restore-upload", rebranded).
-	backupUploadTmpDir = ".yoyocode-restore-upload"
+	backupUploadTmpDir = ".gocode-restore-upload"
 	// backupAppVersion is recorded in the archive manifest.
 	backupAppVersion = "0.1.0"
 	// backupExportReap is the grace period before an undownloaded export archive
@@ -54,7 +54,7 @@ var errBackupUploadTooLarge = errors.New("upload exceeds configured size limit")
 // backupUploadMaxBytes reads the optional hard upload cap (default unlimited),
 // matching upstream CODEG_BACKUP_UPLOAD_MAX_BYTES (rebranded).
 func backupUploadMaxBytes() int64 {
-	v := strings.TrimSpace(os.Getenv("YOYOCODE_BACKUP_UPLOAD_MAX_BYTES"))
+	v := strings.TrimSpace(os.Getenv("GOCODE_BACKUP_UPLOAD_MAX_BYTES"))
 	if v == "" {
 		return 0
 	}
@@ -231,7 +231,7 @@ func backupCreateTicket(c *web.Context, store *backupTicketStore) (any, error) {
 	if mkErr := os.MkdirAll(tmpDir, 0o700); mkErr != nil {
 		return nil, web.ErrIO("Failed to create backup temp dir: " + mkErr.Error())
 	}
-	ext := "yoyocode.zip" // passphrase (encrypted) rejected below
+	ext := "gocode.zip" // passphrase (encrypted) rejected below
 	dest := filepath.Join(tmpDir, newChatUUID()+"."+ext)
 	opID := newChatUUID()
 	manifest, cerr := backup.CreateBackup(
@@ -246,7 +246,7 @@ func backupCreateTicket(c *web.Context, store *backupTicketStore) (any, error) {
 		_ = os.Remove(dest)
 		return nil, web.ErrTaskExecution("Backup failed").WithDetail(cerr.Error())
 	}
-	downloadName := fmt.Sprintf("yoyocode-backup-%s.%s", time.Now().UTC().Format("20060102-150405"), ext)
+	downloadName := fmt.Sprintf("gocode-backup-%s.%s", time.Now().UTC().Format("20060102-150405"), ext)
 	ticket, expiresAt := store.issue(dest, tmpDir, downloadName)
 	// Reap the temp archive after the TTL whether or not it was downloaded (the
 	// download stream does not delete it).
@@ -297,7 +297,7 @@ func withinRoot(p, root string) bool {
 	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) && !filepath.IsAbs(rel)
 }
 
-// backupUpload streams a multipart `file` field into <data_dir>/.yoyocode-restore-upload/
+// backupUpload streams a multipart `file` field into <data_dir>/.gocode-restore-upload/
 // <uuid32>.bin and returns the handle the restore flow reuses ({upload_id, file_name}),
 // so the (potentially large) archive is uploaded only once. Mirrors upstream
 // receive_upload: optional size cap, partial file deleted on any failure.
@@ -397,35 +397,35 @@ func copyWithUploadCap(dst io.Writer, src io.Reader, cap int64) error {
 	}
 }
 
-// backupHome is the YoYoCode home root (YOYOCODE_HOME / YOYOCODE_DATA_DIR /
-// ~/.yoyocode), the port's convention for data sections.
+// backupHome is the GoCode home root (GOCODE_HOME / GOCODE_DATA_DIR /
+// ~/.gocode), the port's convention for data sections.
 func backupHome() string {
-	if v := strings.TrimSpace(os.Getenv("YOYOCODE_HOME")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("GOCODE_HOME")); v != "" {
 		return v
 	}
-	if v := strings.TrimSpace(os.Getenv("YOYOCODE_DATA_DIR")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("GOCODE_DATA_DIR")); v != "" {
 		return v
 	}
-	return filepath.Join(skillHomeDir(), ".yoyocode")
+	return filepath.Join(skillHomeDir(), ".gocode")
 }
 
 // backupLiveRoots resolves each managed section to where THIS port actually
 // writes it, so a backup never silently packs an empty tree. Mirrors the port's
 // per-section writers (uploads/pets/env, backgrounds+tokens under DataDir,
-// skills under ~/.yoyocode/skills, the rest under the home root).
+// skills under ~/.gocode/skills, the rest under the home root).
 // backupSectionRoots resolves each managed section for a given data dir.
 func backupSectionRoots(dataDir string) func(string) string {
 	home := backupHome()
 	return func(id string) string {
 		switch id {
 		case "uploads":
-			return yoyocodeUploadsRoot()
+			return gocodeUploadsRoot()
 		case "pets":
 			return petsRoot()
 		case "backgrounds":
 			return filepath.Join(dataDir, "backgrounds")
 		case "skills":
-			return filepath.Join(skillHomeDir(), ".yoyocode", "skills")
+			return filepath.Join(skillHomeDir(), ".gocode", "skills")
 		case "tokens.json":
 			return filepath.Join(dataDir, "tokens.json")
 		default: // acp-transcripts, turn-timings, preferences.json
@@ -520,7 +520,7 @@ func backupScanExternalConflicts(c *web.Context) (any, error) {
 // backupRestartDelayMs mirrors upstream CODEG_RESTART_DELAY_MS (rebranded),
 // default 2000ms — the relaunch delay after a staged restore.
 func backupRestartDelayMs() int {
-	if v := strings.TrimSpace(os.Getenv("YOYOCODE_RESTART_DELAY_MS")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("GOCODE_RESTART_DELAY_MS")); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			return n
 		}

@@ -14,7 +14,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"yoyocode/locales"
+	"gocode/locales"
 )
 
 // viewLogin renders the token gate.

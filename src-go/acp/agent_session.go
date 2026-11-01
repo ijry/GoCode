@@ -32,6 +32,9 @@ type AgentSession struct {
 	sessionID    string
 	agentCaps    json.RawMessage
 	pendingPerms map[string]chan string
+	// replaying is set while session/load streams the agent's history back;
+	// those updates are dropped (see LoadSession).
+	replaying bool
 }
 
 // NewAgentSession wires the agent→client handlers (session/update, permission,
@@ -44,6 +47,9 @@ func NewAgentSession(peer *Peer, state *SessionState, agentType string) *AgentSe
 		pendingPerms: map[string]chan string{},
 	}
 	peer.HandleNotification("session/update", s.onSessionUpdate)
+	// claude-agent-acp mirrors raw SDK messages here; the only one this build
+	// uses is the `api_retry` system message (see api_retry.go).
+	peer.HandleNotification("_claude/sdkMessage", s.onApiRetry)
 	peer.HandleRequest("session/request_permission", s.onRequestPermission)
 	peer.HandleRequest("fs/read_text_file", s.onReadTextFile)
 	peer.HandleRequest("fs/write_text_file", s.onWriteTextFile)
@@ -91,6 +97,61 @@ func (s *AgentSession) NewSession(ctx context.Context, cwd string, mcpServers []
 	return out.SessionID, nil
 }
 
+// SupportsLoadSession reports whether the agent advertised `session/load` in its
+// initialize result (agentCapabilities.loadSession).
+func (s *AgentSession) SupportsLoadSession() bool {
+	s.mu.Lock()
+	raw := s.agentCaps
+	s.mu.Unlock()
+	var caps struct {
+		AgentCapabilities struct {
+			LoadSession bool `json:"loadSession"`
+		} `json:"agentCapabilities"`
+	}
+	if len(raw) == 0 || json.Unmarshal(raw, &caps) != nil {
+		return false
+	}
+	return caps.AgentCapabilities.LoadSession
+}
+
+// LoadSession resumes an existing agent session (ACP `session/load`). The agent
+// replays the session's history as session/update notifications before the call
+// returns; those are dropped here, because the transcript is read from the
+// agent's own on-disk record and replaying it would duplicate every message.
+func (s *AgentSession) LoadSession(ctx context.Context, sessionID, cwd string, mcpServers []any) (string, error) {
+	if mcpServers == nil {
+		mcpServers = []any{}
+	}
+	s.mu.Lock()
+	s.replaying = true
+	s.mu.Unlock()
+	res, err := s.peer.Call(ctx, "session/load", map[string]any{
+		"sessionId":  sessionID,
+		"cwd":        cwd,
+		"mcpServers": mcpServers,
+	})
+	s.mu.Lock()
+	s.replaying = false
+	s.mu.Unlock()
+	if err != nil {
+		return "", err
+	}
+	// A conforming agent echoes nothing here; keep its id (or adopt one if it
+	// reports a different session).
+	out := struct {
+		SessionID string `json:"sessionId"`
+	}{}
+	_ = json.Unmarshal(res, &out)
+	if out.SessionID == "" {
+		out.SessionID = sessionID
+	}
+	s.mu.Lock()
+	s.sessionID = out.SessionID
+	s.mu.Unlock()
+	s.emit(map[string]any{"type": "session_started", "session_id": out.SessionID, "resumed": true})
+	return out.SessionID, nil
+}
+
 // SessionID returns the negotiated session id.
 func (s *AgentSession) SessionID() string {
 	s.mu.Lock()
@@ -126,13 +187,45 @@ func (s *AgentSession) Fork(ctx context.Context) (forkedID, originalID string, e
 
 // Prompt sends a prompt turn and returns the stop reason. session/update
 // notifications stream in during the call and are published as they arrive.
+// CallExtension sends an adapter extension request (a `_session/...` method)
+// and waits for its result. Agents that do not implement the extension answer
+// with a JSON-RPC error, which surfaces as an error here.
+func (s *AgentSession) CallExtension(ctx context.Context, method string, params map[string]any) (json.RawMessage, error) {
+	s.mu.Lock()
+	sid := s.sessionID
+	s.mu.Unlock()
+	body := map[string]any{"sessionId": sid}
+	for k, v := range params {
+		body[k] = v
+	}
+	return s.peer.Call(ctx, method, body)
+}
+
 func (s *AgentSession) Prompt(ctx context.Context, blocks []any) (string, error) {
 	s.state.SetStatus(StatusPrompting)
+	// Live-feedback notes are turn-scoped: a new prompt starts a fresh turn, so
+	// the previous turn's notes (read or not) no longer belong here.
+	s.state.ClearFeedback()
+	// A retry reading only lasts as long as the turn that reported it.
+	defer s.state.ClearApiRetry()
 	res, err := s.peer.Call(ctx, "session/prompt", map[string]any{
 		"sessionId": s.SessionID(),
 		"prompt":    blocks,
 	})
 	if err != nil {
+		// A user Stop cancels the call's context. That is a clean end of turn —
+		// reporting it as an error would put the conversation in a failed state
+		// the user never caused — so it lands as stop_reason "cancelled".
+		if errors.Is(err, context.Canceled) {
+			s.state.SetStatus(StatusConnected)
+			s.emit(map[string]any{
+				"type":        "turn_complete",
+				"session_id":  s.SessionID(),
+				"stop_reason": "cancelled",
+				"agent_type":  s.agentType,
+			})
+			return "cancelled", nil
+		}
 		s.state.SetStatus(StatusError)
 		s.emit(map[string]any{"type": "error", "message": err.Error()})
 		return "", err
@@ -208,7 +301,25 @@ func (s *AgentSession) ResolvePermission(requestID, optionID string) bool {
 
 // ─── agent → client ─────────────────────────────────────────────────────────
 
+// onApiRetry records an in-flight API retry reported on `_claude/sdkMessage`.
+func (s *AgentSession) onApiRetry(params json.RawMessage) {
+	st, ok := parseApiRetry(params)
+	if !ok {
+		return
+	}
+	s.state.SetApiRetry(st)
+	s.emit(map[string]any{"type": "api_retry", "retry": st})
+}
+
 func (s *AgentSession) onSessionUpdate(params json.RawMessage) {
+	// Replayed history from session/load is already in the transcript the UI
+	// reads; dropping it here keeps a resumed conversation from doubling up.
+	s.mu.Lock()
+	replaying := s.replaying
+	s.mu.Unlock()
+	if replaying {
+		return
+	}
 	var p struct {
 		Update json.RawMessage `json:"update"`
 	}
@@ -225,6 +336,11 @@ func (s *AgentSession) onSessionUpdate(params json.RawMessage) {
 		Entries       json.RawMessage `json:"entries"`
 	}
 	_ = json.Unmarshal(p.Update, &disc)
+	// Any real progress means an in-flight API retry resolved.
+	switch disc.SessionUpdate {
+	case "agent_message_chunk", "agent_thought_chunk", "tool_call", "tool_call_update":
+		s.state.ClearApiRetry()
+	}
 	switch disc.SessionUpdate {
 	case "agent_message_chunk":
 		s.emit(map[string]any{"type": "content_delta", "text": contentText(disc.Content)})
@@ -244,10 +360,34 @@ func (s *AgentSession) onSessionUpdate(params json.RawMessage) {
 			ev["status"] = disc.Status
 		}
 		s.emit(ev)
+	case "usage_update":
+		// {"used": tokens in context, "size": context window}. Agents send null
+		// for either when they don't know it yet, so decode through pointers.
+		var u struct {
+			Used *uint64 `json:"used"`
+			Size *uint64 `json:"size"`
+		}
+		if json.Unmarshal(p.Update, &u) == nil {
+			var used, size uint64
+			if u.Used != nil {
+				used = *u.Used
+			}
+			if u.Size != nil {
+				size = *u.Size
+			}
+			s.state.SetContextUsage(used, size)
+			s.emit(map[string]any{"type": "usage_update", "used": used, "size": size})
+		}
+	case "async_task_spawned", "async_task_progress", "async_task_state_update":
+		if d, ok := parseAsyncTaskUpdate(p.Update); ok {
+			s.state.SetAsyncTasks(mergeAsyncTask(s.state.Snapshot().AsyncTasks, d))
+			s.emit(map[string]any{"type": "async_task_update", "task": d.Task})
+		}
 	case "plan":
 		var entries any
 		if len(disc.Entries) > 0 {
 			_ = json.Unmarshal(disc.Entries, &entries)
+			s.state.SetPlan(disc.Entries)
 		}
 		s.emit(map[string]any{"type": "plan_update", "entries": entries})
 	case "session_modes":

@@ -1,6 +1,6 @@
 package app
 
-// codegmcp_test.go covers the yoyocode-mcp workbench companion tool parser (the
+// codegmcp_test.go covers the gocode-mcp workbench companion tool parser (the
 // codeg-mcp-tool.ts port) and its one-liner card rendering in the transcript.
 
 import (
@@ -11,9 +11,9 @@ import (
 
 func TestNormalizeMcpToolName(t *testing.T) {
 	cases := map[string]string{
-		"mcp__yoyocode-mcp__task_progress": "task_progress",
+		"mcp__gocode-mcp__task_progress": "task_progress",
 		"mcp__codeg-mcp__task_progress":    "task_progress",
-		"yoyocode-mcp/get_session_info":    "get_session_info",
+		"gocode-mcp/get_session_info":    "get_session_info",
 		"CodegMcpCard":                     "codegmcpcard",
 		"task_complete":                    "task_complete",
 	}
@@ -69,7 +69,7 @@ func TestCodegMcpResultPeel(t *testing.T) {
 }
 
 func TestCodegMcpIsWorkbenchTool(t *testing.T) {
-	if !isCodegMcpWorkbenchTool("mcp__yoyocode-mcp__create_automation") {
+	if !isCodegMcpWorkbenchTool("mcp__gocode-mcp__create_automation") {
 		t.Errorf("companion tool should be recognized")
 	}
 	if isCodegMcpWorkbenchTool("read") {
@@ -84,7 +84,7 @@ func TestCodegMcpCardRendersOneLiner(t *testing.T) {
 		s.stream.handle(&wsFrame{Type: "event", Envelope: ev})
 	}
 	push(map[string]any{"seq": 20, "type": "tool_call", "tool_call_id": "tp1",
-		"kind": "mcp__yoyocode-mcp__task_progress", "status": "success",
+		"kind": "mcp__gocode-mcp__task_progress", "status": "success",
 		"input": `{"message":"reading files"}`})
 	push(map[string]any{"seq": 21, "type": "tool_call", "tool_call_id": "ca1",
 		"kind": "create_automation", "status": "success",

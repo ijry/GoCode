@@ -14,6 +14,7 @@ import (
 	"sort"
 
 	"github.com/egoist/mygo/ui"
+	"gocode/locales"
 )
 
 // The two upstream pet routes folded into the single Pet section: pet-panel
@@ -58,14 +59,14 @@ func sortPetSessions(sessions []map[string]any) {
 }
 
 // petStatusLabel is the row pill's text.
-func petStatusLabel(kind string) string {
+func petStatusLabel(m locales.Messages, kind string) string {
 	switch kind {
 	case "waiting":
-		return "waiting"
+		return m.PpStatusWaiting()
 	case "error":
-		return "error"
+		return m.PpStatusError()
 	default:
-		return "running"
+		return m.PpStatusRunning()
 	}
 }
 
@@ -95,16 +96,17 @@ func pickInt(m map[string]any, keys ...string) int {
 // viewPetPanel renders the active-session list (pet_list_active_sessions).
 func (s *Shell) viewPetPanel(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	payload := asObj(s.ensure("pet-sessions", "pet_list_active_sessions", nil))
 	sessions := asListVal(payload["sessions"])
 
 	ui.Row(c.Key("pp-head")).Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Active sessions").FontSize(18).Bold()
+		ui.Text(c, m.PpActiveSessions()).FontSize(18).Bold()
 		if len(sessions) > 0 {
 			ui.Textf(c, "(%d)", len(sessions)).FontSize(12).TextColor(t.TextMuted)
 		}
 		ui.Spacer(c)
-		iconButton(c, "pp-refresh", iconRefresh, "Refresh", func() {
+		iconButton(c, "pp-refresh", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidate("pet-sessions")
 		})
 	})
@@ -122,8 +124,8 @@ func (s *Shell) viewPetPanel(c *ui.Context) {
 			if iconPet != nil {
 				ui.Icon(c, iconPet).Width(26).Height(26).TextColor(t.TextMuted)
 			}
-			ui.Text(c, "No active sessions").FontSize(14).Bold()
-			ui.Text(c, "Sessions appear here while agents are working.").FontSize(12).TextColor(t.TextMuted)
+			ui.Text(c, m.PpNoSessions()).FontSize(14).Bold()
+			ui.Text(c, m.PpNoSessionsHint()).FontSize(12).TextColor(t.TextMuted)
 		})
 		return
 	}
@@ -142,8 +144,9 @@ func (s *Shell) viewPetPanel(c *ui.Context) {
 // the user — its inline permission card.
 func (s *Shell) petSessionRow(c *ui.Context, i int, sess map[string]any) {
 	t := c.Theme()
+	m := cat(c)
 	agent := pickStr(sess, "agent_type", "agentType")
-	title := firstNonEmpty(pickStr(sess, "title"), agent, "(untitled)")
+	title := firstNonEmpty(pickStr(sess, "title"), agent, m.Untitled())
 	kind := petStatusKind(sess)
 	dot := t.Accent
 	switch kind {
@@ -161,13 +164,13 @@ func (s *Shell) petSessionRow(c *ui.Context, i int, sess map[string]any) {
 			ui.Text(c, title).MaxLines(1).TextColor(t.Text)
 			if parent, ok := sess["parent"].(map[string]any); ok && parent != nil {
 				if ptitle := firstNonEmpty(pickStr(parent, "title"), pickStr(parent, "agent_type", "agentType")); ptitle != "" {
-					ui.Text(c, "sub-agent of · "+ptitle).FontSize(10).MaxLines(1).TextColor(t.TextMuted)
+					ui.Text(c, m.PpSubAgent(ptitle)).FontSize(10).MaxLines(1).TextColor(t.TextMuted)
 				}
 			}
 		})
 		ui.Row(c).Gap(4).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "\u25CF").FontSize(8).TextColor(dot)
-			ui.Text(c, petStatusLabel(kind)).FontSize(10).TextColor(t.TextMuted)
+			ui.Text(c, petStatusLabel(m, kind)).FontSize(10).TextColor(t.TextMuted)
 		})
 	})
 	if row.Clicked() {
@@ -183,6 +186,7 @@ func (s *Shell) petSessionRow(c *ui.Context, i int, sess map[string]any) {
 // (acp_respond_permission) — upstream PanelPermissionCard.
 func (s *Shell) petPermissionCard(c *ui.Context, i int, connID string, pending map[string]any) {
 	t := c.Theme()
+	m := cat(c)
 	reqID := pickStr(pending, "request_id", "requestId")
 	ui.Column(c.Key(itoa("ppp", i))).FillWidth().Radius(6).
 		Border(1, t.Warning.Alpha(0.35)).Background(t.Warning.Alpha(0.07)).
@@ -191,7 +195,7 @@ func (s *Shell) petPermissionCard(c *ui.Context, i int, connID string, pending m
 			if iconAlert != nil {
 				ui.Icon(c, iconAlert).Width(12).Height(12).TextColor(t.Warning)
 			}
-			ui.Text(c, "Permission requested").FontSize(12).Bold()
+			ui.Text(c, m.PermRequested()).FontSize(12).Bold()
 		})
 		if tc, ok := pending["tool_call"].(map[string]any); ok && tc != nil {
 			if lbl := firstNonEmpty(pickStr(tc, "label"), pickStr(tc, "title")); lbl != "" {
@@ -205,7 +209,7 @@ func (s *Shell) petPermissionCard(c *ui.Context, i int, connID string, pending m
 				oid := firstNonEmpty(pickStr(o, "option_id", "optionId"), pickStr(o, "id"))
 				name := firstNonEmpty(pickStr(o, "name"), pickStr(o, "label"), oid)
 				if ui.Button(c.Key(itoa("ppo", j)), name).Clicked() {
-					s.respondPermission(connID, reqID, oid)
+					s.respondPermission(c.Locale(), connID, reqID, oid)
 				}
 			}
 		})

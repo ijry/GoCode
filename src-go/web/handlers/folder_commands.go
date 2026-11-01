@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 func scanFolderCommand(row interface{ Scan(...any) error }) (map[string]any, error) {

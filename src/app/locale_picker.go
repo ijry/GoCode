@@ -3,7 +3,7 @@ package app
 // locale_picker.go — the app-level language section of Settings → General.
 //
 // The catalogs (locales/en.json, locales/zh-Hans.json) are compiled by
-// `mygo generate` into yoyocode/locales, whose import registers their
+// `mygo generate` into gocode/locales, whose import registers their
 // languages with package i18n. The language picked here is the one the whole
 // window shows: our own messages, MyGo's controls and dialogs (its editor,
 // diff viewer and Markdown view say their own words in it), and the numbers
@@ -14,7 +14,7 @@ import (
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 
-	"yoyocode/locales"
+	"gocode/locales"
 )
 
 // cat returns the catalogs' messages in the window's language. mygo keeps the

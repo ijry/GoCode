@@ -1,7 +1,7 @@
-# YoYoCode UI 优化点（与上游 codeg 的差异与改进）
+# GoCode UI 优化点（与上游 codeg 的差异与改进）
 
 > 记录时间：2026-10-13
-> 背景：YoYoCode 是把上游 codeg（Tauri/Rust/Next.js）复刻到 Go + mygo 原生 UI 的端口。
+> 背景：GoCode 是把上游 codeg（Tauri/Rust/Next.js）复刻到 Go + mygo 原生 UI 的端口。
 > 整体 IA 已对齐上游（左侧栏即会话侧栏，无多余外层导航栏），但以下 3 处在「大体一致」
 > 的基础上需要做细节优化。本文档单独记录这 3 点，供后续实现时对照。
 
@@ -52,7 +52,7 @@
 ## 2. 底部状态栏：保留 connected + 版本号，补上 codeg 的其它状态栏功能
 
 > **状态：✅ 已落地（可测子集）**（`src/app/app.go` 的 `viewStatusBar` + `viewStatusMcp/Tasks/Update`）。
-> 保留左下 `connected/connecting` + URL、右下 `YoYoCode v0.1.0`；在右侧区块切换与版本号之间补：
+> 保留左下 `connected/connecting` + URL、右下 `GoCode v0.1.0`；在右侧区块切换与版本号之间补：
 > - **MCP 健康**（`viewStatusMcp`）：读 `get_codeg_mcp_service_status` → `running` 绿点 / 否则灰点 + `MCP`。
 >   （companion 未内置 → `stopped`，属诚实状态；见点 3）
 > - **待办计数**（`viewStatusTasks`）：读 `work_task_list` → 未 done 的数量，`☑ N` 徽标，点击跳到 To-dos；为 0 时隐藏。
@@ -68,7 +68,7 @@
 ### 现状
 我们端口 `viewStatusBar`（`src/app/app.go`）目前只有：
 - 左下：`● connected`（绿点）/ `connecting` + 后端地址 URL
-- 右下：`YoYoCode v0.1.0` 版本号
+- 右下：`GoCode v0.1.0` 版本号
 
 上游 codeg 状态栏（`src/components/layout/status-bar.tsx`）功能远多于这两样，
 应一并补进我们的底部 chrome。
@@ -99,7 +99,7 @@
 2. **待办计数** `StatusBarTasks` → 从 `work_task_list` 取进行中/需关注数量，铃或数字徽标；
 3. **命令启动器** `CommandDropdown` → 底部 chrome 的一个命令入口按钮；
 4. **计算机使用指示** `StatusBarComputer` → 仅在桌面运行时开启计算机使用时渲染；
-5. **yoyocode-mcp 健康** `StatusBarMcp` → 显示 companion MCP 服务是否在线（第 3 点配套）；
+5. **gocode-mcp 健康** `StatusBarMcp` → 显示 companion MCP 服务是否在线（第 3 点配套）；
 6. **告警铃** `StatusBarAlerts` → 未读失败/注意计数（取 `unseenFailures` / `attentionCount`）。
 
 保留现有 `connected`（左下）+ 版本号（右下）不动。各控件用 `ui.IconButton` +
@@ -107,20 +107,20 @@
 
 ---
 
-## 3. 对应一个 `yoyocode-mcp`（上游为 `codeg-mcp`）
+## 3. 对应一个 `gocode-mcp`（上游为 `codeg-mcp`）
 
-> **状态：✅ 已落地**（`src-go/mcp/companion.go` + `cmd/yoyocode-mcp` + `src/app/codegmcp.go` + `src-go/acp/companion.go`）。
+> **状态：✅ 已落地**（`src-go/mcp/companion.go` + `cmd/gocode-mcp` + `src/app/codegmcp.go` + `src-go/acp/companion.go`）。
 > 应用侧接线已完成：`acp.Manager` 持有 loopback 后端地址 + bearer token（`SetCompanionBackend`，
 > 启动 `MarkRunning` 后注入），`ConnectLive` 在 `session/new` 的 `mcpServers` 里追加
-> `yoyocode-mcp` 的 stdio MCP server 条目（env 注入 `YOYOCODE_API`/`TOKEN`/`AGENT_TYPE`/`SESSION_ID`），
-> agent runtime 据此每会话拉起 companion。二进制解析顺序 `YOYOCODE_MCP_PATH` → 可执行文件同级 → PATH
+> `gocode-mcp` 的 stdio MCP server 条目（env 注入 `GOCODE_API`/`TOKEN`/`AGENT_TYPE`/`SESSION_ID`），
+> agent runtime 据此每会话拉起 companion。二进制解析顺序 `GOCODE_MCP_PATH` → 可执行文件同级 → PATH
 > （端口 `locate_codeg_mcp_binary`），缺失则**跳过注入**（不注册幽灵路径，严格 agent 不会因此拒掉整会话）。
 > 测试：`src-go/acp/companion_test.go`（5）+ `src-go/acp` 全量 + `acp_live` 集成回归绿。
 > 打包（见落地点回顾 #3）：本端口是 Go 单二进制桌面应用，无 Tauri sidecar 概念；
-> `yoyocode-mcp` 与 `yoyocode` 同目录（或置于 PATH）即被解析，发布流程 `go build ./cmd/yoyocode-mcp` 一并产出即可。
+> `gocode-mcp` 与 `gocode` 同目录（或置于 PATH）即被解析，发布流程 `go build ./cmd/gocode-mcp` 一并产出即可。
 > 一个真实可跑的 MCP stdio server（JSON-RPC 2.0）：`initialize` / `tools/list` / `tools/call`；
-> 暴露同一套 6 个 workbench 工具，名字归一化 `mcp__yoyocode-mcp__X / yoyocode-mcp/X → X`。
-> `create_automation`/`create_work_task` **代理到真后端**（loopback `/api`，env: `YOYOCODE_API`/`TOKEN`/
+> 暴露同一套 6 个 workbench 工具，名字归一化 `mcp__gocode-mcp__X / gocode-mcp/X → X`。
+> `create_automation`/`create_work_task` **代理到真后端**（loopback `/api`，env: `GOCODE_API`/`TOKEN`/
 > `FOLDER_ID`/`AGENT_TYPE`/`SESSION_ID`）；`get_session_info`/`task_progress`/`task_complete` 回 ack；
 > `resume_delegation` 诚实报 not-supported（委派引擎未移植）。
 > **会话内卡片**：`src/app/codegmcp.go`（codeg-mcp-tool.ts 端口）——识别这 6 个工具，走包装键
@@ -132,11 +132,11 @@
 > **应用侧接线（已完成）**：`src-go/acp/companion.go`（`ResolveCompanionBinary` /
 > `CompanionMCPServer`）+ `acp.Manager.SetCompanionBackend` / `companionSpec` +
 > `connection.go` 的 `ConnectLive` 把 companion 注入 `session/new` 的 `mcpServers`。
-> 启动期（`cmd/yoyocode/main.go` 与 `cmd/yoyocode-server/main.go` 的 `MarkRunning` 之后）调用
+> 启动期（`cmd/gocode/main.go` 与 `cmd/gocode-server/main.go` 的 `MarkRunning` 之后）调用
 > `SetCompanionBackend(url, token)` 把 loopback 后端地址 + bearer token 交给引擎；
-> `ConnectLive` 据此构建 stdio MCP server 条目（env 注入 `YOYOCODE_API`/`TOKEN`/`AGENT_TYPE`/
+> `ConnectLive` 据此构建 stdio MCP server 条目（env 注入 `GOCODE_API`/`TOKEN`/`AGENT_TYPE`/
 > `SESSION_ID`），agent runtime 每会话拉起 companion。二进制缺失时优雅跳过（不注册幽灵路径）。
-> 注：`YOYOCODE_FOLDER_ID` 当前留空（companion 的 `create_work_task` 会省略 folder 作用域）；
+> 注：`GOCODE_FOLDER_ID` 当前留空（companion 的 `create_work_task` 会省略 folder 作用域）；
 > 后续可从 `conversationID` 经 db 解析 folder id 再注入，属增强非必需。
 
 ### 上游是什么
@@ -157,11 +157,11 @@
   都折叠到 canonical 名（见 `tool-call-normalization.ts`）；
 - 状态栏健康：`StatusBarMcp` 显示该 companion 服务是否在线。
 
-### 我们需要的 `yoyocode-mcp`
-按复刻 + 改名规则（`codeg-mcp → yoyocode-mcp`，请求 id `codeg-models → yoyocode-models`
+### 我们需要的 `gocode-mcp`
+按复刻 + 改名规则（`codeg-mcp → gocode-mcp`，请求 id `codeg-models → gocode-models`
 等已在其它路由落实），需要：
 
-1. **Go 版 companion 二进制**：在 `src-go/...`（建议 `cmd/yoyocode-mcp` 或
+1. **Go 版 companion 二进制**：在 `src-go/...`（建议 `cmd/gocode-mcp` 或
    `src-go/mcp/`）实现与上游等价的 MCP server，暴露同样的 6 个 workbench 工具，
    经同一套 JSON-RPC/MCP 线协议与宿主通信（argument 包装键 `arguments`/`input`/
    `params`/`payload`/`args` 的 peel 逻辑需对齐 `codeg-mcp-tool.ts` 的 `findArgs`）。
@@ -173,14 +173,14 @@
    `create_automation`/`create_work_task`→name/title 且额外审计 `prompt`、
    `resume_delegation`→task_id + `reason`），并展示 peeled 后的结果文本与
    `running`/`ok`/`err` 状态。
-4. **状态栏健康指示**：`StatusBarMcp` 改为反映 `yoyocode-mcp` 在线状态（第 2 点配套）。
+4. **状态栏健康指示**：`StatusBarMcp` 改为反映 `gocode-mcp` 在线状态（第 2 点配套）。
 5. **绑定/打包**：上游用 `prepare-sidecars.mjs` 把 `codeg-mcp` 作为 sidecar 打包进
-   Tauri；Go 端口需在构建/发布流程里把 `yoyocode-mcp` 二进制一并打进安装包。
+   Tauri；Go 端口需在构建/发布流程里把 `gocode-mcp` 二进制一并打进安装包。
 
 ### 改名清单（本点涉及）
-- 二进制/服务名：`codeg-mcp` → `yoyocode-mcp`
-- 工具命名空间前缀：`mcp__codeg-mcp__*` → `mcp__yoyocode-mcp__*`
-- 相关内部标识沿用既有 rebrand 规则（vendor 名 `codeg` → `yoyocode`）
+- 二进制/服务名：`codeg-mcp` → `gocode-mcp`
+- 工具命名空间前缀：`mcp__codeg-mcp__*` → `mcp__gocode-mcp__*`
+- 相关内部标识沿用既有 rebrand 规则（vendor 名 `codeg` → `gocode`）
 
 ---
 
@@ -189,4 +189,4 @@
 | --- | --- | --- | --- |
 | 1 | `src/app/workspace.go` | 侧栏三块垂直堆叠 | 顶部分段切换，单块可见 |
 | 2 | `src/app/app.go`（`viewStatusBar`） | 仅 connected + 版本号 | 补更新/待办/命令/计算机/mcp 健康/告警 |
-| 3 | 新增 `cmd/yoyocode-mcp` + 原生卡片 + 应用侧注入 | 无 | 等价 codeg-mcp 的 Go companion |
+| 3 | 新增 `cmd/gocode-mcp` + 原生卡片 + 应用侧注入 | 无 | 等价 codeg-mcp 的 Go companion |

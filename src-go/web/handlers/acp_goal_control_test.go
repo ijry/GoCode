@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"yoyocode/src-go/acp"
+	"gocode/src-go/acp"
 )
 
 func TestAcpGoalControlLive(t *testing.T) {

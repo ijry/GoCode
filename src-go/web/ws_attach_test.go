@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"yoyocode/src-go/acp"
+	"gocode/src-go/acp"
 )
 
 // dial opens an authenticated WS connection and returns it plus a read helper

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"yoyocode/src-go/officewatch"
-	"yoyocode/src-go/web"
+	"gocode/src-go/officewatch"
+	"gocode/src-go/web"
 )
 
 // ── pure helpers ────────────────────────────────────────────────────────────

@@ -15,8 +15,8 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const workTaskCols = `SELECT id, folder_id, title, config, status, failure_reason, last_error, run_seq,

@@ -7,7 +7,7 @@ package handlers
 // the gate credential in sync, so a BYO API key actually authenticates the CLI.
 //
 // The managed provider/model block is written under OUR brand
-// ("yoyocode" / "yoyocode-managed") — the upstream wrote its own name there.
+// ("gocode" / "gocode-managed") — the upstream wrote its own name there.
 // The block is recognizable and removable without disturbing any provider or
 // model the user authored by hand.
 
@@ -21,19 +21,19 @@ import (
 
 	toml "github.com/pelletier/go-toml/v2"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const (
 	// kimiManagedProvider / kimiManagedModelAlias are the synthetic provider and
 	// model alias our managed block is written under.
-	kimiManagedProvider   = "yoyocode"
-	kimiManagedModelAlias = "yoyocode-managed"
+	kimiManagedProvider   = "gocode"
+	kimiManagedModelAlias = "gocode-managed"
 	// kimiSyntheticToken / kimiSyntheticMarker identify OUR gate token so a real
 	// `kimi login` OAuth token is never clobbered.
-	kimiSyntheticToken  = "yoyocode-local-gate"
-	kimiSyntheticMarker = "_yoyocode_synthetic"
+	kimiSyntheticToken  = "gocode-local-gate"
+	kimiSyntheticMarker = "_gocode_synthetic"
 	// kimiDefaultMaxContextSize is the fallback context window for the managed
 	// model. Kimi's schema REQUIRES a positive `max_context_size` — omitting it
 	// makes kimi discard the whole model block, leaving `default_model` dangling
@@ -320,8 +320,8 @@ func writeKimiConfigRaw(raw string) error {
 	return os.WriteFile(path, []byte(raw), 0o644)
 }
 
-// applyKimiManagedBlock upserts or removes the `[providers.yoyocode]` +
-// `[models.yoyocode-managed]` block in a parsed config.toml document, preserving
+// applyKimiManagedBlock upserts or removes the `[providers.gocode]` +
+// `[models.gocode-managed]` block in a parsed config.toml document, preserving
 // every other section. Removal also resets `default_model` only when it points
 // at our managed alias.
 func applyKimiManagedBlock(root map[string]any, spec *kimiManagedSpec) {
@@ -424,7 +424,7 @@ type kimiSyntheticTokenDoc struct {
 	ExpiresIn    int64  `json:"expires_in"`
 	Scope        string `json:"scope"`
 	TokenType    string `json:"token_type"`
-	Marker       bool   `json:"_yoyocode_synthetic"`
+	Marker       bool   `json:"_gocode_synthetic"`
 }
 
 func readKimiTokenAt(path string) (map[string]any, bool) {

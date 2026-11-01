@@ -3,7 +3,7 @@ package handlers_test
 // backup_create_ticket + backup_download (raw GET) coverage, end to end over
 // HTTP: build an archive, download it once via the ticket, confirm it is a real
 // ZIP (magic + readable manifest), and that the ticket is single-use. Isolated
-// via YOYOCODE_HOME so no real ~/.yoyocode section trees are packed.
+// via GOCODE_HOME so no real ~/.gocode section trees are packed.
 
 import (
 	"bytes"
@@ -14,11 +14,11 @@ import (
 	"strings"
 	"testing"
 
-	"yoyocode/src-go/backup"
+	"gocode/src-go/backup"
 )
 
 func TestBackupCreateTicketAndDownload(t *testing.T) {
-	t.Setenv("YOYOCODE_HOME", t.TempDir())
+	t.Setenv("GOCODE_HOME", t.TempDir())
 	srv := newTestServer(t)
 
 	code, out := call(t, srv, "backup_create_ticket", nil)
@@ -80,7 +80,7 @@ func TestBackupCreateTicketAndDownload(t *testing.T) {
 }
 
 func TestBackupCreateTicketRejectsPassphrase(t *testing.T) {
-	t.Setenv("YOYOCODE_HOME", t.TempDir())
+	t.Setenv("GOCODE_HOME", t.TempDir())
 	srv := newTestServer(t)
 	if code, out := call(t, srv, "backup_create_ticket", map[string]any{"passphrase": "secret"}); code == 200 {
 		t.Fatalf("encrypted backup must be rejected (crypto not yet ported), got 200: %v", out)

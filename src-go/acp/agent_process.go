@@ -33,6 +33,10 @@ type SpawnConfig struct {
 	// via the map; empty-string value still sets the var to empty).
 	Env map[string]string
 	Cwd string
+	// OnOutput observes every non-empty line the child writes to stdout or
+	// stderr, before JSON parsing. The Antigravity sign-in uses it to scrape the
+	// authorization link the agent prints outside the protocol stream.
+	OnOutput func(stream, line string)
 }
 
 // SpawnAgent starts the agent child, wires a Peer over its stdio, and begins
@@ -63,11 +67,15 @@ func SpawnAgent(cfg SpawnConfig) (*AgentProcess, error) {
 		return nil, err
 	}
 
-	go tail.consume(stderrPipe)
+	go tail.consume(stderrPipe, cfg.OnOutput)
 
+	peer := NewPeer(stdout, stdin)
+	if cfg.OnOutput != nil {
+		peer.SetLineObserver(func(line string) { cfg.OnOutput("stdout", line) })
+	}
 	ap := &AgentProcess{
 		Cmd:    cmd,
-		Peer:   NewPeer(stdout, stdin),
+		Peer:   peer,
 		stderr: tail,
 		runErr: make(chan error, 1),
 	}
@@ -139,11 +147,14 @@ type stderrTail struct {
 
 func newStderrTail(max int) *stderrTail { return &stderrTail{max: max} }
 
-func (t *stderrTail) consume(r io.Reader) {
+func (t *stderrTail) consume(r io.Reader, observe func(stream, line string)) {
 	scanner := bufio.NewScanner(r)
 	scanner.Buffer(make([]byte, 0, 8192), 1024*1024)
 	for scanner.Scan() {
 		line := scanner.Text()
+		if observe != nil {
+			observe("stderr", line)
+		}
 		t.mu.Lock()
 		t.buf = append(t.buf, line)
 		if len(t.buf) > t.max {

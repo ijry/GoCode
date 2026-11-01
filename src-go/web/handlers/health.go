@@ -1,6 +1,6 @@
 package handlers
 
-import "yoyocode/src-go/web"
+import "gocode/src-go/web"
 
 // RegisterHealth wires `/api/health`. Upstream registers it on the protected
 // router (src-tauri/src/web/router.rs) — it sits behind the token middleware,

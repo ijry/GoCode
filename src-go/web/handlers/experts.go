@@ -12,7 +12,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // RegisterExperts wires the experts read + central-dir endpoints.

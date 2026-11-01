@@ -9,10 +9,10 @@ import (
 	"encoding/json"
 	"os/exec"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/app_state"
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/app_state"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // RegisterACPAgents wires the agent-settings + lookup endpoints (registered

@@ -69,6 +69,11 @@ type Peer struct {
 	closed   bool
 	closeErr error
 	done     chan struct{}
+
+	// onLine, when set, sees every stdout line before JSON parsing. Agents that
+	// print human-readable prompts onto the protocol stream (Antigravity's
+	// authorization link) are only visible this way.
+	onLine func(string)
 }
 
 // NewPeer builds a peer that reads from r and writes to w. Call Run (usually in
@@ -83,6 +88,14 @@ func NewPeer(r io.Reader, w io.Writer) *Peer {
 	}
 	p.reader = r
 	return p
+}
+
+// SetLineObserver registers a callback for every non-empty stdout line, before
+// it is parsed as JSON. Call before Run.
+func (p *Peer) SetLineObserver(fn func(string)) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.onLine = fn
 }
 
 // HandleRequest registers a handler for an incoming request method.
@@ -110,6 +123,12 @@ func (p *Peer) Run() error {
 		line := scanner.Bytes()
 		if len(line) == 0 {
 			continue
+		}
+		p.mu.Lock()
+		observe := p.onLine
+		p.mu.Unlock()
+		if observe != nil {
+			observe(string(line))
 		}
 		var msg rpcMessage
 		if err := json.Unmarshal(line, &msg); err != nil {
@@ -152,7 +171,14 @@ func (p *Peer) dispatch(msg rpcMessage) {
 		h := p.notifs[msg.Method]
 		p.mu.Unlock()
 		if h != nil {
-			go h(msg.Params)
+			// Run the handler inline, not in a goroutine: ACP notifications are
+			// ordered on the wire (a turn's content chunks, and the whole history
+			// an agent replays during session/load before it answers), and
+			// dispatching each in its own goroutine lets them overtake each other
+			// — jumbling deltas and letting replayed history arrive after the
+			// load's response. Handlers must not block; ours only fold state and
+			// broadcast without blocking.
+			h(msg.Params)
 		}
 	}
 }

@@ -15,12 +15,12 @@ func TestScienceEmptyAndRead(t *testing.T) {
 			t.Fatalf("%s should be empty, got %v", cmd, arr)
 		}
 	}
-	// open_central_dir creates ~/.yoyocode/skills (shared store with experts/custom)
+	// open_central_dir creates ~/.gocode/skills (shared store with experts/custom)
 	if code, _ := call(t, srv, "science_open_central_dir", map[string]any{}); code != 200 {
 		t.Fatalf("science_open_central_dir failed: %d", code)
 	}
 	// read a central skill
-	skillDir := filepath.Join(home, ".yoyocode", "skills", "sci-skill")
+	skillDir := filepath.Join(home, ".gocode", "skills", "sci-skill")
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)
 	}

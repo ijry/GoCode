@@ -21,18 +21,18 @@ func TestParsePiModelCapabilities(t *testing.T) {
 	if _, matched, _ := parsePiModelCapabilities("not json"); matched {
 		t.Fatal("non-JSON must not match")
 	}
-	if _, matched, _ := parsePiModelCapabilities(`{"id":"yoyocode-models","type":"response","command":"other"}`); matched {
+	if _, matched, _ := parsePiModelCapabilities(`{"id":"gocode-models","type":"response","command":"other"}`); matched {
 		t.Fatal("other command must not match")
 	}
 
 	// A matching refusal → matched=true, ok=false.
 	if _, matched, ok := parsePiModelCapabilities(
-		`{"id":"yoyocode-models","type":"response","command":"get_available_models","success":false}`); !matched || ok {
+		`{"id":"gocode-models","type":"response","command":"get_available_models","success":false}`); !matched || ok {
 		t.Fatalf("refusal: matched=%v ok=%v", matched, ok)
 	}
 
 	// A matching success.
-	line := `{"id":"yoyocode-models","type":"response","command":"get_available_models","success":true,` +
+	line := `{"id":"gocode-models","type":"response","command":"get_available_models","success":true,` +
 		`"data":{"models":[{"provider":"anthropic","id":"claude-x","reasoning":true,` +
 		`"thinkingLevelMap":{"low":null,"high":"x"}}]}}`
 	models, matched, ok := parsePiModelCapabilities(line)
@@ -51,13 +51,13 @@ func TestParsePiModelCapabilities(t *testing.T) {
 
 	// A success with no models array is unreadable.
 	if _, matched, ok := parsePiModelCapabilities(
-		`{"id":"yoyocode-models","type":"response","command":"get_available_models","success":true,"data":{}}`); !matched || ok {
+		`{"id":"gocode-models","type":"response","command":"get_available_models","success":true,"data":{}}`); !matched || ok {
 		t.Fatalf("missing models: matched=%v ok=%v", matched, ok)
 	}
 
 	// An entry with no thinkingLevelMap gets an empty map (never null on wire).
 	models, _, ok = parsePiModelCapabilities(
-		`{"id":"yoyocode-models","type":"response","command":"get_available_models","success":true,` +
+		`{"id":"gocode-models","type":"response","command":"get_available_models","success":true,` +
 			`"data":{"models":[{"provider":"p","id":"m"}]}}`)
 	if !ok {
 		t.Fatal("parse failed")
@@ -188,7 +188,7 @@ func writeFakePi(t *testing.T, body string) string {
 }
 
 func TestQueryPiModelCatalogEndToEnd(t *testing.T) {
-	answer := `{"id":"yoyocode-models","type":"response","command":"get_available_models","success":true,` +
+	answer := `{"id":"gocode-models","type":"response","command":"get_available_models","success":true,` +
 		`"data":{"models":[{"provider":"openai","id":"gpt-x","reasoning":true,"thinkingLevelMap":{"low":"l"}}]}}`
 	program := writeFakePi(t, "echo "+answer)
 	env := map[string]string{"PI_ACP_PI_COMMAND": program}
@@ -202,7 +202,7 @@ func TestQueryPiModelCatalogEndToEnd(t *testing.T) {
 }
 
 func TestQueryPiModelCatalogRefusal(t *testing.T) {
-	program := writeFakePi(t, `echo {"id":"yoyocode-models","type":"response","command":"get_available_models","success":false}`)
+	program := writeFakePi(t, `echo {"id":"gocode-models","type":"response","command":"get_available_models","success":false}`)
 	got := queryPiModelCatalog(map[string]string{"PI_ACP_PI_COMMAND": program}, 20*time.Second)
 	if got.Status != "failed" {
 		t.Fatalf("status = %q", got.Status)

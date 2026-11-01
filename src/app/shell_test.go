@@ -139,7 +139,7 @@ func TestStatusBarIndicators(t *testing.T) {
 	if !tt.HasText("connecting") && !tt.HasText("connected") {
 		t.Errorf("liveness indicator must remain; texts = %v", tt.Texts())
 	}
-	if !tt.HasText("YoYoCode v0.1.0") {
+	if !tt.HasText("GoCode v0.1.0") {
 		t.Errorf("version must remain bottom-right; texts = %v", tt.Texts())
 	}
 	// To-dos badge shows the 2 OPEN tasks (done excluded), update badge hidden.

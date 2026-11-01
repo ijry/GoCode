@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/web"
 )
 
 const acpRegistryURL = "https://cdn.agentclientprotocol.com/registry/v1/latest/registry.json"
@@ -125,7 +125,7 @@ func isBuiltinRegistryID(id string) bool {
 func fetchRegistryCatalog(installedIDs map[string]bool) ([]map[string]any, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	req, _ := http.NewRequest(http.MethodGet, acpRegistryURL, nil)
-	req.Header.Set("user-agent", "yoyocode")
+	req.Header.Set("user-agent", "gocode")
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, web.ErrNetwork("failed to fetch ACP registry: " + err.Error())
@@ -219,7 +219,7 @@ func RegisterACPRegistryCatalog(reg *Registry) {
 			return nil, web.ErrInvalidInput("registryId required")
 		}
 		if isBuiltinRegistryID(registryID) {
-			return nil, web.ErrConfigInvalid(registryID + " is already built into YoYoCode")
+			return nil, web.ErrConfigInvalid(registryID + " is already built into GoCode")
 		}
 		explicitKind := ""
 		if k := strings.TrimSpace(GetString(c, "distributionKind", "distribution_kind")); k != "" {

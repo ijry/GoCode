@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 const (
@@ -497,7 +497,7 @@ func atomicWriteText(path string, data []byte) error {
 	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
 		return web.ErrNotFound("Parent directory does not exist")
 	}
-	tmp, err := os.CreateTemp(dir, ".yoyocode-edit-*.tmp")
+	tmp, err := os.CreateTemp(dir, ".gocode-edit-*.tmp")
 	if err != nil {
 		return web.ErrIO(err.Error())
 	}

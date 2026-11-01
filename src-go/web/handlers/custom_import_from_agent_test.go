@@ -38,7 +38,7 @@ func TestCustomImportFromAgent(t *testing.T) {
 	}
 
 	// it now exists in the central store
-	central := filepath.Join(home, ".yoyocode", "skills", "my-skill", "SKILL.md")
+	central := filepath.Join(home, ".gocode", "skills", "my-skill", "SKILL.md")
 	if _, err := os.Stat(central); err != nil {
 		t.Fatalf("imported skill not in central store: %v", err)
 	}

@@ -2,7 +2,7 @@ package handlers_test
 
 import "testing"
 
-func TestYoyocodeMcpServiceStatus(t *testing.T) {
+func TestGocodeMcpServiceStatus(t *testing.T) {
 	srv := newTestServer(t)
 	_, st := call(t, srv, "get_codeg_mcp_service_status", map[string]any{})
 	if st["state"] != "stopped" {
@@ -30,7 +30,7 @@ func TestYoyocodeMcpServiceStatus(t *testing.T) {
 	}
 }
 
-func TestSetYoyocodeMcpToolGroup(t *testing.T) {
+func TestSetGocodeMcpToolGroup(t *testing.T) {
 	srv := newTestServer(t)
 	// Enable the computer tool group through the popover toggle.
 	if code, _ := call(t, srv, "set_codeg_mcp_tool_group", map[string]any{"key": "computer", "enabled": true}); code != 200 {

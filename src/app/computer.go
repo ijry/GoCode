@@ -14,8 +14,6 @@ package app
 // the same "unavailable" state Settings → Computer Use already reports.
 
 import (
-	"fmt"
-
 	"github.com/egoist/mygo/ui"
 )
 
@@ -57,16 +55,16 @@ func (s *Shell) viewComputerIndicator(c *ui.Context) {
 		}
 	}
 	dot := t.Accent
-	label := fmt.Sprintf("Agents can read %d window(s)", len(shared))
+	label := cat(c).ComputerReadLabel(len(shared))
 	if acting {
 		dot = t.Danger
-		label = fmt.Sprintf("Agents can control %d window(s)", len(shared))
+		label = cat(c).ComputerControlLabel(len(shared))
 	}
 	ui.Row(c.Key("computer-strip")).FillWidth().Background(t.Surface).PaddingX(12).PaddingY(5).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "\u25CF").FontSize(9).TextColor(dot)
 		ui.Text(c, label).FontSize(12)
 		ui.Spacer(c)
-		if ui.Button(c.Key("computer-stop"), "Stop").Clicked() {
+		if ui.Button(c.Key("computer-stop"), cat(c).ActionStop()).Clicked() {
 			s.computerStop()
 		}
 	})

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/db"
+	"gocode/src-go/acp"
+	"gocode/src-go/db"
 )
 
 func TestParseCursorModels(t *testing.T) {
@@ -115,19 +115,19 @@ func TestTruncateProbeOutput(t *testing.T) {
 }
 
 func TestProbeEnvRemovesEmptyAndSetsNonEmpty(t *testing.T) {
-	t.Setenv("YOYOCODE_PROBE_TEST", "inherited")
+	t.Setenv("GOCODE_PROBE_TEST", "inherited")
 	env := probeEnv(map[string]string{
-		"YOYOCODE_PROBE_TEST": "",
-		"YOYOCODE_PROBE_NEW":  "value",
+		"GOCODE_PROBE_TEST": "",
+		"GOCODE_PROBE_NEW":  "value",
 	})
 	for _, kv := range env {
-		if strings.HasPrefix(kv, "YOYOCODE_PROBE_TEST=") {
+		if strings.HasPrefix(kv, "GOCODE_PROBE_TEST=") {
 			t.Fatalf("empty override should remove the var, got %q", kv)
 		}
 	}
 	found := false
 	for _, kv := range env {
-		if kv == "YOYOCODE_PROBE_NEW=value" {
+		if kv == "GOCODE_PROBE_NEW=value" {
 			found = true
 		}
 	}

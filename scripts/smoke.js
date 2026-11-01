@@ -1,5 +1,5 @@
 /**
- * End-to-end smoke test against a running yoyocode-server.
+ * End-to-end smoke test against a running gocode-server.
  *
  * Verifies the four compatibility-critical invariants that mcode-app depends
  * on, against a REAL server process rather than in-process unit tests:
@@ -11,7 +11,7 @@
  * Usage: node scripts/smoke.js [baseUrl] [token]
  */
 const BASE = process.argv[2] || "http://127.0.0.1:3999";
-const TOKEN = process.argv[3] || process.env.YOYOCODE_TOKEN || "";
+const TOKEN = process.argv[3] || process.env.GOCODE_TOKEN || "";
 
 let failures = 0;
 function check(name, cond, detail) {
@@ -93,21 +93,37 @@ async function post(cmd, body, { auth = true } = {}) {
     `status=${notFound.status} code=${notFound.json?.code}`
   );
 
-  // 4 — health (public)
-  const health = await post("health", {}, { auth: false });
-  check("health responds 200 without token", health.status === 200, `status=${health.status}`);
+  // 4 — health WITH a token is 200. health is deliberately authenticated
+  // (586dbad: "/api/health 改为鉴权路由 + login 门"): the login gate tells a
+  // wrong token (401) from a dead server (network error) by probing it, so a
+  // public health would make every token look valid.
+  const health = await post("health", {});
+  check("health responds 200 with the token", health.status === 200, `status=${health.status}`);
 
   // 5 — WS handshake
-  const wsProto = [
+  // The subprotocols must be sent as a real list: the ws client rejects a
+  // single string containing a comma ("an invalid or duplicated subprotocol"),
+  // and the server parses the header as a comma-separated list too.
+  const wsProtocols = [
     "codeg-events",
     "codeg-token." + Buffer.from(TOKEN).toString("base64url"),
-  ].join(", ");
-  const { default: WebSocket } = await import("ws").catch(() => ({}));
+  ];
+  // ESM import("ws") resolves from THIS file's directory, so a repo without
+  // node_modules cannot find it; the CJS require fallback honours NODE_PATH,
+  // which lets a caller point at an installed copy without adding a
+  // package.json to the repo.
+  let WebSocket = (await import("ws").catch(() => ({}))).default;
   if (!WebSocket) {
-    console.log("  SKIP  WS checks (ws module unavailable)");
+    const { createRequire } = await import("node:module");
+    try {
+      WebSocket = createRequire(import.meta.url)("ws");
+    } catch {}
+  }
+  if (!WebSocket) {
+    console.log("  SKIP  WS checks (ws module unavailable — set NODE_PATH or install ws)");
   } else {
     await new Promise((resolve) => {
-      const ws = new WebSocket(`${BASE.replace(/^http/, "ws")}/ws/events`, wsProto);
+      const ws = new WebSocket(`${BASE.replace(/^http/, "ws")}/ws/events`, wsProtocols);
       const timer = setTimeout(() => {
         check("WS received __ready__ frame", false, "timeout");
         ws.close();

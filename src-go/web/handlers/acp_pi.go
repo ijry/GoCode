@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // piThinkingLevels is pi's fixed thinking-level vocabulary

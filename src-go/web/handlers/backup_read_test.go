@@ -22,7 +22,7 @@ func TestBackupListSafetySnapshots(t *testing.T) {
 		t.Fatalf("expected no snapshots, got %v", empty)
 	}
 	// create two snapshot dirs; one with a valid manifest (rollback_supported).
-	root := filepath.Join(st.DataDir, ".yoyocode-restore-backup")
+	root := filepath.Join(st.DataDir, ".gocode-restore-backup")
 	a := filepath.Join(root, "snap-a")
 	b := filepath.Join(root, "snap-b")
 	_ = os.MkdirAll(a, 0o755)
@@ -30,7 +30,7 @@ func TestBackupListSafetySnapshots(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(a, "data.txt"), []byte("hello"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(b, ".yoyocode-snapshot.json"), []byte(`{"v":1,"layout":"staging","created_at":"2026-10-12T00:00:00Z"}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(b, ".gocode-snapshot.json"), []byte(`{"v":1,"layout":"staging","created_at":"2026-10-12T00:00:00Z"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, list := callArr(t, srv, "backup_list_safety_snapshots", map[string]any{})

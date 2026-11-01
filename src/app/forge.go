@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+	"gocode/locales"
 )
 
 // forgeEditor holds the new-issue form.
@@ -32,6 +33,7 @@ type forgeEditor struct {
 // viewForge renders the Repositories workbench.
 func (s *Shell) viewForge(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	if s.forgeTab == "" {
 		s.forgeTab = "issues"
 	}
@@ -40,17 +42,17 @@ func (s *Shell) viewForge(c *ui.Context) {
 	}
 
 	ui.Row(c.Key("fg-head")).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Repositories").FontSize(22).Bold()
+		ui.Text(c, m.NavRepositories()).FontSize(22).Bold()
 		ui.Spacer(c)
-		iconButton(c, "fg-refresh", iconRefresh, "Refresh", func() {
+		iconButton(c, "fg-refresh", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidateForge()
 		})
 	})
-	ui.Text(c, "Issues and pull requests for the selected folder's forge remote.").
+	ui.Text(c, m.FgHint()).
 		FontSize(12).TextColor(t.TextMuted)
 
 	if s.selectedFolder == "" {
-		ui.Text(c, "Select a folder").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, m.FgSelectFolder()).FontSize(12).TextColor(t.TextMuted)
 		return
 	}
 	fid := s.selectedFolder
@@ -59,7 +61,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 	rawRemote := s.ensure(remoteKey, "folder_forge_remote", map[string]any{"folderId": numOrString(fid)})
 	if rawRemote == nil {
 		if msg := s.errFor(remoteKey); msg != "" {
-			s.viewForgeNotice(c, "Could not read this folder's remote", msg, "")
+			s.viewForgeNotice(c, m.FgRemoteErr(), msg, "")
 			return
 		}
 		loadingState(c, "")
@@ -68,9 +70,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 	remote := asObj(rawRemote)
 	if remote == nil {
 		// A null body means the folder has no parseable origin remote.
-		s.viewForgeNotice(c, "No forge remote",
-			"This folder has no recognized origin remote. Add one, e.g. "+
-				"`git remote add origin https://github.com/you/repo.git`, then refresh.", "")
+		s.viewForgeNotice(c, m.FgNoRemote(), m.FgNoRemoteBody(), "")
 		return
 	}
 
@@ -83,7 +83,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 	// Remote summary card.
 	ui.Column(c.Key("fg-remote")).Gap(2).Padding(10).Background(t.Surface).Radius(8).Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, firstNonEmpty(ownerRepo, "(no repository)")).Bold().TextColor(t.Text)
+			ui.Text(c, firstNonEmpty(ownerRepo, m.FgNoRepository())).Bold().TextColor(t.Text)
 			ui.Spacer(c)
 			ui.Text(c, providerLabel(provider)).FontSize(11).TextColor(t.TextMuted)
 		})
@@ -93,8 +93,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 	})
 
 	if !supported {
-		s.viewForgeNotice(c, "Unrecognized forge host",
-			"This remote's host isn't a supported forge: "+firstNonEmpty(host, remoteURL), "")
+		s.viewForgeNotice(c, m.FgUnrecognized(), m.FgUnrecognizedBody(firstNonEmpty(host, remoteURL)), "")
 		return
 	}
 
@@ -109,13 +108,15 @@ func (s *Shell) viewForge(c *ui.Context) {
 		loadingState(c, "")
 		return
 	}
-	ui.Textf(c, "Signed in as %s", firstNonEmpty(str(ident, "username"), "(unknown)")).
+	ui.Text(c, m.FgSignedIn(firstNonEmpty(str(ident, "username"), m.FgUnknown()))).
 		FontSize(12).TextColor(t.TextMuted)
 
 	// Tab (issues | prs) + state filter.
 	ui.Row(c.Key("fg-filters")).Gap(12).AlignItems(ui.Center).Children(func() {
 		ui.Row(c).Gap(6).Children(func() {
-			for _, tab := range []struct{ id, label string }{{"issues", "Issues"}, {"prs", "Pull requests"}} {
+			for _, tab := range []struct{ id, label string }{
+				{"issues", m.FgTabIssues()}, {"prs", m.FgTabPRs()},
+			} {
 				tab := tab
 				active := s.forgeTab == tab.id
 				color := t.TextMuted
@@ -134,7 +135,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 		})
 		ui.Spacer(c)
 		ui.Select(c.Key("fg-state"), &s.forgeState, []string{"open", "closed", "all"})
-		if ui.PrimaryButton(c.Key("fg-new"), "New issue").Clicked() {
+		if ui.PrimaryButton(c.Key("fg-new"), m.FgNewIssue()).Clicked() {
 			s.forgeEditor = &forgeEditor{}
 		}
 	})
@@ -151,7 +152,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 	}))
 	if page == nil {
 		if msg := s.errFor(issuesKey); msg != "" {
-			s.viewForgeNotice(c, "Could not load issues", msg, s.errHintFor(issuesKey))
+			s.viewForgeNotice(c, m.FgLoadErr(), msg, s.errHintFor(issuesKey))
 			return
 		}
 		loadingState(c, "")
@@ -159,7 +160,7 @@ func (s *Shell) viewForge(c *ui.Context) {
 	}
 	rows := asListVal(page["rows"])
 	if len(rows) == 0 {
-		ui.Text(c, "No items").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, m.FgNoItems()).FontSize(12).TextColor(t.TextMuted)
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
@@ -175,13 +176,14 @@ func (s *Shell) viewForge(c *ui.Context) {
 // comments, with a close/reopen action.
 func (s *Shell) forgeIssueRow(c *ui.Context, fid string, it map[string]any) {
 	t := c.Theme()
+	m := cat(c)
 	number := intOf(it["number"])
 	state := str(it, "state")
 	isPR := truthy(it["is_pr"])
 	ui.Column(c.Key(fmt.Sprintf("fg-item-%d", number))).Gap(2).Padding(8).Background(t.Surface).Radius(6).Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Textf(c, "#%d", number).FontSize(12).TextColor(t.TextMuted)
-			ui.Text(c, firstNonEmpty(str(it, "title"), "(untitled)")).Grow(1).MaxLines(1).TextColor(t.Text)
+			ui.Text(c, firstNonEmpty(str(it, "title"), m.Untitled())).Grow(1).MaxLines(1).TextColor(t.Text)
 			if isPR {
 				ui.Text(c, "PR").FontSize(10).TextColor(t.Accent)
 			}
@@ -189,10 +191,10 @@ func (s *Shell) forgeIssueRow(c *ui.Context, fid string, it map[string]any) {
 		})
 		meta := []string{}
 		if a := str(it, "author"); a != "" {
-			meta = append(meta, "by "+a)
+			meta = append(meta, m.FgBy(a))
 		}
 		if n := intOf(it["comments"]); n > 0 {
-			meta = append(meta, fmt.Sprintf("%d comment(s)", n))
+			meta = append(meta, m.FgComments(n))
 		}
 		for _, l := range asListVal(it["labels"]) {
 			if name := str(l, "name"); name != "" {
@@ -204,12 +206,12 @@ func (s *Shell) forgeIssueRow(c *ui.Context, fid string, it map[string]any) {
 		}
 		ui.Row(c).Gap(6).Children(func() {
 			if state == "open" {
-				if ui.Button(c.Key(fmt.Sprintf("fg-close-%d", number)), "Close").Clicked() {
-					s.forgeSetState(fid, number, "close")
+				if ui.Button(c.Key(fmt.Sprintf("fg-close-%d", number)), m.ActionClose()).Clicked() {
+					s.forgeSetState(c, fid, number, "close")
 				}
 			} else {
-				if ui.Button(c.Key(fmt.Sprintf("fg-reopen-%d", number)), "Reopen").Clicked() {
-					s.forgeSetState(fid, number, "reopen")
+				if ui.Button(c.Key(fmt.Sprintf("fg-reopen-%d", number)), m.FgReopen()).Clicked() {
+					s.forgeSetState(c, fid, number, "reopen")
 				}
 			}
 		})
@@ -219,21 +221,22 @@ func (s *Shell) forgeIssueRow(c *ui.Context, fid string, it map[string]any) {
 // viewForgeEditor renders the new-issue form.
 func (s *Shell) viewForgeEditor(c *ui.Context, fid string) {
 	t := c.Theme()
+	m := cat(c)
 	e := s.forgeEditor
 	if e == nil {
 		return
 	}
 	ui.Column(c.Key("fg-form")).Gap(10).Children(func() {
-		ui.Text(c, "New issue").FontSize(18).Bold()
-		ui.Text(c, "Title").FontSize(12).TextColor(t.TextMuted)
-		ui.TextInput(c.Key("fg-f-title"), &e.title).Placeholder("Something is broken")
-		ui.Text(c, "Body").FontSize(12).TextColor(t.TextMuted)
-		ui.TextArea(c.Key("fg-f-body"), &e.body).Placeholder("What happened?").MinHeight(80)
+		ui.Text(c, m.FgNewIssue()).FontSize(18).Bold()
+		ui.Text(c, m.SetTitle()).FontSize(12).TextColor(t.TextMuted)
+		ui.TextInput(c.Key("fg-f-title"), &e.title).Placeholder(m.FgTitlePlaceholder())
+		ui.Text(c, m.FgBody()).FontSize(12).TextColor(t.TextMuted)
+		ui.TextArea(c.Key("fg-f-body"), &e.body).Placeholder(m.FgBodyPlaceholder()).MinHeight(80)
 		ui.Row(c).Gap(6).Children(func() {
-			if ui.PrimaryButton(c.Key("fg-f-save"), "Create").Disabled(strings.TrimSpace(e.title) == "").Clicked() {
-				s.forgeCreateIssue(fid)
+			if ui.PrimaryButton(c.Key("fg-f-save"), m.FgCreate()).Disabled(strings.TrimSpace(e.title) == "").Clicked() {
+				s.forgeCreateIssue(c, fid)
 			}
-			if ui.Button(c.Key("fg-f-cancel"), "Cancel").Clicked() {
+			if ui.Button(c.Key("fg-f-cancel"), m.ActionCancel()).Clicked() {
 				s.forgeEditor = nil
 			}
 		})
@@ -258,16 +261,17 @@ func (s *Shell) viewForgeNotice(c *ui.Context, title, body, hint string) {
 // one on a machine that hasn't signed in to a forge.
 func (s *Shell) viewForgeConnect(c *ui.Context, provider, host, hint string) {
 	t := c.Theme()
+	m := cat(c)
+	label := providerLabel(provider)
 	ui.Column(c.Key("fg-connect")).Gap(8).Padding(12).Background(t.Surface).Radius(8).Children(func() {
-		ui.Textf(c, "Connect a %s account", providerLabel(provider)).FontSize(14).Bold().TextColor(t.Text)
-		ui.Textf(c, "%s is a %s remote, but no matching account is connected.",
-			firstNonEmpty(host, "this host"), providerLabel(provider)).FontSize(12).TextColor(t.TextMuted).Wrap()
+		ui.Text(c, m.FgConnectTitle(label)).FontSize(14).Bold().TextColor(t.Text)
+		ui.Text(c, m.FgConnectBody(firstNonEmpty(host, m.FgConnectHost()), label)).FontSize(12).TextColor(t.TextMuted).Wrap()
 		if hint == "" {
-			hint = "Add the account under Settings → Version Control, then refresh."
+			hint = m.FgConnectHint()
 		}
 		ui.Text(c, hint).FontSize(12).TextColor(t.TextMuted).Wrap()
 		ui.Row(c).Gap(6).Children(func() {
-			if ui.PrimaryButton(c.Key("fg-open-settings"), "Open Version Control").Clicked() {
+			if ui.PrimaryButton(c.Key("fg-open-settings"), m.FgOpenSettings()).Clicked() {
 				s.section = "settings"
 				s.settingsPage = "version-control"
 			}
@@ -322,8 +326,9 @@ func (s *Shell) invalidateForge() {
 
 // ── mutations ──
 
-func (s *Shell) forgeSetState(fid string, number int, action string) {
+func (s *Shell) forgeSetState(c *ui.Context, fid string, number int, action string) {
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		_, err := s.B.raw("forge_set_item_state", map[string]any{
 			"folderId": numOrString(fid),
@@ -331,9 +336,11 @@ func (s *Shell) forgeSetState(fid string, number int, action string) {
 		})
 		s.mu.Lock()
 		if err != nil {
-			s.notify("forge update failed: " + err.Error())
+			s.notifyErr(locales.In(loc).FgUpdateFailed(err.Error()))
+		} else if action == "close" {
+			s.notify(locales.In(loc).FgIssueClosed())
 		} else {
-			s.notify("issue " + action + "d")
+			s.notify(locales.In(loc).FgIssueReopened())
 		}
 		delete(s.cache, "forge-issues:"+fid+":"+s.forgeTab+":"+s.forgeState)
 		s.mu.Unlock()
@@ -341,7 +348,7 @@ func (s *Shell) forgeSetState(fid string, number int, action string) {
 	}()
 }
 
-func (s *Shell) forgeCreateIssue(fid string) {
+func (s *Shell) forgeCreateIssue(c *ui.Context, fid string) {
 	e := s.forgeEditor
 	if e == nil {
 		return
@@ -349,6 +356,7 @@ func (s *Shell) forgeCreateIssue(fid string) {
 	title := strings.TrimSpace(e.title)
 	body := strings.TrimSpace(e.body)
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		_, err := s.B.raw("forge_create_issue", map[string]any{
 			"folderId": numOrString(fid),
@@ -356,9 +364,9 @@ func (s *Shell) forgeCreateIssue(fid string) {
 		})
 		s.mu.Lock()
 		if err != nil {
-			s.notify("create issue failed: " + err.Error())
+			s.notifyErr(locales.In(loc).FgCreateFailed(err.Error()))
 		} else {
-			s.notify("issue created")
+			s.notify(locales.In(loc).FgIssueCreated())
 			s.forgeEditor = nil
 		}
 		delete(s.cache, "forge-issues:"+fid+":"+s.forgeTab+":"+s.forgeState)

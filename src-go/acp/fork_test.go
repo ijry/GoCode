@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"yoyocode/src-go/db"
+	"gocode/src-go/db"
 )
 
 func forkDB(t *testing.T) *db.Database {

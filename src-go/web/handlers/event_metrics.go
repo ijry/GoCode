@@ -12,7 +12,7 @@ package handlers
 // "debug/event_metrics" so it answers at /api/debug/event_metrics; the router
 // dispatches it like any other (token-protected) command regardless of method.
 
-import "yoyocode/src-go/web"
+import "gocode/src-go/web"
 
 func RegisterEventMetrics(reg *Registry) {
 	reg.Register("debug/event_metrics", func(c *web.Context) (any, error) {

@@ -7,9 +7,9 @@ package handlers
 // request context.
 
 import (
-	appstate "yoyocode/src-go/app_state"
-	"yoyocode/src-go/terminal"
-	"yoyocode/src-go/web"
+	appstate "gocode/src-go/app_state"
+	"gocode/src-go/terminal"
+	"gocode/src-go/web"
 )
 
 func terminalManager(c *web.Context) *terminal.Manager {

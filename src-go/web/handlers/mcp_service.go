@@ -1,11 +1,11 @@
 package handlers
 
-// yoyocode-mcp companion service health + tool-group toggles (B11, mcp_service
+// gocode-mcp companion service health + tool-group toggles (B11, mcp_service
 // module), mirroring commands/mcp_service.rs: the status-bar indicator's one
 // status report and the one toggle that fixes a disabled tool group.
 //
 // Fidelity note: the "service" upstream reports on is three stacked pieces — an
-// in-process delegation broker socket, the on-disk yoyocode-mcp companion binary,
+// in-process delegation broker socket, the on-disk gocode-mcp companion binary,
 // and the enabled tool groups. The Go server ships neither the broker nor the
 // companion binary, so listening=false and binary_path=null → the state
 // computes to "stopped" with can_start=false (a runtime that never bound a
@@ -18,20 +18,20 @@ import (
 	"os"
 	"strconv"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 func RegisterMcpService(reg *Registry) {
 	reg.Register("get_codeg_mcp_service_status", func(c *web.Context) (any, error) {
-		return yoyocodeMcpServiceStatus(stateDB(c)), nil
+		return gocodeMcpServiceStatus(stateDB(c)), nil
 	})
 	// No broker socket to bind in this build; return the (stopped) status so the
 	// popover re-syncs rather than erroring on a missing route.
 	reg.Register("start_codeg_mcp_service", func(c *web.Context) (any, error) {
-		return yoyocodeMcpServiceStatus(stateDB(c)), nil
+		return gocodeMcpServiceStatus(stateDB(c)), nil
 	})
-	reg.Register("set_codeg_mcp_tool_group", setYoyocodeMcpToolGroup)
+	reg.Register("set_codeg_mcp_tool_group", setGocodeMcpToolGroup)
 }
 
 func toolGroup(key string, enabled bool) map[string]any {
@@ -41,7 +41,7 @@ func toolGroupWithin(key, parent string, enabled bool) map[string]any {
 	return map[string]any{"key": key, "enabled": enabled, "requires": parent}
 }
 
-func yoyocodeMcpServiceStatus(d *db.Database) map[string]any {
+func gocodeMcpServiceStatus(d *db.Database) map[string]any {
 	delegationEnabled := boolMeta(d, keyDelegationEnabled, false)
 	depthLimit := int64(delegationDepthMin)
 	if raw := valueOrDefault(d, keyDelegationDepth); raw != "" {
@@ -67,7 +67,7 @@ func yoyocodeMcpServiceStatus(d *db.Database) map[string]any {
 	// Resolve the companion binary only from an explicit override; this build
 	// ships none, so otherwise it is null (→ Unavailable, were the socket up).
 	var binaryPath any
-	if p := os.Getenv("YOYOCODE_MCP_BIN"); p != "" {
+	if p := os.Getenv("GOCODE_MCP_BIN"); p != "" {
 		binaryPath = p
 	}
 
@@ -92,10 +92,10 @@ func yoyocodeMcpServiceStatus(d *db.Database) map[string]any {
 	}
 }
 
-// setYoyocodeMcpToolGroup flips one tool group by the same slug the status reports,
+// setGocodeMcpToolGroup flips one tool group by the same slug the status reports,
 // writing the per-feature app_metadata key and broadcasting that feature's own
 // change event so the settings window converges.
-func setYoyocodeMcpToolGroup(c *web.Context) (any, error) {
+func setGocodeMcpToolGroup(c *web.Context) (any, error) {
 	d, err := requireDB(c)
 	if err != nil {
 		return nil, err

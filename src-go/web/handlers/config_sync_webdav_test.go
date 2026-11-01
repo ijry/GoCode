@@ -26,7 +26,7 @@ func TestConfigSyncTestConnection(t *testing.T) {
 
 	// good credentials → 200
 	if code, _ := call(t, srv, "config_sync_test_connection", map[string]any{
-		"settings": map[string]any{"serverUrl": dav.URL, "username": "alice", "password": "secret", "remoteDir": "yoyocode", "profile": "default"},
+		"settings": map[string]any{"serverUrl": dav.URL, "username": "alice", "password": "secret", "remoteDir": "gocode", "profile": "default"},
 	}); code != 200 {
 		t.Fatalf("good creds should succeed, got %d", code)
 	}

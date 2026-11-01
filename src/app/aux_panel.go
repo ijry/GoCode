@@ -22,10 +22,10 @@ func (s *Shell) viewAuxPanel(c *ui.Context) {
 	ui.Column(c.Key("ws-aux")).Width(340).FillHeight().Background(t.Surface).Children(func() {
 		ui.Row(c.Key("aux-tabs")).PaddingX(8).PaddingY(6).Gap(4).Children(func() {
 			for _, tab := range []struct{ id, label string }{
-				{"session", "Session"},
-				{"files", "Files"},
-				{"changes", "Changes"},
-				{"commits", "Commits"},
+				{"session", cat(c).AuxTabSession()},
+				{"files", cat(c).AuxTabFiles()},
+				{"changes", cat(c).AuxTabChanges()},
+				{"commits", cat(c).AuxTabCommits()},
 			} {
 				active := s.auxTab == tab.id
 				var clicked bool
@@ -75,11 +75,11 @@ func (s *Shell) viewSessionDetails(c *ui.Context) {
 					ui.Text(c, firstNonEmpty(v, "—")).FontSize(12).MaxLines(2)
 				})
 			}
-			kv("Folder", root)
-			kv("Conversation", s.selectedConv)
-			kv("Connection", connID)
-			kv("Status", str(snap, "status"))
-			kv("Agent", str(s.convByID(s.selectedConv), "agent_type"))
+			kv(cat(c).AuxFolder(), root)
+			kv(cat(c).AuxConversation(), s.selectedConv)
+			kv(cat(c).AuxConnection(), connID)
+			kv(cat(c).AuxStatus(), str(snap, "status"))
+			kv(cat(c).AuxAgent(), str(s.convByID(s.selectedConv), "agent_type"))
 		})
 	})
 }
@@ -90,7 +90,7 @@ func (s *Shell) viewCommitsList(c *ui.Context) {
 	t := c.Theme()
 	root := s.folderPathByID(s.selectedFolder)
 	if root == "" {
-		ui.Text(c, "Select a folder to see its commit history.").FontSize(12).TextColor(t.TextMuted).Padding(10).Wrap()
+		ui.Text(c, cat(c).AuxSelectFolderCommits()).FontSize(12).TextColor(t.TextMuted).Padding(10).Wrap()
 		return
 	}
 	// Header with the git-operations menu (commit / push / merge / stash),
@@ -98,7 +98,7 @@ func (s *Shell) viewCommitsList(c *ui.Context) {
 	ui.Row(c.Key("cm-head")).PaddingX(8).PaddingY(6).Gap(4).AlignItems(ui.Center).Children(func() {
 		ui.Spacer(c)
 		more := ui.Row(c.Key("cm-more")).Padding(4).Radius(6).AlignItems(ui.Center).
-			Label(cat(c).GitOpsMenu())
+			Label(cat(c).GitOpsMenu()).Tooltip(cat(c).GitOpsMenu())
 		more.Children(func() {
 			ui.Icon(c, iconMore).Width(15).Height(15).TextColor(t.TextMuted)
 		})
@@ -116,33 +116,45 @@ func (s *Shell) viewCommitsList(c *ui.Context) {
 		return
 	}
 	entries := asListVal(data["entries"])
-	ui.Scroll(c).Grow(1).Padding(6).Children(func() {
-		ui.Column(c).Gap(1).Children(func() {
-			if len(entries) == 0 {
-				ui.Text(c, "No commits").FontSize(12).TextColor(t.TextMuted)
-				return
-			}
-			for _, e := range entries {
-				hash := str(e, "hash")
-				sel := s.commitSel == hash
-				row := ui.Row(c.Key("cm-" + hash)).PaddingX(8).PaddingY(6).Gap(8).AlignItems(ui.Center)
-				if sel {
-					row.Background(t.SurfacePressed)
-				}
-				row.Children(func() {
-					ui.Text(c, hash).FontSize(11).TextColor(t.TextMuted).Width(52)
-					ui.Column(c).Grow(1).Gap(1).Children(func() {
-						ui.Text(c, firstLine(str(e, "message"))).MaxLines(1).TextColor(t.Text)
-						ui.Text(c, str(e, "author")+" · "+shortDate(str(e, "date"))).
-							FontSize(10).TextColor(t.TextMuted).MaxLines(1)
-					})
-				})
-				if row.Clicked() {
-					s.commitSel = hash
-				}
-			}
+	if len(entries) == 0 {
+		ui.Column(c).Grow(1).Padding(10).Children(func() {
+			ui.Text(c, cat(c).AuxNoCommits()).FontSize(12).TextColor(t.TextMuted)
 		})
-	})
+		return
+	}
+	// A List, not a Scroll+Column: the arrow keys walk the log and the choice
+	// follows, the way the Changes tab behaves.
+	s.commitsList.Key = func(row int) any { return str(entries[row], "hash") }
+	s.commitsList.Selected = &s.commitsIdx
+	s.commitsList.Label = func(row int) string {
+		return str(entries[row], "hash") + " " + firstLine(str(entries[row], "message"))
+	}
+	ui.List(c.Key("cm-list"), &s.commitsList, len(entries), func(i int) {
+		e := entries[i]
+		hash := str(e, "hash")
+		// A chosen row paints the accent background, so its text takes the
+		// on-accent colour. commitsIdx is already this frame's, the list having
+		// taken the press before the build.
+		metaCol, msgCol := t.TextMuted, t.Text
+		if s.commitsIdx == i {
+			metaCol, msgCol = t.AccentText, t.AccentText
+		}
+		row := ui.Row(c.Key("cm-" + hash)).PaddingX(8).PaddingY(6).Gap(8).AlignItems(ui.Center)
+		row.Children(func() {
+			// Explicit widths: a list row is as wide as its content, so a
+			// flexible child would collapse to nothing.
+			ui.Text(c, hash).FontSize(11).TextColor(metaCol).Width(52)
+			ui.Column(c).Gap(1).Children(func() {
+				ui.Text(c, firstLine(str(e, "message"))).Width(252).MaxLines(1).TextColor(msgCol)
+				ui.Text(c, str(e, "author")+" · "+shortDate(str(e, "date"))).
+					FontSize(10).TextColor(metaCol).Width(252).MaxLines(1)
+			})
+		})
+	}).Grow(1)
+	// The list owns the press, so the detail pane follows the row it chose.
+	if s.commitsIdx >= 0 && s.commitsIdx < len(entries) {
+		s.commitSel = str(entries[s.commitsIdx], "hash")
+	}
 }
 
 // viewCommitDetail is the detail pane for a selected commit: its changed files
@@ -150,9 +162,9 @@ func (s *Shell) viewCommitsList(c *ui.Context) {
 func (s *Shell) viewCommitDetail(c *ui.Context, root string) {
 	t := c.Theme()
 	ui.Row(c.Key("aux-detail-head")).Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Commit "+s.commitSel).FontSize(12).Bold().MaxLines(1)
+		ui.Text(c, cat(c).AuxCommitTitle(s.commitSel)).FontSize(12).Bold().MaxLines(1)
 		ui.Spacer(c)
-		iconButton(c, "commit-close", iconX, "Close", func() { s.commitSel = "" })
+		iconButton(c, "commit-close", iconX, cat(c).ActionClose(), func() { s.commitSel = "" })
 	})
 	key := "commitfiles:" + s.commitSel
 	files := asList(s.ensure(key, "git_commit_files", map[string]any{"path": root, "commit": s.commitSel}))
@@ -165,7 +177,7 @@ func (s *Shell) viewCommitDetail(c *ui.Context, root string) {
 		return
 	}
 	if len(files) == 0 {
-		emptyState(c, iconInfo, "No file changes", "")
+		emptyState(c, iconInfo, cat(c).AuxNoFileChanges(), "")
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {

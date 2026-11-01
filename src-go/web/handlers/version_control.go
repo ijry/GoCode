@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const (
@@ -240,7 +240,7 @@ func validateGithubToken(serverURL, token string) (any, error) {
 	}
 	req, _ := http.NewRequest(http.MethodGet, apiURL, nil)
 	req.Header.Set("Authorization", "Bearer "+t)
-	req.Header.Set("User-Agent", "yoyocode")
+	req.Header.Set("User-Agent", "gocode")
 	req.Header.Set("Accept", "application/vnd.github+json")
 	resp, err := httpClient().Do(req)
 	if err != nil {
@@ -280,7 +280,7 @@ func validateGitlabToken(serverURL, token string) (any, error) {
 	origin := originFromBase(strings.TrimSpace(serverURL), "https://gitlab.com")
 	req, _ := http.NewRequest(http.MethodGet, origin+"/api/v4/user", nil)
 	req.Header.Set("PRIVATE-TOKEN", t)
-	req.Header.Set("User-Agent", "yoyocode")
+	req.Header.Set("User-Agent", "gocode")
 	req.Header.Set("Accept", "application/json")
 	resp, err := httpClient().Do(req)
 	if err != nil {
@@ -301,7 +301,7 @@ func validateGitlabToken(serverURL, token string) (any, error) {
 	scopes := []string{}
 	sreq, _ := http.NewRequest(http.MethodGet, origin+"/api/v4/personal_access_tokens/self", nil)
 	sreq.Header.Set("PRIVATE-TOKEN", t)
-	sreq.Header.Set("User-Agent", "yoyocode")
+	sreq.Header.Set("User-Agent", "gocode")
 	sreq.Header.Set("Accept", "application/json")
 	if sresp, serr := httpClient().Do(sreq); serr == nil {
 		defer sresp.Body.Close()
@@ -336,7 +336,7 @@ func validateGiteaToken(serverURL, token string) (any, error) {
 	}
 	req, _ := http.NewRequest(http.MethodGet, origin+"/api/v1/user", nil)
 	req.Header.Set("Authorization", "token "+t)
-	req.Header.Set("User-Agent", "yoyocode")
+	req.Header.Set("User-Agent", "gocode")
 	req.Header.Set("Accept", "application/json")
 	resp, err := httpClient().Do(req)
 	if err != nil {

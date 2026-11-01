@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"yoyocode/src-go/acp"
+	"gocode/src-go/acp"
 )
 
 // stubState provides a Broadcaster + ACP session registry for the router.
@@ -97,11 +97,22 @@ func TestWSProtocolHandshakeAndPing(t *testing.T) {
 	wsURL := "ws" + strings.TrimPrefix(base, "http") + "/ws/events"
 	h := http.Header{}
 	h.Set("Sec-WebSocket-Protocol", strings.Join(BuildWSProtocols("tok"), ", "))
-	conn, _, err := websocket.DefaultDialer.Dial(wsURL, h)
+	conn, resp, err := websocket.DefaultDialer.Dial(wsURL, h)
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
 	defer conn.Close()
+
+	// The server must select the event protocol it was offered: a client that
+	// sent subprotocols fails the handshake when none comes back (Node's ws
+	// reports "Server sent no subprotocol"), which is what scripts/smoke.js
+	// caught. gorilla's own dialer is lenient, hence this explicit check.
+	if resp == nil {
+		t.Fatal("no handshake response")
+	}
+	if got := resp.Header.Get("Sec-WebSocket-Protocol"); got != WSEventProtocol {
+		t.Fatalf("server must echo %q, got %q", WSEventProtocol, got)
+	}
 
 	// First frame: legacy __ready__ channel.
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))

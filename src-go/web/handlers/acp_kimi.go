@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // RegisterACPKimi wires the Kimi Code config/catalog commands.

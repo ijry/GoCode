@@ -27,6 +27,7 @@ import (
 
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
+	"gocode/locales"
 )
 
 // automationEditor holds the create/edit form's working state. id == "" means
@@ -47,22 +48,23 @@ type automationEditor struct {
 // list | detail (or editor) split.
 func (s *Shell) viewAutomations(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	list := asList(s.ensure("automations", "automation_list", nil))
 
 	ui.Row(c.Key("au-head")).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Automations").FontSize(22).Bold()
+		ui.Text(c, m.NavAutomations()).FontSize(22).Bold()
 		ui.Spacer(c)
-		iconButton(c, "au-refresh", iconRefresh, "Refresh", func() {
+		iconButton(c, "au-refresh", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidate("automations")
 			if s.autoSel != "" {
 				s.invalidate("auto-runs:" + s.autoSel)
 			}
 		})
-		if ui.PrimaryButton(c.Key("au-new"), "New automation").Clicked() {
+		if ui.PrimaryButton(c.Key("au-new"), m.AuNew()).Clicked() {
 			s.startNewAutomation()
 		}
 	})
-	ui.Text(c, "Scheduled and event-driven agent runs.").FontSize(12).TextColor(t.TextMuted)
+	ui.Text(c, m.AuHint()).FontSize(12).TextColor(t.TextMuted)
 
 	if list == nil {
 		loadingState(c, "")
@@ -82,7 +84,7 @@ func (s *Shell) viewAutomations(c *ui.Context) {
 		// Left: the list.
 		ui.Column(c.Key("au-list")).Width(250).FillHeight().Gap(4).Children(func() {
 			if len(list) == 0 {
-				ui.Text(c, "No automations.").FontSize(12).TextColor(t.TextMuted)
+				ui.Text(c, m.AuNone()).FontSize(12).TextColor(t.TextMuted)
 				return
 			}
 			ui.Scroll(c).Grow(1).Children(func() {
@@ -101,7 +103,7 @@ func (s *Shell) viewAutomations(c *ui.Context) {
 				return
 			}
 			if cur == nil {
-				ui.Text(c, "Select an automation").TextColor(t.TextMuted)
+				ui.Text(c, m.AuSelect()).TextColor(t.TextMuted)
 				return
 			}
 			s.viewAutomationDetail(c, cur)
@@ -113,11 +115,12 @@ func (s *Shell) viewAutomations(c *ui.Context) {
 // reduced to a hint + the primary action).
 func (s *Shell) viewAutomationsEmpty(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	ui.Column(c.Key("au-empty")).Fill().Center().Gap(10).Children(func() {
-		ui.Text(c, "No automations yet").FontSize(18).Bold()
-		ui.Text(c, "Schedule an agent to run on a cron, or run it on demand.").
+		ui.Text(c, m.AuEmptyTitle()).FontSize(18).Bold()
+		ui.Text(c, m.AuEmptyHint()).
 			FontSize(13).TextColor(t.TextMuted)
-		if ui.PrimaryButton(c.Key("au-empty-new"), "New automation").Clicked() {
+		if ui.PrimaryButton(c.Key("au-empty-new"), m.AuNew()).Clicked() {
 			s.startNewAutomation()
 		}
 	})
@@ -127,8 +130,9 @@ func (s *Shell) viewAutomationsEmpty(c *ui.Context) {
 // last-run time, with the quick actions on its right-click menu.
 func (s *Shell) automationRow(c *ui.Context, a map[string]any, curID string) {
 	t := c.Theme()
+	m := cat(c)
 	id := fmt.Sprintf("%v", a["id"])
-	name := firstNonEmpty(str(a, "name"), "(untitled)")
+	name := firstNonEmpty(str(a, "name"), m.Untitled())
 	enabled := truthy(a["enabled"])
 	status := str(a, "last_run_status")
 	selected := id == curID
@@ -144,24 +148,24 @@ func (s *Shell) automationRow(c *ui.Context, a map[string]any, curID string) {
 			ui.Text(c, lbl).FontSize(11).TextColor(t.TextMuted)
 		}
 	})
-	row.ContextMenu(func(m *ui.Menu) {
-		if m.Item("Run now").Chosen() {
-			s.automationRunNow(id)
+	row.ContextMenu(func(mn *ui.Menu) {
+		if mn.Item(m.AuRunNow()).Chosen() {
+			s.automationRunNow(c, id)
 		}
 		if enabled {
-			if m.Item("Disable").Chosen() {
-				s.automationSetEnabled(id, false)
+			if mn.Item(m.AuDisable()).Chosen() {
+				s.automationSetEnabled(c, id, false)
 			}
 		} else {
-			if m.Item("Enable").Chosen() {
-				s.automationSetEnabled(id, true)
+			if mn.Item(m.AuEnable()).Chosen() {
+				s.automationSetEnabled(c, id, true)
 			}
 		}
-		if m.Item("Edit").Chosen() {
+		if mn.Item(m.ActionEdit()).Chosen() {
 			s.startEditAutomation(a)
 		}
-		m.Separator()
-		if m.Item("Delete").Chosen() {
+		mn.Separator()
+		if mn.Item(m.ActionDelete()).Chosen() {
 			s.autoSel = id
 			s.autoEditor = nil
 			s.autoConfirm = id
@@ -178,8 +182,9 @@ func (s *Shell) automationRow(c *ui.Context, a map[string]any, curID string) {
 // history and actions.
 func (s *Shell) viewAutomationDetail(c *ui.Context, a map[string]any) {
 	t := c.Theme()
+	m := cat(c)
 	id := fmt.Sprintf("%v", a["id"])
-	name := firstNonEmpty(str(a, "name"), "(untitled)")
+	name := firstNonEmpty(str(a, "name"), m.Untitled())
 	enabled := truthy(a["enabled"])
 	status := str(a, "last_run_status")
 	cfg := asObjVal(a["config"])
@@ -196,38 +201,38 @@ func (s *Shell) viewAutomationDetail(c *ui.Context, a map[string]any) {
 			// Title + status chip + enable/disable.
 			ui.Row(c.Key("au-detail-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, name).FontSize(18).Bold()
-				autoStatusChip(c, "au-status", status)
+				autoStatusChip(c, "au-status", status, m)
 				ui.Spacer(c)
-				toggle := "Disable"
+				toggle := m.AuDisable()
 				if !enabled {
-					toggle = "Enable"
+					toggle = m.AuEnable()
 				}
 				if ui.Button(c.Key("au-toggle"), toggle).Clicked() {
-					s.automationSetEnabled(id, !enabled)
+					s.automationSetEnabled(c, id, !enabled)
 				}
 			})
 
 			// Actions row, or the inline delete confirmation.
 			if s.autoConfirm == id {
 				ui.Row(c.Key("au-confirm")).Gap(8).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, "Delete this automation?").TextColor(t.Danger)
-					if ui.PrimaryButton(c.Key("au-confirm-yes"), "Delete").Clicked() {
+					ui.Text(c, m.AuConfirm()).TextColor(t.Danger)
+					if ui.PrimaryButton(c.Key("au-confirm-yes"), m.ActionDelete()).Clicked() {
 						s.autoConfirm = ""
-						s.automationDelete(id)
+						s.automationDelete(c, id)
 					}
-					if ui.Button(c.Key("au-confirm-no"), "Cancel").Clicked() {
+					if ui.Button(c.Key("au-confirm-no"), m.ActionCancel()).Clicked() {
 						s.autoConfirm = ""
 					}
 				})
 			} else {
 				ui.Row(c.Key("au-actions")).Gap(6).Children(func() {
-					if ui.PrimaryButton(c.Key("au-run"), "Run now").Clicked() {
-						s.automationRunNow(id)
+					if ui.PrimaryButton(c.Key("au-run"), m.AuRunNow()).Clicked() {
+						s.automationRunNow(c, id)
 					}
-					if ui.Button(c.Key("au-edit"), "Edit").Clicked() {
+					if ui.Button(c.Key("au-edit"), m.ActionEdit()).Clicked() {
 						s.startEditAutomation(a)
 					}
-					if ui.Button(c.Key("au-delete"), "Delete").Clicked() {
+					if ui.Button(c.Key("au-delete"), m.ActionDelete()).Clicked() {
 						s.autoConfirm = id
 					}
 				})
@@ -236,27 +241,27 @@ func (s *Shell) viewAutomationDetail(c *ui.Context, a map[string]any) {
 			// Schedule facts.
 			ui.Column(c.Key("au-facts")).Gap(4).Children(func() {
 				if trigger == "schedule" && cron != "" {
-					ui.Textf(c, "Trigger: every cron %s (%s)", cron, firstNonEmpty(str(a, "timezone"), "UTC")).FontSize(13).TextColor(t.TextMuted)
-					ui.Text(c, cat(c).AutoNextRun(firstNonEmpty(autoAbsTime(nextRun, c.Locale()), "—"))).FontSize(13).TextColor(t.TextMuted)
+					ui.Text(c, m.AuTriggerCron(cron, firstNonEmpty(str(a, "timezone"), "UTC"))).FontSize(13).TextColor(t.TextMuted)
+					ui.Text(c, m.AutoNextRun(firstNonEmpty(autoAbsTime(nextRun, c.Locale()), "—"))).FontSize(13).TextColor(t.TextMuted)
 				} else {
-					ui.Text(c, "Trigger: manual").FontSize(13).TextColor(t.TextMuted)
+					ui.Text(c, m.AuTriggerManual()).FontSize(13).TextColor(t.TextMuted)
 				}
-				ui.Textf(c, "Agent: %s", firstNonEmpty(agent, "—")).FontSize(13).TextColor(t.TextMuted)
-				ui.Textf(c, "Isolation: %s", firstNonEmpty(isolation, "—")).FontSize(13).TextColor(t.TextMuted)
-				ui.Text(c, cat(c).AutoLastRun(firstNonEmpty(autoAbsTime(lastRun, c.Locale()), cat(c).AutoNever()))).FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, m.AuAgentLine(firstNonEmpty(agent, "—"))).FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, m.AuIsolationLine(firstNonEmpty(isolation, "—"))).FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, m.AutoLastRun(firstNonEmpty(autoAbsTime(lastRun, c.Locale()), m.AutoNever()))).FontSize(13).TextColor(t.TextMuted)
 			})
 
 			// Prompt.
-			ui.Text(c, "PROMPT").FontSize(10).Bold().TextColor(t.TextMuted)
+			ui.Text(c, m.AuPromptLabel()).FontSize(10).Bold().TextColor(t.TextMuted)
 			ui.Text(c, firstNonEmpty(prompt, "—")).FontSize(13).TextColor(t.Text).Wrap()
 
 			// Run history.
-			ui.Text(c, "RUN HISTORY").FontSize(10).Bold().TextColor(t.TextMuted)
+			ui.Text(c, m.AuRunHistory()).FontSize(10).Bold().TextColor(t.TextMuted)
 			runs := asList(s.ensure("auto-runs:"+id, "automation_runs", map[string]any{"automationId": numOrString(id)}))
 			if runs == nil {
 				loadingState(c, "")
 			} else if len(runs) == 0 {
-				ui.Text(c, "No runs yet.").FontSize(12).TextColor(t.TextMuted)
+				ui.Text(c, m.AuNoRuns()).FontSize(12).TextColor(t.TextMuted)
 			} else {
 				ui.Column(c.Key("au-runs")).Gap(4).Children(func() {
 					for i, r := range runs {
@@ -273,20 +278,21 @@ func (s *Shell) viewAutomationDetail(c *ui.Context, a map[string]any) {
 // autoID is the parent automation, so a cancel can refresh its run list.
 func (s *Shell) automationRunRow(c *ui.Context, r map[string]any, key, autoID string) {
 	t := c.Theme()
+	m := cat(c)
 	runID := fmt.Sprintf("%v", r["id"])
 	status := str(r, "status")
 	started := str(r, "started_at")
 	ended := str(r, "ended_at")
 	ui.Row(c.Key(key)).Gap(8).AlignItems(ui.Center).Children(func() {
-		autoStatusChip(c, key+"-chip", status)
+		autoStatusChip(c, key+"-chip", status, m)
 		line := autoAbsTime(started, c.Locale())
 		if d := autoDuration(started, ended); d != "" {
 			line += " · " + d
 		}
 		ui.Text(c, line).FontSize(12).TextColor(t.TextMuted).Grow(1).MaxLines(1)
 		if status == "running" {
-			if ui.Button(c.Key(key+"-cancel"), "Cancel").Clicked() {
-				s.automationCancelRun(autoID, runID)
+			if ui.Button(c.Key(key+"-cancel"), m.ActionCancel()).Clicked() {
+				s.automationCancelRun(c, autoID, runID)
 			}
 		}
 	})
@@ -302,56 +308,57 @@ func (s *Shell) automationRunRow(c *ui.Context, r map[string]any, key, autoID st
 // viewAutomationEditor renders the create/edit form.
 func (s *Shell) viewAutomationEditor(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	e := s.autoEditor
 	if e == nil {
 		return
 	}
-	title := "New automation"
+	title := m.AuNew()
 	if e.id != "" {
-		title = "Edit automation"
+		title = m.AuEditTitle()
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c.Key("au-form")).Gap(10).Children(func() {
 			ui.Text(c, title).FontSize(18).Bold()
-			ui.Text(c, "Name").FontSize(12).TextColor(t.TextMuted)
-			ui.TextInput(c.Key("au-f-name"), &e.name).Placeholder("Nightly review")
-			ui.Text(c, "Prompt").FontSize(12).TextColor(t.TextMuted)
-			ui.TextArea(c.Key("au-f-prompt"), &e.prompt).Placeholder("What should the agent do?").MinHeight(80)
+			ui.Text(c, m.AuName()).FontSize(12).TextColor(t.TextMuted)
+			ui.TextInput(c.Key("au-f-name"), &e.name).Placeholder(m.AuNamePlaceholder())
+			ui.Text(c, m.AuPrompt()).FontSize(12).TextColor(t.TextMuted)
+			ui.TextArea(c.Key("au-f-prompt"), &e.prompt).Placeholder(m.AuPromptPlaceholder()).MinHeight(80)
 			ui.Row(c).Gap(10).Children(func() {
 				ui.Column(c).Grow(1).Gap(4).Children(func() {
-					ui.Text(c, "Trigger").FontSize(12).TextColor(t.TextMuted)
+					ui.Text(c, m.AuTriggerField()).FontSize(12).TextColor(t.TextMuted)
 					ui.Select(c.Key("au-f-trigger"), &e.trigger, []string{"schedule", "manual"})
 				})
 				ui.Column(c).Grow(1).Gap(4).Children(func() {
-					ui.Text(c, "Agent").FontSize(12).TextColor(t.TextMuted)
+					ui.Text(c, m.AuxAgent()).FontSize(12).TextColor(t.TextMuted)
 					ui.Select(c.Key("au-f-agent"), &e.agent, s.agentOptions())
 				})
 			})
 			if e.trigger == "schedule" {
 				ui.Row(c).Gap(10).Children(func() {
 					ui.Column(c).Grow(1).Gap(4).Children(func() {
-						ui.Text(c, "Cron (min hour dom mon dow)").FontSize(12).TextColor(t.TextMuted)
-						ui.TextInput(c.Key("au-f-cron"), &e.cron).Placeholder("0 9 * * *")
+						ui.Text(c, m.AuCronField()).FontSize(12).TextColor(t.TextMuted)
+						ui.TextInput(c.Key("au-f-cron"), &e.cron).Placeholder(m.AuCronPlaceholder())
 					})
 					ui.Column(c).Grow(1).Gap(4).Children(func() {
-						ui.Text(c, "Timezone").FontSize(12).TextColor(t.TextMuted)
+						ui.Text(c, m.AuTimezone()).FontSize(12).TextColor(t.TextMuted)
 						ui.TextInput(c.Key("au-f-tz"), &e.tz).Placeholder("UTC")
 					})
 				})
 			}
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "Isolation").FontSize(12).TextColor(t.TextMuted)
+				ui.Text(c, m.AuIsolation()).FontSize(12).TextColor(t.TextMuted)
 				ui.Select(c.Key("au-f-isolation"), &e.isolation, []string{"worktree_per_run", "shared_in_root"})
 			})
 			ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 				ui.Switch(c.Key("au-f-enabled"), &e.enabled)
-				ui.Text(c, "Enabled").FontSize(13).TextColor(t.Text)
+				ui.Text(c, m.SetEnabledRow()).FontSize(13).TextColor(t.Text)
 			})
 			ui.Row(c).Gap(6).Children(func() {
-				if ui.PrimaryButton(c.Key("au-f-save"), "Save").Clicked() {
-					s.automationSave()
+				if ui.PrimaryButton(c.Key("au-f-save"), m.ActionSave()).Clicked() {
+					s.automationSave(c)
 				}
-				if ui.Button(c.Key("au-f-cancel"), "Cancel").Clicked() {
+				if ui.Button(c.Key("au-f-cancel"), m.ActionCancel()).Clicked() {
 					s.autoEditor = nil
 				}
 			})
@@ -426,7 +433,7 @@ func (s *Shell) startEditAutomation(a map[string]any) {
 }
 
 // automationSave creates or updates the edited automation off the UI thread.
-func (s *Shell) automationSave() {
+func (s *Shell) automationSave(c *ui.Context) {
 	e := s.autoEditor
 	if e == nil {
 		return
@@ -444,6 +451,7 @@ func (s *Shell) automationSave() {
 	}
 	id := e.id
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		var err error
 		if id == "" {
@@ -453,9 +461,9 @@ func (s *Shell) automationSave() {
 		}
 		s.mu.Lock()
 		if err != nil {
-			s.notify("save failed: " + err.Error())
+			s.notifyErr(locales.In(loc).AuSaveFailed(err.Error()))
 		} else {
-			s.notify("automation saved")
+			s.notify(locales.In(loc).AuSaved())
 			s.autoEditor = nil
 		}
 		delete(s.cache, "automations")
@@ -464,17 +472,18 @@ func (s *Shell) automationSave() {
 	}()
 }
 
-func (s *Shell) automationSetEnabled(id string, on bool) {
+func (s *Shell) automationSetEnabled(c *ui.Context, id string, on bool) {
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		_, err := s.B.raw("automation_set_enabled", map[string]any{"id": numOrString(id), "enabled": on})
 		s.mu.Lock()
 		if err != nil {
-			s.notify("update failed: " + err.Error())
+			s.notifyErr(locales.In(loc).AuUpdateFailed(err.Error()))
 		} else if on {
-			s.notify("automation enabled")
+			s.notify(locales.In(loc).AuEnabledToast())
 		} else {
-			s.notify("automation disabled")
+			s.notify(locales.In(loc).AuDisabledToast())
 		}
 		delete(s.cache, "automations")
 		s.mu.Unlock()
@@ -482,15 +491,16 @@ func (s *Shell) automationSetEnabled(id string, on bool) {
 	}()
 }
 
-func (s *Shell) automationRunNow(id string) {
+func (s *Shell) automationRunNow(c *ui.Context, id string) {
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		_, err := s.B.raw("automation_run_now", map[string]any{"automationId": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.notify("run failed: " + err.Error())
+			s.notifyErr(locales.In(loc).AuRunFailed(err.Error()))
 		} else {
-			s.notify("run started")
+			s.notify(locales.In(loc).AuRunStarted())
 		}
 		delete(s.cache, "automations")
 		delete(s.cache, "auto-runs:"+id)
@@ -499,15 +509,16 @@ func (s *Shell) automationRunNow(id string) {
 	}()
 }
 
-func (s *Shell) automationCancelRun(autoID, runID string) {
+func (s *Shell) automationCancelRun(c *ui.Context, autoID, runID string) {
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		_, err := s.B.raw("automation_cancel_run", map[string]any{"runId": numOrString(runID)})
 		s.mu.Lock()
 		if err != nil {
-			s.notify("cancel failed: " + err.Error())
+			s.notifyErr(locales.In(loc).AuCancelFailed(err.Error()))
 		} else {
-			s.notify("run cancelled")
+			s.notify(locales.In(loc).AuRunCancelled())
 		}
 		delete(s.cache, "automations")
 		delete(s.cache, "auto-runs:"+autoID)
@@ -516,15 +527,16 @@ func (s *Shell) automationCancelRun(autoID, runID string) {
 	}()
 }
 
-func (s *Shell) automationDelete(id string) {
+func (s *Shell) automationDelete(c *ui.Context, id string) {
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		_, err := s.B.raw("automation_delete", map[string]any{"id": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.notify("delete failed: " + err.Error())
+			s.notifyErr(locales.In(loc).AuDeleteFailed(err.Error()))
 		} else {
-			s.notify("automation deleted")
+			s.notify(locales.In(loc).AuDeleted())
 			if s.autoSel == id {
 				s.autoSel = ""
 			}
@@ -538,7 +550,7 @@ func (s *Shell) automationDelete(id string) {
 // ── small display helpers ──
 
 // autoStatusChip draws a tinted status pill; empty status renders nothing.
-func autoStatusChip(c *ui.Context, key, status string) {
+func autoStatusChip(c *ui.Context, key, status string, m locales.Messages) {
 	if status == "" {
 		return
 	}
@@ -553,25 +565,25 @@ func autoStatusChip(c *ui.Context, key, status string) {
 		col = t.Danger
 	}
 	ui.Row(c.Key(key)).PaddingX(8).PaddingY(2).Radius(10).Background(col.Alpha(0.12)).Children(func() {
-		ui.Text(c, autoStatusLabel(status)).FontSize(11).TextColor(col)
+		ui.Text(c, autoStatusLabel(m, status)).FontSize(11).TextColor(col)
 	})
 }
 
-func autoStatusLabel(status string) string {
+func autoStatusLabel(m locales.Messages, status string) string {
 	switch status {
 	case "running":
-		return "Running"
+		return m.AuStatusRunning()
 	case "succeeded":
-		return "Succeeded"
+		return m.AuStatusSucceeded()
 	case "failed":
-		return "Failed"
+		return m.AuStatusFailed()
 	case "cancelled":
-		return "Cancelled"
+		return m.AuStatusCancelled()
 	case "skipped":
-		return "Skipped"
+		return m.AuStatusSkipped()
 	}
 	if status == "" {
-		return "Idle"
+		return m.AuStatusIdle()
 	}
 	return status
 }

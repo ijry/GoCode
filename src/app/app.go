@@ -1,4 +1,4 @@
-// Package app is the mygo native-UI layer of YoYoCode: the Go analog of the
+// Package app is the mygo native-UI layer of GoCode: the Go analog of the
 // upstream Next.js page tree under src/app. Each upstream page maps to one
 // view function in a like-named file here (workspace.go, settings.go, pet.go,
 // …) so the structure tracks upstream for easy follow-on diffs.
@@ -12,11 +12,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
 	"github.com/egoist/mygo/ui/markdown"
@@ -44,6 +50,47 @@ func (b *Backend) raw(cmd string, body map[string]any) (json.RawMessage, error) 
 	data, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 {
 		return nil, newAPIError(cmd, data)
+	}
+	return json.RawMessage(data), nil
+}
+
+// upload posts a multipart/form-data request (the workspace file-transfer
+// routes expect multipart, not JSON). Text fields are written before the file
+// part, which the backend requires (root_path must precede file).
+func (b *Backend) upload(route string, fields map[string]string, fileField, filePath string) (json.RawMessage, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	for k, v := range fields {
+		if err := mw.WriteField(k, v); err != nil {
+			return nil, err
+		}
+	}
+	fw, err := mw.CreateFormFile(fileField, filepath.Base(filePath))
+	if err != nil {
+		return nil, err
+	}
+	if _, err := io.Copy(fw, f); err != nil {
+		return nil, err
+	}
+	if err := mw.Close(); err != nil {
+		return nil, err
+	}
+	req, _ := http.NewRequest(http.MethodPost, b.URL+"/api/"+route, &buf)
+	req.Header.Set("content-type", mw.FormDataContentType())
+	req.Header.Set("authorization", "Bearer "+b.Token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return nil, newAPIError(route, data)
 	}
 	return json.RawMessage(data), nil
 }
@@ -106,6 +153,7 @@ type Shell struct {
 
 	section             string // workspace | settings | pet
 	settingsPage        string // general | web-service | quick-messages | …
+	settingsMsgPage     string // the page actionMsg belongs to: switching pages clears it
 	selectedFolder      string
 	selectedConv        string
 	sidebarTab          string // workspace sidebar segmented tab: recent | pinned | folders
@@ -123,46 +171,177 @@ type Shell struct {
 	toastQueue          []ui.Toast
 	renaming            bool
 	renameText          string
-	skillsAgent         string            // Settings → Skills: selected agent wire type
-	skillsScope         string            // "global" | "project"
-	qmEditor            *quickMsgEditor   // Settings → Quick Messages: open create/edit form
-	qmErr               string            // Settings → Quick Messages: validation error
-	qmConfirm           string            // Settings → Quick Messages: id awaiting delete confirm
-	workbench           string            // "" (conversations) | automations | tasks | forge | canvas | files | …
-	autoSel             string            // Automations: selected automation id ("" = first row)
-	autoEditor          *automationEditor // Automations: open create/edit form (nil = closed)
-	autoConfirm         string            // Automations: id awaiting delete confirmation ("" = none)
-	taskSel             string            // To-dos: selected task id ("" = board)
-	taskEditor          *taskEditor       // To-dos: open create/edit form (nil = closed)
-	taskConfirm         string            // To-dos: id awaiting delete confirmation ("" = none)
-	taskShowCanceled    bool              // To-dos: show canceled cards in the Done column
-	taskShowArchived    bool              // To-dos: show archived cards
-	canvasSel           string            // Canvas: open board id ("" = board list)
-	canvasEditor        *canvasEditor     // Canvas: new/rename board form (nil = closed)
-	canvasConfirm       string            // Canvas: board id awaiting delete confirmation ("" = none)
-	canvasSearch        string            // Canvas: board search box
-	forgeTab            string            // Repositories: issues | prs
-	forgeState          string            // Repositories: open | closed | all
-	forgeEditor         *forgeEditor      // Repositories: new-issue form (nil = closed)
-	petTab              string            // Pet section: sessions | sprite
-	fileDir             string            // Files route: current directory (workspace-relative)
-	fileSel             string            // Files route: selected file (workspace-relative)
-	diffSel             string            // Changes route: selected changed file (repo-relative)
-	commitMsg           string            // Changes route: commit message input
-	discardConfirm      string            // Changes route: file awaiting discard confirmation
+	skillsAgent         string                     // Settings → Skills: selected agent wire type
+	skillsScope         string                     // "global" | "project"
+	qmEditor            *quickMsgEditor            // Settings → Quick Messages: open create/edit form
+	qmErr               string                     // Settings → Quick Messages: validation error
+	qmConfirm           string                     // Settings → Quick Messages: id awaiting delete confirm
+	workbench           string                     // "" (conversations) | automations | tasks | forge | canvas | files | …
+	autoSel             string                     // Automations: selected automation id ("" = first row)
+	autoEditor          *automationEditor          // Automations: open create/edit form (nil = closed)
+	autoConfirm         string                     // Automations: id awaiting delete confirmation ("" = none)
+	taskSel             string                     // To-dos: selected task id ("" = board)
+	taskEditor          *taskEditor                // To-dos: open create/edit form (nil = closed)
+	taskConfirm         string                     // To-dos: id awaiting delete confirmation ("" = none)
+	taskShowCanceled    bool                       // To-dos: show canceled cards in the Done column
+	taskShowArchived    bool                       // To-dos: show archived cards
+	canvasSel           string                     // Canvas: open board id ("" = board list)
+	canvasEditor        *canvasEditor              // Canvas: new/rename board form (nil = closed)
+	canvasConfirm       string                     // Canvas: board id awaiting delete confirmation ("" = none)
+	canvasSearch        string                     // Canvas: board search box
+	canvasZoom          float32                    // Canvas: board surface zoom (0 = 100%)
+	canvasPan           ui.Point                   // Canvas: board surface pan, in world DIPs
+	canvasDrag          map[string]canvasDragEntry // Canvas: in-flight node drags, by node id
+	canvasNoteSeq       int                        // Canvas: stagger offset for new notes
+	canvasSelNodes      map[string]bool            // Canvas: selected node ids
+	canvasBand          *canvasBand                // Canvas: in-flight marquee band (world DIPs)
+	canvasPanMode       bool                       // Canvas: background drag pans instead of marqueeing
+	// Conversation history paging (conversation.go): the accumulated turns,
+	// oldest first, plus how many older turns the backend still holds.
+	convTurnsConv    string // conversation the accumulated page belongs to
+	convTurnsPage    []any  // accumulated historical turns
+	convTurnsOffset  int    // index of the earliest loaded turn (-1 = not loaded)
+	convTurnsTotal   int    // total turns the transcript holds
+	convTurnsLoading bool   // an earlier page is in flight
+	// lastPrompt is the most recent prompt sent in the open conversation, so a
+	// failed turn can be retried without retyping it.
+	lastPrompt     string
+	planCollapsed  bool   // Chat: the plan card's steps are hidden
+	questionAnswer string // Chat: the draft answer to a pending agent question
+	// Live-feedback ("steering") side channel: the note composer's open state and
+	// draft, plus the ids the user retired from the expired list (a new turn
+	// clears the set).
+	feedbackOpen      bool
+	feedbackDraft     string
+	feedbackDismissed map[string]bool
+	// welcomeTip is the tip shown under the empty-state hero (-1 = not picked
+	// yet; chosen once on first render so it stays stable across frames).
+	welcomeTip  int
+	forgeTab    string       // Repositories: issues | prs
+	forgeState  string       // Repositories: open | closed | all
+	forgeEditor *forgeEditor // Repositories: new-issue form (nil = closed)
+	petTab      string       // Pet section: sessions | sprite
+	petConfirm  string       // Sprite page: pet id awaiting a second delete click
+	petWin      *petWindow   // the floating sprite window (nil = closed)
+	mainWin     *mygo.Window // the workspace window, for the pet window's "open page"
+	// Sprite page (pet.go): the size slider's value, what was last persisted, the
+	// debounce timer, and the active pet's decoded sheet for the preview.
+	petScale       float64
+	petScaleSaved  float64
+	petScaleTimer  *time.Timer
+	petPreviewID   string
+	petPreviewImg  image.Image
+	petPreview     *petSheet
+	fileDir        string // Files route: current directory (workspace-relative)
+	fileSel        string // Files route: selected file (workspace-relative)
+	diffSel        string // Changes route: selected changed file (repo-relative)
+	commitMsg      string // Changes route: commit message input
+	discardConfirm string // Changes route: file awaiting discard confirmation
+	// Changes route: the row list chooses several files (mygo's ListState
+	// Selection + DragSelect); changesIdx is the row last chosen, whose diff the
+	// detail pane shows.
+	changesList ui.ListState
+	changesSel  ui.Selection[string]
+	changesIdx  int
+	// changesDiscardArmed is the bulk discard's first click (it is destructive).
+	changesDiscardArmed bool
 	// Git-operation pages (git_ops.go): each page's own form state.
-	stashMsg          string // Stash page: message for the new stash
-	stashKeepIndex    bool   // Stash page: --keep-index
-	stashClearConfirm bool   // Stash page: Clear awaiting a second click
-	pushRemote        string // Push page: selected remote
-	pushBranch        string // Push page: branch being pushed
-	pushUpstreamSet   bool   // Push page: last push set upstream
-	mergeBranch       string // Merge page: selected branch to merge
-	// Branches page (git_ops.go): the create form and the delete confirmation.
-	branchNewName       string // Branches page: new-branch name input
-	branchDeleteConfirm string // Branches page: branch awaiting a second delete click
-	detailTab           string            // Workspace main area tab: chat | terminal
-	auxTab              string            // Workspace aux panel tab: session | files | changes | commits
+	stashMsg          string                       // Stash page: message for the new stash
+	stashKeepIndex    bool                         // Stash page: --keep-index
+	stashClearConfirm bool                         // Stash page: Clear awaiting a second click
+	pushRemote        string                       // Push page: selected remote
+	pushRunning       bool                         // Push page: a push is in flight
+	pushPageBranch    string                       // Push page: root+branch the per-page state was seeded for
+	pushPageKey       string                       // Push page: log cache key the selection belongs to
+	pushSelCommit     string                       // Push page: expanded/previewed commit (full hash)
+	pushSelFile       string                       // Push page: previewed file of that commit
+	pushOpen          map[string]bool              // Push page: expanded commit hashes
+	pushDiffs         map[string]*editor.DiffState // Push page: per (commit,file) diff state
+	// Commit page (git_ops.go): per-file selection and the HEAD↔worktree preview.
+	commitSelRoot   string
+	commitSelSeeded bool
+	commitSelFiles  map[string]bool
+	commitPrevFile  string
+	commitUntracked bool
+	commitRunning   bool // Commit page: a commit is in flight
+	commitDiffs     map[string]*editor.DiffState
+	mergeBranch     string // Merge page: selected branch to merge
+	// Branches page (git_ops.go): the create forms, delete confirmations and the
+	// prefix-grouped branch tree's collapsed groups.
+	branchNewName        string          // Branches page: new-branch name input
+	branchDeleteConfirm  string          // Branches page: branch awaiting a second delete click
+	branchCollapsed      map[string]bool // Branches page: collapsed branch-tree group keys
+	worktreeBranchName   string          // Branches page: new-worktree branch input
+	worktreePath         string          // Branches page: new-worktree path input
+	worktreeSeedRoot     string          // folder whose worktree path was last suggested
+	worktreeRemove       string          // worktree branch awaiting a second remove click
+	worktreeRemoveBranch bool            // ... and whether that removal also deletes the branch
+	worktreeForce        string          // worktree branch whose force removal is confirmed
+	worktreeForceBranch  bool            // ... and whether force removal also deletes the branch
+	// Commands (folder_commands.go): the folder-command CRUD + terminal run.
+	cmdNewName  string // new-command form: name
+	cmdNewCmd   string // new-command form: command
+	cmdEditID   string // command id currently being edited ("" = none)
+	cmdEditName string // edit form: name
+	cmdEditCmd  string // edit form: command
+	cmdResult   string // success line (green), "" = none
+	// Remotes page (git_remotes.go): add / set-url / remove / fetch forms.
+	remoteNewName       string // add form: remote name
+	remoteNewURL        string // add form: remote URL
+	remoteEditName      string // remote whose URL is being edited ("" = none)
+	remoteEditURL       string // edit form: URL
+	remoteRemoveConfirm string // remote awaiting a second remove click
+	// Clone page (clone.go): the repository clone form.
+	cloneURL    string // repository URL
+	cloneTarget string // target directory
+	cloneResult string // "Cloned to <path>" success line ("" = none)
+	// Token-usage dashboard (token_usage.go): bucket + filter selectors.
+	usageBucket     string   // "day" | "week" | "month"
+	usageRange      string   // "all" | "7d" | "30d" | "90d"
+	usageFolders    []string // selected folder ids (strings); empty = all folders
+	usageAgents     []string // selected agent types; empty = all agents
+	usageModels     []string // selected models; empty = all models
+	usageFilterOpen string   // multi-select popover on screen: "folder" | "agent" | "model" | ""
+	usageCompare    bool     // compare against the previous equal-length period
+	// Model-providers settings page (model_providers.go): create + edit forms.
+	mpNewName, mpNewURL, mpNewKey, mpNewAgent, mpNewModel                string
+	mpEditID, mpEditName, mpEditURL, mpEditKey, mpEditAgent, mpEditModel string
+	mpDeleteConfirm                                                      string // provider id awaiting confirm
+	// Browser panel (browser_panel.go): the address bar.
+	browserURL string
+	// Workspace folders (workspace_folders.go): folder links + upload forms.
+	wfTarget        string      // folder to link
+	wfName          string      // link name (pending preview / optional form name)
+	wfPlan          *wfLinkPlan // preview_folder_links dry-run awaiting confirm (nil = none)
+	wfGitExclude    bool        // keep created links out of git status
+	wfEditID        string      // link id being renamed ("" = none)
+	wfEditName      string      // rename input
+	wfRemoveConfirm string      // link id awaiting a second remove click
+	wfUploadPath    string      // picked local file to upload
+	wfUploadRel     string      // target subpath (optional)
+	// Settings → Agents (settings_agents.go): version probes + custom agents.
+	agentChecking   string            // agent type whose probe is running ("" = idle)
+	agentCheckNote  map[string]string // post-check note per agent (not installed, …)
+	agentCheckErr   map[string]string // probe failure per agent
+	caEditor        *customAgentEditor
+	caErr           string // custom-agent form validation / save error
+	caDeleteConfirm string // custom-agent registry id awaiting a second remove click
+	// Import-sessions (import_sessions.go): the scan picker — which discovered
+	// sessions are checked for import, and the last import's outcome summary.
+	importSel    map[string]bool // key = agentType\x00\x00externalId → chosen
+	importResult string          // last import outcome summary ("" = none)
+	// Project-boot (project_boot.go): the scaffold form + HyperFrames skill state.
+	pbType        string // "shadcn" | "hyperframes"
+	pbName        string
+	pbTemplate    string
+	pbPreset      string
+	pbPkg         string // package manager (npm|pnpm|yarn|bun)
+	pbTargetDir   string
+	pbExample     string
+	pbResolution  string
+	pbSkillAgents map[string]bool // HyperFrames skill install: agent → chosen
+	pbResult      string          // created project path ("" = none yet)
+	auxTab        string          // Workspace aux panel tab: session | files | changes | commits
 	// Conversation tabs (upstream's TabBar / tab-store): the ordered set of
 	// open conversations, hydrated once from list_opened_tabs and written back
 	// through save_opened_tabs. tabsVersion is the CAS guard the save echoes;
@@ -172,33 +351,75 @@ type Shell struct {
 	tabsLoaded  bool
 	tabsVersion int64
 	tabsOrigin  string
-	commitSel           string            // Commits aux tab: selected commit hash ("" = none)
-	termID              string            // Terminal route: live PTY id ("" = none started)
-	termInput           string            // Terminal route: pending input line
-	loginToken          string            // login gate: token input
-	loginErr            string            // login gate: last probe error
-	servers             []serverProfile   // saved remote connections (the local one is synthesized)
-	activeServer        string            // localServerID | saved profile id
-	localURL            string            // boot backend URL (the "local" connection's home)
-	localToken          string            // boot backend token
-	srvEditor           *serverEditor     // Settings → Servers: add/edit form (nil = closed)
-	srvErr              string            // Settings → Servers: last add/switch failure (inline)
-	srvConfirm          string            // Settings → Servers: profile id awaiting delete confirmation
-	gitCustomPath       string            // Settings → Version Control: custom git path input
-	gitTestOK           *bool             // Settings → Version Control: last test_git_path result (nil = untested)
-	gitTestMsg          string            // Settings → Version Control: why the last test failed
-	vcTesting           string            // Settings → Version Control: account id being validated
-	vcRotate            string            // Settings → Version Control: account id whose token form is open
-	vcRotateToken       string            // Settings → Version Control: the new token typed in it
-	vcRemove            string            // Settings → Version Control: account id awaiting removal confirmation
-	vcAdd               *vcAddForm        // Settings → Version Control: add-account form (nil = closed)
-	paletteOpen         bool              // ⌘K command palette: open
-	paletteQuery        string            // ⌘K command palette: the filter query
-	paletteSel          int               // ⌘K command palette: the highlighted row
-	epoch               uint64            // bumped on every backend switch; stale fetches are dropped
-	newSkillID          string            // Settings → Skills: new custom-skill id input
-	agentVer            map[string]string // Settings → Agents: last detected installed version
-	agentLatest         map[string]string // Settings → Agents: latest available (when newer)
+	closedTabs  []closedTab // most recently closed last (reopen_last_closed_tab)
+
+	commitSel string // Commits aux tab: selected commit hash ("" = none)
+	// commitsList is the Commits tab's row list: Selected gives the click and the
+	// arrow keys one choice, commitsIdx being the row they point at.
+	commitsList ui.ListState
+	commitsIdx  int
+	// Bottom terminal panel (upstream's terminal-context + tab bar): one PTY per
+	// tab, all tabs shared across conversation tabs. Each tab keeps the folder
+	// and working directory it was opened in, so a worktree's shell stays bound
+	// to that worktree when the selection moves elsewhere.
+	termTabs         []termTab
+	termActive       string          // active tab id (also its PTY id)
+	termCounter      int             // "Terminal N" numbering
+	termOpen         bool            // panel expanded?
+	termErr          string          // last terminal action error
+	termRenameID     string          // tab being renamed ("" = none)
+	termRenameDraft  string          // inline rename draft
+	termHovered      bool            // pointer is over the panel (routes tab shortcuts)
+	termInputFocused bool            // the terminal line input has the keyboard
+	loginToken       string          // login gate: token input
+	loginErr         string          // login gate: last probe error
+	servers          []serverProfile // saved remote connections (the local one is synthesized)
+	activeServer     string          // localServerID | saved profile id
+	localURL         string          // boot backend URL (the "local" connection's home)
+	localToken       string          // boot backend token
+	srvEditor        *serverEditor   // Settings → Servers: add/edit form (nil = closed)
+	srvErr           string          // Settings → Servers: last add/switch failure (inline)
+	srvConfirm       string          // Settings → Servers: profile id awaiting delete confirmation
+	gitCustomPath    string          // Settings → Version Control: custom git path input
+	gitTestOK        *bool           // Settings → Version Control: last test_git_path result (nil = untested)
+	gitTestMsg       string          // Settings → Version Control: why the last test failed
+	vcTesting        string          // Settings → Version Control: account id being validated
+	vcRotate         string          // Settings → Version Control: account id whose token form is open
+	vcRotateToken    string          // Settings → Version Control: the new token typed in it
+	vcRemove         string          // Settings → Version Control: account id awaiting removal confirmation
+	vcAdd            *vcAddForm      // Settings → Version Control: add-account form (nil = closed)
+	paletteOpen      bool            // ⌘K command palette: open
+	paletteQuery     string          // ⌘K command palette: the filter query
+	paletteSel       int             // ⌘K command palette: the highlighted row
+	// Settings → Collaboration: the delegation form, seeded once from
+	// get_delegation_settings, and the agent-tools switch matrix seeded from
+	// its six per-group endpoints. Baselines are what Save diffs against.
+	collabTab      int
+	collabLoaded   bool
+	collabEnabled  bool
+	collabDepth    float64
+	collabCacheMB  string
+	collabDefaults map[string]any
+	collabBase     collabForm
+	collabReseed   bool // a save landed: re-seed from the server on the UI thread
+	toolsLoaded    bool
+	tools          agentToolValues
+	toolsBase      agentToolValues
+	toolsReseed    bool
+	// Settings → Skill Packs: the active hub tab (0 experts, 1 science,
+	// 2 office, 3 custom).
+	skillPackTab    int
+	pendingOpenPath string // Skill Packs: folder to open through the host on the next frame
+	// Keyboard shortcuts (settings_shortcuts.go): the persisted action →
+	// chord map, and the action whose chord is being recorded ("" = none).
+	shortcuts         map[string]string
+	shortcutRecording string
+	sidebarHidden     bool              // toggle_sidebar hid the conversation sidebar
+	auxHidden         bool              // toggle_aux_panel hid the right-hand panel
+	epoch             uint64            // bumped on every backend switch; stale fetches are dropped
+	newSkillID        string            // Settings → Skills: new custom-skill id input
+	agentVer          map[string]string // Settings → Agents: last detected installed version
+	agentLatest       map[string]string // Settings → Agents: latest available (when newer)
 
 	stream     *Stream
 	connByConv map[string]string // conversation id → live ACP connection id
@@ -240,22 +461,44 @@ func New(b *Backend) *Shell {
 		settingsPage:   "general",
 		appearanceMode: "system",
 		sidebarTab:     "recent",
-		tabsOrigin:     fmt.Sprintf("yoyocode-%d", time.Now().UnixNano()),
+		tabsOrigin:     fmt.Sprintf("gocode-%d", time.Now().UnixNano()),
 		cache:          map[string]json.RawMessage{},
 		inflight:       map[string]bool{},
 		errs:           map[string]string{},
 		errHints:       map[string]string{},
 		connByConv:     map[string]string{},
+		changesIdx:     -1, // Changes list: no row chosen yet
+		commitsIdx:     -1, // Commits list: no row chosen yet
 		toolOpen:       map[string]bool{},
 		agentVer:       map[string]string{},
 		agentLatest:    map[string]string{},
+		agentCheckNote: map[string]string{},
+		agentCheckErr:  map[string]string{},
+		importSel:      map[string]bool{},
+		pbSkillAgents:  map[string]bool{},
+		pbType:         pbTypeShadcn,
+		pbPkg:          "npm",
+		usageBucket:    "day",
+		usageRange:     "all",
+		wfGitExclude:   true,
+		welcomeTip:     -1,
 		// The in-process backend is always connection #0 ("local"); saved
-		// remotes come from ~/.yoyocode/servers.json.
+		// remotes come from ~/.gocode/servers.json.
 		localURL:     b.URL,
 		localToken:   b.Token,
 		servers:      loadServers(),
 		activeServer: localServerID,
+		shortcuts:    loadShortcuts(),
 	}
+}
+
+// SetMainWindow records the workspace window, so the floating pet window can
+// bring it forward when the user asks for the Pet page (mygo has no way to look
+// a window up from a view).
+func (s *Shell) SetMainWindow(w *mygo.Window) {
+	s.mu.Lock()
+	s.mainWin = w
+	s.mu.Unlock()
 }
 
 // ensure returns the cached raw response for key, kicking off a one-shot
@@ -308,6 +551,24 @@ func (s *Shell) ensure(key, cmd string, body map[string]any) json.RawMessage {
 func (s *Shell) invalidate(key string) {
 	s.mu.Lock()
 	delete(s.cache, key)
+	s.mu.Unlock()
+}
+
+// invalidatePrefix drops every cached key (and its error) that starts with
+// prefix — the per-file diff slots keyed by a root, for instance.
+func (s *Shell) invalidatePrefix(prefix string) {
+	s.mu.Lock()
+	for k := range s.cache {
+		if strings.HasPrefix(k, prefix) {
+			delete(s.cache, k)
+		}
+	}
+	for k := range s.errs {
+		if strings.HasPrefix(k, prefix) {
+			delete(s.errs, k)
+			delete(s.errHints, k)
+		}
+	}
 	s.mu.Unlock()
 }
 
@@ -430,16 +691,13 @@ func (s *Shell) View(c *ui.Context) {
 	c.SetTheme(resolveTheme(s.appearanceMode)) // upstream neutral light/dark palette
 	s.svc = c.Services()
 	s.ensureStream()
-	// Window-global shortcuts (UI_GAPS P2): ⌘K opens the command palette
-	// wherever the focus is; Esc stops the running turn while the palette is
-	// closed (the palette owns Esc while it is open).
-	if c.Shortcut(ui.Cmd, ui.KeyK) {
-		s.paletteOpen = true
-		s.paletteQuery = ""
-		s.paletteSel = 0
-	}
-	if !s.paletteOpen && c.Shortcut(0, ui.KeyEscape) {
-		s.stopActiveTurn()
+	// Window-global shortcuts: the user's bindings (Settings → Shortcuts),
+	// recorded chords while a binding is armed, and Esc stopping the running
+	// turn while the palette is closed (the palette owns Esc while it is open).
+	loc := c.Locale()
+	s.installShortcuts(c, loc)
+	if s.shortcutRecording == "" && !s.paletteOpen && c.Shortcut(0, ui.KeyEscape) {
+		s.stopActiveTurn(loc)
 	}
 	// Mutation outcomes (queued by goroutines) surface as toasts, the way
 	// mygo's own apps report them.
@@ -506,6 +764,7 @@ func (s *Shell) viewStatusBar(c *ui.Context) {
 		for _, item := range []struct{ route, label string }{
 			{"import-sessions", cat(c).RouteImportSessions()},
 			{"project-boot", cat(c).RouteProjectBoot()},
+			{"commands", cat(c).RouteCommands()},
 		} {
 			active := s.section == "workspace" && s.workbench == item.route
 			var clicked bool
@@ -542,11 +801,11 @@ func (s *Shell) viewStatusBar(c *ui.Context) {
 		s.viewStatusMcp(c)
 		s.viewStatusTasks(c)
 		s.viewStatusUpdate(c)
-		ui.Text(c, "YoYoCode v0.1.0").FontSize(11).TextColor(t.TextMuted)
+		ui.Text(c, "GoCode v0.1.0").FontSize(11).TextColor(t.TextMuted)
 	})
 }
 
-// viewStatusMcp is the yoyocode-mcp companion health indicator (upstream
+// viewStatusMcp is the gocode-mcp companion health indicator (upstream
 // StatusBarMcp). Reflects get_codeg_mcp_service_status: green dot when running,
 // muted otherwise (stopped until the companion + broker ship — see UI doc 点 3).
 func (s *Shell) viewStatusMcp(c *ui.Context) {
@@ -561,7 +820,7 @@ func (s *Shell) viewStatusMcp(c *ui.Context) {
 	}
 	ui.Row(c.Key("sb-mcp")).Gap(4).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "\u25CF").FontSize(8).TextColor(dot)
-		ui.Text(c, "MCP").FontSize(11).TextColor(t.TextMuted)
+		ui.Text(c, cat(c).NavMCP()).FontSize(11).TextColor(t.TextMuted)
 	})
 }
 

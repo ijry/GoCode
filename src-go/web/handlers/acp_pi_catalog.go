@@ -24,14 +24,14 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // piCatalogRequestID is the request id we send and match on. It is OUR id (pi
 // echoes whatever it was given), so it carries this project's brand rather than
 // the upstream one.
-const piCatalogRequestID = "yoyocode-models"
+const piCatalogRequestID = "gocode-models"
 
 // piCatalogDeadline bounds the whole query.
 const piCatalogDeadline = 12 * time.Second
@@ -171,7 +171,7 @@ func queryPiModelCatalog(runtimeEnv map[string]string, deadline time.Duration) p
 	// A private, empty working directory: pi runs where no repository or other
 	// user put anything, and a relative PATH entry (an empty one means the cwd)
 	// cannot reach a `pi` someone planted in the shared temp dir.
-	queryDir, err := os.MkdirTemp("", "yoyocode-pi-catalog-")
+	queryDir, err := os.MkdirTemp("", "gocode-pi-catalog-")
 	if err != nil {
 		return piUnavailable("failed")
 	}

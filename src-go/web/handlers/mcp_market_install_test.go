@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func sampleSmitheryDetail() map[string]any {

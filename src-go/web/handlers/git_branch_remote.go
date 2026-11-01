@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // detectConflicts mirrors commands/folders.rs detect_conflicts: unmerged paths

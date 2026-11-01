@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 var chatChannelTypes = map[string]bool{"lark": true, "telegram": true, "weixin": true}

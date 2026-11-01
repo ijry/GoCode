@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"yoyocode/src-go/acp"
+	"gocode/src-go/acp"
 )
 
 func TestOpencodeProviderCatalogWireShape(t *testing.T) {

@@ -644,7 +644,7 @@ func createDeepSeekTempFile(parent, stem string, mode os.FileMode) (string, *os.
 	for i := 0; i < 8; i++ {
 		seq := deepSeekTempSeq.Add(1) - 1
 		nonce := time.Now().UnixNano()
-		name := fmt.Sprintf(".%s.yoyocode-%d-%d-%d.tmp", stem, os.Getpid(), seq, nonce)
+		name := fmt.Sprintf(".%s.gocode-%d-%d-%d.tmp", stem, os.Getpid(), seq, nonce)
 		temp := filepath.Join(parent, name)
 		f, err := os.OpenFile(temp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
 		if err == nil {

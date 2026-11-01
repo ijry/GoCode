@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"yoyocode/src-go/backup"
+	"gocode/src-go/backup"
 )
 
 func fileExistsLocal(p string) bool {
@@ -71,7 +71,7 @@ func TestStageApplyRollbackRestore(t *testing.T) {
 	if err := os.MkdirAll(tgt, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	mustWrite(t, filepath.Join(tgt, "yoyocode.db"), "SEED")
+	mustWrite(t, filepath.Join(tgt, "gocode.db"), "SEED")
 	mustWrite(t, filepath.Join(tgtLive, "uploads", "stale.txt"), "OLD")
 	tgtRoots := func() backup.LiveRoots {
 		return backup.NewLiveRoots(func(id string) string { return filepath.Join(tgtLive, id) })
@@ -95,7 +95,7 @@ func TestStageApplyRollbackRestore(t *testing.T) {
 	if fileExistsLocal(filepath.Join(tgt, backup.PendingMarker)) {
 		t.Fatalf("marker must be gone after apply")
 	}
-	if got := readFile(t, filepath.Join(tgt, "yoyocode.db")); got == "SEED" {
+	if got := readFile(t, filepath.Join(tgt, "gocode.db")); got == "SEED" {
 		t.Fatalf("live DB must be replaced by the snapshot")
 	}
 	if readFile(t, filepath.Join(tgtLive, "uploads", "a.txt")) != "A" {
@@ -107,7 +107,7 @@ func TestStageApplyRollbackRestore(t *testing.T) {
 	if fileExistsLocal(filepath.Join(tgtLive, "uploads", "stale.txt")) {
 		t.Fatalf("AlwaysReplace must clear the stale uploads file")
 	}
-	if got := readFile(t, filepath.Join(applied.SafetySnapshot, "db", "yoyocode.db")); got != "SEED" {
+	if got := readFile(t, filepath.Join(applied.SafetySnapshot, "db", "gocode.db")); got != "SEED" {
 		t.Fatalf("safety snapshot must hold the pre-restore DB, got %q", got)
 	}
 
@@ -120,7 +120,7 @@ func TestStageApplyRollbackRestore(t *testing.T) {
 	if err != nil || !rb.Applied {
 		t.Fatalf("rollback apply = (%+v,%v)", rb, err)
 	}
-	if got := readFile(t, filepath.Join(tgt, "yoyocode.db")); got != "SEED" {
+	if got := readFile(t, filepath.Join(tgt, "gocode.db")); got != "SEED" {
 		t.Fatalf("rollback must restore the pre-restore DB, got %q", got)
 	}
 	if readFile(t, filepath.Join(tgtLive, "uploads", "stale.txt")) != "OLD" {

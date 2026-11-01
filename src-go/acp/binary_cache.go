@@ -123,7 +123,7 @@ func downloadToTemp(url string) (string, error) {
 	case strings.HasSuffix(lower, ".tar.gz"):
 		ext = ".tar.gz"
 	}
-	f, err := os.CreateTemp("", "yoyocode-agent-*"+ext)
+	f, err := os.CreateTemp("", "gocode-agent-*"+ext)
 	if err != nil {
 		return "", err
 	}

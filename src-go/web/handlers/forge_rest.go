@@ -17,8 +17,8 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const (
@@ -149,7 +149,7 @@ func (a *forgeAuth) ghRequest(method, path string, body any) (int, []byte, error
 	}
 	req, _ := http.NewRequest(method, a.apiBase+path, reader)
 	req.Header.Set("Authorization", "Bearer "+a.token)
-	req.Header.Set("User-Agent", "yoyocode")
+	req.Header.Set("User-Agent", "gocode")
 	req.Header.Set("Accept", "application/vnd.github+json")
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")

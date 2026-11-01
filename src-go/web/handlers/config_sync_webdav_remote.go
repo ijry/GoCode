@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/db"
+	"gocode/src-go/db"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 const (
@@ -211,7 +211,7 @@ func nullableStrPtr(p *string) any {
 
 func validateConfigManifest(m *configManifest, configBytes []byte) error {
 	if m.SchemaVersion > configSnapshotSchemaVersion {
-		return web.ErrInvalidInput("Snapshot was written by a newer version of YoYoCode")
+		return web.ErrInvalidInput("Snapshot was written by a newer version of GoCode")
 	}
 	if m.Encryption != "none" && m.Encryption != "aes-256-gcm" {
 		return web.ErrConfigInvalid("Unsupported snapshot encryption '" + m.Encryption + "'")

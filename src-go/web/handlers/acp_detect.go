@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"strings"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/web"
 )
 
 // packageNameFromSpec strips a trailing @version from an npm package spec,

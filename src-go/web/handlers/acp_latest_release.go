@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/web"
 )
 
 // versionFromSpec extracts the trailing @version from an npm spec, preserving a

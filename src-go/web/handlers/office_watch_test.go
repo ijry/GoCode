@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"testing"
 
-	apperror "yoyocode/src-go/app_error"
-	"yoyocode/src-go/officewatch"
+	apperror "gocode/src-go/app_error"
+	"gocode/src-go/officewatch"
 )
 
 func TestParseWatchPort(t *testing.T) {

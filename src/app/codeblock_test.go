@@ -39,8 +39,10 @@ func TestCodeBlockRendersWithCopyButton(t *testing.T) {
 		}
 	}
 
-	if err := tt.Click("Copy"); err != nil {
-		t.Fatalf("click Copy: %v", err)
+	// The assistant reply has its own message-level Copy button earlier in the
+	// tree; the code block's accessible label targets the block's button.
+	if err := tt.Click("Copy code"); err != nil {
+		t.Fatalf("click Copy code: %v", err)
 	}
 	// The block's content is the lines between the fences, newline included.
 	if got, want := tt.Clipboard(), body+"\n"; got != want {

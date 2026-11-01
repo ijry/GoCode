@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // RegisterGitClone wires clone_repository.

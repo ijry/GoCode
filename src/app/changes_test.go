@@ -93,3 +93,55 @@ func TestChangesPanelEmptyAndNoFolder(t *testing.T) {
 		t.Errorf("no-folder hint missing; texts = %v", tt.Texts())
 	}
 }
+
+// TestChangesMultiSelectBulkActions locks the multi-select surface: a click
+// chooses a row (mygo's ListState.Selection), more can be added, and the bulk
+// buttons appear with the count — discard still taking a second click.
+func TestChangesMultiSelectBulkActions(t *testing.T) {
+	s := changesShellForTest(t)
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("main.go"); err != nil {
+		t.Fatalf("click row: %v", err)
+	}
+	tt.Frame()
+	if !s.changesSel.Has("main.go") || s.changesSel.Len() != 1 {
+		t.Fatalf("click did not choose the row: len=%d", s.changesSel.Len())
+	}
+
+	// A second file, chosen the way Ctrl/Cmd-click would.
+	s.changesSel.Add("new.txt")
+	tt.Frame()
+	if !tt.HasText("Stage 2") || !tt.HasText("Discard 2") {
+		t.Fatalf("bulk actions missing; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "changes-multi-select")
+
+	// Discard takes a second click, then the choice is spent.
+	if err := tt.Click("Discard 2"); err != nil {
+		t.Fatalf("click bulk discard: %v", err)
+	}
+	tt.Frame()
+	if !s.changesDiscardArmed {
+		t.Fatal("bulk discard not armed on the first click")
+	}
+	if !tt.HasText("Confirm discard 2?") {
+		t.Fatalf("bulk confirm step missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Confirm discard 2?"); err != nil {
+		t.Fatalf("click bulk confirm: %v", err)
+	}
+	tt.Frame()
+	if s.changesDiscardArmed || s.changesSel.Len() != 0 {
+		t.Fatalf("bulk discard did not settle: armed=%v len=%d", s.changesDiscardArmed, s.changesSel.Len())
+	}
+}
+
+func TestSelectedChangeFilesSorted(t *testing.T) {
+	s := New(newBackendForTest(t))
+	s.changesSel.Add("b.txt")
+	s.changesSel.Add("a.txt")
+	got := s.selectedChangeFiles()
+	if len(got) != 2 || got[0] != "a.txt" || got[1] != "b.txt" {
+		t.Fatalf("selectedChangeFiles = %v, want [a.txt b.txt]", got)
+	}
+}

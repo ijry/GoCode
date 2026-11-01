@@ -1,8 +1,8 @@
 {
-  "name": "YoYoCode",
-  "identifier": "net.spacering.yoyocode",
+  "name": "GoCode",
+  "identifier": "net.spacering.gocode",
   "version": "0.1.0",
-  "main": "./cmd/yoyocode",
+  "main": "./cmd/gocode",
   "out": "build/app",
   "i18n": { "dir": "locales", "source": "en" },
   "fileAssociations": [

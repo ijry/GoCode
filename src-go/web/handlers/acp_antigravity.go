@@ -1,18 +1,17 @@
 package handlers
 
-// Antigravity settings-sync route (upstream commands/acp.rs
-// acp_sync_antigravity_settings_core → acp::connection::sync_antigravity_settings_for_env).
-//
-// The interactive login/sign-out protocol (acp::antigravity_login) is not ported;
-// this is the settings-file half only.
+// Antigravity routes: settings sync, sign-out, and the browser-free sign-in
+// (upstream commands/acp.rs + acp::antigravity_login). The sign-in spawns a
+// throwaway agent, scrapes the authorization link it prints, shows it to the
+// user, and relays the loopback redirect the browser cannot reach.
 
 import (
 	"encoding/json"
 	"errors"
 	"strings"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/web"
 )
 
 // antigravitySignOutFn is injectable so tests can drive the route without the
@@ -22,6 +21,50 @@ var antigravitySignOutFn = acp.AntigravitySignOut
 func registerACPAntigravity(reg *Registry) {
 	reg.Register("acp_sync_antigravity_settings", acpSyncAntigravitySettings)
 	reg.Register("acp_antigravity_sign_out", acpAntigravitySignOut)
+	reg.Register("acp_antigravity_login_start", acpAntigravityLoginStart)
+	reg.Register("acp_antigravity_login_finish", acpAntigravityLoginFinish)
+	reg.Register("acp_antigravity_login_cancel", acpAntigravityLoginCancel)
+}
+
+// acpAntigravityLoginStart begins a browser-free sign-in for methodId
+// (oauth-personal / oauth-business) and returns the link to open.
+func acpAntigravityLoginStart(c *web.Context) (any, error) {
+	methodID := strVal(c.Body["methodId"], c.Body["method_id"])
+	info, err := acp.AntigravityLoginStart(antigravityRuntimeEnv(c), methodID)
+	if err != nil {
+		return nil, antigravityLoginErr(err)
+	}
+	return info, nil
+}
+
+// acpAntigravityLoginFinish completes the sign-in from the address the user's
+// browser was redirected to.
+func acpAntigravityLoginFinish(c *web.Context) (any, error) {
+	handle := strVal(c.Body["handle"])
+	redirect := strVal(c.Body["redirect"])
+	outcome, err := acp.AntigravityLoginFinish(handle, redirect)
+	if err != nil {
+		return nil, antigravityLoginErr(err)
+	}
+	return outcome, nil
+}
+
+// acpAntigravityLoginCancel abandons a pending sign-in and stops its agent.
+func acpAntigravityLoginCancel(c *web.Context) (any, error) {
+	if err := acp.AntigravityLoginCancel(strVal(c.Body["handle"])); err != nil {
+		return nil, antigravityLoginErr(err)
+	}
+	return nil, nil
+}
+
+// antigravityLoginErr maps a failed sign-in: a missing binary is
+// dependency_missing, everything else is a task failure.
+func antigravityLoginErr(err error) error {
+	var unavailable *acp.AgentUnavailableError
+	if errors.As(err, &unavailable) {
+		return web.ErrDependencyMissing("Antigravity is not installed")
+	}
+	return web.ErrTaskExecution(err.Error())
 }
 
 // acpAntigravitySignOut clears the Antigravity credential so another account

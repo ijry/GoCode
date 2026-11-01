@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 var hyperframesSkillAgents = []string{"claude-code", "codex", "opencode", "gemini-cli", "openclaw", "cline"}

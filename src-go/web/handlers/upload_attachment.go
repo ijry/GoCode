@@ -3,7 +3,7 @@ package handlers
 // upload_attachment (upstream web/handlers/files.rs). Streams one multipart
 // file into <uploads-root>/<session-bucket>/, jailed under the uploads root,
 // with a sanitized filename (collision-suffixed), a 20 MiB per-file cap, and an
-// optional total-size quota (YOYOCODE_UPLOAD_MAX_TOTAL_BYTES). Returns the stored
+// optional total-size quota (GOCODE_UPLOAD_MAX_TOTAL_BYTES). Returns the stored
 // path the composer turns back into a file:// uri.
 
 import (
@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 const uploadMaxBytes = 20 * 1024 * 1024
@@ -29,14 +29,14 @@ func RegisterUploadAttachment(reg *Registry) {
 	reg.Register("upload_attachment", uploadAttachment)
 }
 
-func yoyocodeUploadsRoot() string {
-	if v := strings.TrimSpace(os.Getenv("YOYOCODE_HOME")); v != "" {
+func gocodeUploadsRoot() string {
+	if v := strings.TrimSpace(os.Getenv("GOCODE_HOME")); v != "" {
 		return filepath.Join(v, "uploads")
 	}
-	if v := strings.TrimSpace(os.Getenv("YOYOCODE_DATA_DIR")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("GOCODE_DATA_DIR")); v != "" {
 		return filepath.Join(v, "uploads")
 	}
-	return filepath.Join(skillHomeDir(), ".yoyocode", "uploads")
+	return filepath.Join(skillHomeDir(), ".gocode", "uploads")
 }
 
 func allDots(s string) bool {
@@ -144,7 +144,7 @@ func currentUploadsTotalBytes(root string) int64 {
 }
 
 func uploadQuotaCap() int64 {
-	if v := strings.TrimSpace(os.Getenv("YOYOCODE_UPLOAD_MAX_TOTAL_BYTES")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("GOCODE_UPLOAD_MAX_TOTAL_BYTES")); v != "" {
 		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
 			return n
 		}
@@ -200,7 +200,7 @@ func uploadAttachment(c *web.Context) (any, error) {
 		return nil, web.ErrInvalidInput("multipart boundary missing")
 	}
 
-	uploadsRoot := yoyocodeUploadsRoot()
+	uploadsRoot := gocodeUploadsRoot()
 	if e := os.MkdirAll(uploadsRoot, 0o755); e != nil {
 		return nil, web.ErrIO("Failed to create uploads root: " + e.Error())
 	}

@@ -5,11 +5,9 @@ package app
 // the rest are placeholders tracked against the upstream page tree.
 
 import (
-	"encoding/json"
-
 	"github.com/egoist/mygo/ui"
 
-	"yoyocode/locales"
+	"gocode/locales"
 )
 
 // settingsPages is the upstream settings page tree (src/app/settings/*), in
@@ -22,6 +20,7 @@ var settingsPages = []struct {
 	{"general", locales.Messages.GeneralTitle},
 	{"appearance", locales.Messages.NavAppearance},
 	{"agents", locales.Messages.NavAgents},
+	{"model-providers", locales.Messages.NavModelProviders},
 	{"version-control", locales.Messages.NavVersionControl},
 	{"mcp", locales.Messages.NavMCP},
 	{"quick-messages", locales.Messages.NavQuickMessages},
@@ -41,14 +40,6 @@ var settingsPages = []struct {
 	{"system", locales.Messages.NavSystem},
 }
 
-// settingsPlaceholderHints describe the pages whose panels have no backend yet,
-// so a placeholder still tells the reader what it will do.
-var settingsPlaceholderHints = map[string]string{
-	"shortcuts":     "Keyboard-shortcut customisation for the composer and navigation.",
-	"skill-packs":   "Bundles of skills you can install into an agent in one step.",
-	"collaboration": "Shared-workspace and multi-user hand-off settings.",
-}
-
 func (s *Shell) viewSettings(c *ui.Context) {
 	t := c.Theme()
 	ui.Row(c).Fill().Children(func() {
@@ -65,6 +56,17 @@ func (s *Shell) viewSettings(c *ui.Context) {
 		})
 		// Active page.
 		ui.Column(c.Key("set-page")).Grow(1).FillHeight().Padding(20).Gap(12).Children(func() {
+			// Settings pages report their outcome through actionMsg (a save
+			// failure, a token probe's result). Without this banner those were
+			// written and never shown anywhere. A page switch drops the previous
+			// page's message so it can't hang over another page's form.
+			if s.settingsMsgPage != s.settingsPage {
+				s.settingsMsgPage = s.settingsPage
+				s.actionMsg = ""
+			}
+			if s.actionMsg != "" {
+				ui.Text(c, s.actionMsg).FontSize(12).TextColor(t.TextMuted).Wrap()
+			}
 			switch s.settingsPage {
 			case "general":
 				s.viewSettingsGeneral(c)
@@ -78,6 +80,8 @@ func (s *Shell) viewSettings(c *ui.Context) {
 				s.viewSettingsQuickMessages(c)
 			case "agents":
 				s.viewSettingsAgents(c)
+			case "model-providers":
+				s.viewSettingsModelProviders(c)
 			case "version-control":
 				s.viewSettingsVersionControl(c)
 			case "system":
@@ -100,6 +104,12 @@ func (s *Shell) viewSettings(c *ui.Context) {
 				s.viewSettingsScience(c)
 			case "office-tools":
 				s.viewSettingsOfficeTools(c)
+			case "skill-packs":
+				s.viewSettingsSkillPacks(c)
+			case "shortcuts":
+				s.viewSettingsShortcuts(c)
+			case "collaboration":
+				s.viewSettingsCollaboration(c)
 			default:
 				label := s.settingsPage
 				for _, p := range settingsPages {
@@ -111,13 +121,9 @@ func (s *Shell) viewSettings(c *ui.Context) {
 				ui.Column(c.Key("set-placeholder")).Gap(6).Padding(12).Background(t.Surface).Radius(8).Children(func() {
 					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 						ui.Icon(c, iconInfo).Width(14).Height(14).TextColor(t.TextMuted)
-						ui.Text(c, "Not built yet").FontSize(13).Bold().TextColor(t.Text)
+						ui.Text(c, cat(c).SetNotBuilt()).FontSize(13).Bold().TextColor(t.Text)
 					})
-					if hint := settingsPlaceholderHints[s.settingsPage]; hint != "" {
-						ui.Text(c, hint).FontSize(12).TextColor(t.TextMuted).Wrap()
-					}
-					ui.Text(c, "This page mirrors upstream src/app/settings/"+s.settingsPage+
-						"; its backend is not ported yet.").FontSize(11).TextColor(t.TextMuted).Wrap()
+					ui.Text(c, cat(c).SetPageNotPorted(s.settingsPage)).FontSize(11).TextColor(t.TextMuted).Wrap()
 				})
 			}
 		})
@@ -143,7 +149,7 @@ func (s *Shell) viewSettingsGeneral(c *ui.Context) {
 	}
 	lang := str(cfg, "language")
 	if lang == "" {
-		lang = "(system default)"
+		lang = cat(c).SetSystemDefault()
 	}
 	ui.Row(c).Gap(8).Children(func() {
 		ui.Text(c, cat(c).GeneralInterfaceLanguage()).TextColor(t.TextMuted)
@@ -153,11 +159,12 @@ func (s *Shell) viewSettingsGeneral(c *ui.Context) {
 
 func (s *Shell) viewSettingsWebService(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	status := asObj(s.ensure("web-status", "get_web_server_status", nil))
 	ui.Row(c).Gap(10).Children(func() {
-		ui.Text(c, "Web Service").FontSize(22).Bold()
+		ui.Text(c, m.NavWebService()).FontSize(22).Bold()
 		ui.Spacer(c)
-		iconButton(c, "ws-refresh2", iconRefresh, "Refresh", func() {
+		iconButton(c, "ws-refresh2", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidate("web-status")
 		})
 	})
@@ -169,21 +176,21 @@ func (s *Shell) viewSettingsWebService(c *ui.Context) {
 	// addresses}. In the native build the in-process server is always running.
 	running := status != nil
 	ui.Row(c).Gap(8).Children(func() {
-		ui.Text(c, "Status").TextColor(t.TextMuted)
+		ui.Text(c, m.SetStatus()).TextColor(t.TextMuted)
 		if running {
-			ui.Text(c, "running").Bold().TextColor(t.Success)
+			ui.Text(c, m.SetRunning()).Bold().TextColor(t.Success)
 		} else {
-			ui.Text(c, "stopped").Bold().TextColor(t.TextMuted)
+			ui.Text(c, m.SetStopped()).Bold().TextColor(t.TextMuted)
 		}
 	})
 	if running {
 		ui.Row(c).Gap(8).Children(func() {
-			ui.Text(c, "Port").TextColor(t.TextMuted)
+			ui.Text(c, m.SetPort()).TextColor(t.TextMuted)
 			ui.Textf(c, "%v", status["port"]).Bold()
 		})
 		if addrs, ok := status["addresses"].([]any); ok && len(addrs) > 0 {
 			ui.Row(c).Gap(8).Children(func() {
-				ui.Text(c, "Address").TextColor(t.TextMuted)
+				ui.Text(c, m.SetAddress()).TextColor(t.TextMuted)
 				ui.Textf(c, "%v", addrs[0]).Bold()
 			})
 		}
@@ -203,95 +210,10 @@ func itoa(prefix string, i int) string {
 	return prefix + string(b)
 }
 
-func (s *Shell) viewSettingsAgents(c *ui.Context) {
-	t := c.Theme()
-	agents := asList(s.ensure("agents", "acp_list_agents", nil))
-	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Agents").FontSize(22).Bold()
-		ui.Spacer(c)
-		iconButton(c, "ag-refresh", iconRefresh, "Refresh", func() {
-			s.invalidate("agents")
-		})
-	})
-	if s.errFor("agents") != "" {
-		s.errorState(c, "agents", nil)
-		return
-	}
-	if agents == nil {
-		loadingState(c, "")
-		return
-	}
-	ui.Textf(c, "%d agents in the built-in catalog", len(agents)).FontSize(12).TextColor(t.TextMuted)
-	ui.Scroll(c).Grow(1).Children(func() {
-		ui.Column(c).Gap(6).Children(func() {
-			for i, a := range agents {
-				name := firstNonEmpty(str(a, "name"), str(a, "agent_type"))
-				at := str(a, "agent_type")
-				desc := str(a, "description")
-				available := false
-				if v, ok := a["available"].(bool); ok {
-					available = v
-				}
-				ver := s.agentVer[at]
-				latest := s.agentLatest[at]
-				ui.Column(c.Key(itoa("ag", i))).Gap(2).Padding(10).Background(t.Surface).Radius(8).Children(func() {
-					ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, name).Bold()
-						ui.Text(c, at).FontSize(11).TextColor(t.TextMuted)
-						ui.Spacer(c)
-						if ver != "" {
-							ui.Text(c, "v"+ver).FontSize(11).TextColor(t.Success)
-						} else if available {
-							ui.Text(c, "● available").FontSize(11).TextColor(t.Success)
-						} else {
-							ui.Text(c, "○ not installed").FontSize(11).TextColor(t.TextMuted)
-						}
-						if ui.Button(c.Key(itoa("agchk", i)), "Check").Clicked() {
-							s.checkAgentVersion(at)
-						}
-					})
-					if latest != "" {
-						ui.Text(c, "update available: v"+latest).FontSize(11).TextColor(t.Warning)
-					}
-					if desc != "" {
-						ui.Text(c, desc).FontSize(12).TextColor(t.TextMuted).MaxLines(3).Wrap()
-					}
-				})
-			}
-		})
-	})
-}
-
-// checkAgentVersion probes an agent's locally installed version and whether a
-// newer release is available, on demand (both calls can take a few seconds, so
-// this is a button rather than an on-open sweep). Results feed the Agents list.
-func (s *Shell) checkAgentVersion(agentType string) {
-	go func() {
-		if raw, err := s.B.raw("acp_detect_agent_local_version", map[string]any{"agentType": agentType}); err == nil {
-			var v string
-			if json.Unmarshal(raw, &v) == nil {
-				s.mu.Lock()
-				s.agentVer[agentType] = v
-				s.mu.Unlock()
-			}
-		}
-		if raw, err := s.B.raw("acp_fetch_agent_latest_release", map[string]any{"agentType": agentType}); err == nil {
-			var m map[string]any
-			if json.Unmarshal(raw, &m) == nil && m != nil {
-				if lv, ok := m["version"].(string); ok {
-					s.mu.Lock()
-					s.agentLatest[agentType] = lv
-					s.mu.Unlock()
-				}
-			}
-		}
-		s.svc.Invalidate()
-	}()
-}
-
 func (s *Shell) viewSettingsSystem(c *ui.Context) {
 	t := c.Theme()
-	ui.Text(c, "System").FontSize(22).Bold()
+	m := cat(c)
+	ui.Text(c, m.NavSystem()).FontSize(22).Bold()
 	home := decodeString(s.ensure("home-dir", "get_home_directory", nil))
 	kv := func(k, v string) {
 		ui.Row(c.Key("sys-" + k)).Gap(8).Children(func() {
@@ -300,19 +222,20 @@ func (s *Shell) viewSettingsSystem(c *ui.Context) {
 		})
 	}
 	if home != "" {
-		kv("Home directory", home)
+		kv(m.SetHomeDirectory(), home)
 	}
-	kv("Backend", s.B.URL)
-	kv("Build", "YoYoCode v0.1.0")
+	kv(m.SetBackend(), s.B.URL)
+	kv(m.SetBuild(), "GoCode v0.1.0")
 }
 
 func (s *Shell) viewSettingsMCP(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	data := asObj(s.ensure("mcp-scan", "mcp_scan_local", nil))
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "MCP").FontSize(22).Bold()
+		ui.Text(c, m.NavMCP()).FontSize(22).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("mcp-refresh"), "Rescan").Clicked() {
+		if ui.Button(c.Key("mcp-refresh"), m.SetRescan()).Clicked() {
 			s.invalidate("mcp-scan")
 		}
 	})
@@ -321,16 +244,16 @@ func (s *Shell) viewSettingsMCP(c *ui.Context) {
 		return
 	}
 	if data == nil {
-		loadingState(c, "Scanning…")
+		loadingState(c, m.SetScanning())
 		return
 	}
 	servers, _ := data["servers"].([]any)
 	warnings, _ := data["warnings"].([]any)
-	ui.Textf(c, "%d local MCP server(s)", len(servers)).FontSize(12).TextColor(t.TextMuted)
+	ui.Text(c, m.SetMCPServersCount(len(servers))).FontSize(12).TextColor(t.TextMuted)
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Gap(6).Children(func() {
 			if len(servers) == 0 {
-				ui.Text(c, "No MCP servers found in agent configs.").FontSize(12).TextColor(t.TextMuted)
+				ui.Text(c, m.SetNoMCPServers()).FontSize(12).TextColor(t.TextMuted)
 			}
 			for i, raw := range servers {
 				srv, _ := raw.(map[string]any)
@@ -359,29 +282,30 @@ func (s *Shell) viewSettingsMCP(c *ui.Context) {
 
 func (s *Shell) viewSettingsLogs(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	settings := asObj(s.ensure("log-settings", "get_log_settings", nil))
 	files := asList(s.ensure("log-files", "list_log_files", nil))
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Logs").FontSize(22).Bold()
+		ui.Text(c, m.NavLogs()).FontSize(22).Bold()
 		ui.Spacer(c)
-		iconButton(c, "log-refresh", iconRefresh, "Refresh", func() {
+		iconButton(c, "log-refresh", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidate("log-files")
 			s.invalidate("log-settings")
 		})
 	})
 	if settings != nil {
 		ui.Row(c).Gap(8).Children(func() {
-			ui.Text(c, "Level").TextColor(t.TextMuted)
+			ui.Text(c, m.SetLevel()).TextColor(t.TextMuted)
 			ui.Text(c, firstNonEmpty(str(settings, "level"), "info")).Bold()
 		})
 	}
-	ui.Text(c, "Log files").FontSize(13).Bold()
+	ui.Text(c, m.SetLogFiles()).FontSize(13).Bold()
 	if files == nil {
 		loadingState(c, "")
 		return
 	}
 	if len(files) == 0 {
-		ui.Text(c, "No log files yet.").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, m.SetNoLogFiles()).FontSize(12).TextColor(t.TextMuted)
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
@@ -407,6 +331,7 @@ func (s *Shell) viewSettingsLogs(c *ui.Context) {
 // are flagged.
 func (s *Shell) viewSettingsSkills(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	agents := asList(s.ensure("agents", "acp_list_agents", nil))
 	options := make([]string, 0, len(agents))
 	for _, a := range agents {
@@ -422,22 +347,22 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 	}
 
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Skills").FontSize(22).Bold()
+		ui.Text(c, m.NavSkills()).FontSize(22).Bold()
 		ui.Spacer(c)
-		iconButton(c, "sk-refresh", iconRefresh, "Refresh", func() {
+		iconButton(c, "sk-refresh", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidate(s.skillsCacheKey())
 		})
 	})
-	ui.Text(c, "Skills YoYoCode can see in the selected agent's own store.").FontSize(12).TextColor(t.TextMuted)
+	ui.Text(c, m.SetSkillsHint()).FontSize(12).TextColor(t.TextMuted)
 
 	ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Agent").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, m.AuxAgent()).FontSize(12).TextColor(t.TextMuted)
 		if len(options) > 0 {
 			ui.Select(c.Key("sk-agent"), &s.skillsAgent, options).Width(220)
 		} else {
-			ui.Text(c, "(loading agents…)").FontSize(12).TextColor(t.TextMuted)
+			ui.Text(c, m.SetLoadingAgents()).FontSize(12).TextColor(t.TextMuted)
 		}
-		ui.Text(c, "Scope").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, m.SetScope()).FontSize(12).TextColor(t.TextMuted)
 		ui.Select(c.Key("sk-scope"), &s.skillsScope, []string{"global", "project"}).Width(130)
 	})
 
@@ -459,7 +384,7 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 	if supported, _ := res["supported"].(bool); !supported {
 		msg := str(res, "message")
 		if msg == "" {
-			msg = "This agent does not support managing skills here."
+			msg = m.SetSkillsUnsupported()
 		}
 		ui.Text(c, msg).FontSize(12).TextColor(t.TextMuted).Wrap()
 		return
@@ -474,11 +399,11 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 			shown = append(shown, sk)
 		}
 	}
-	ui.Textf(c, "%d skill(s) in %s scope", len(shown), s.skillsScope).FontSize(12).TextColor(t.TextMuted)
+	ui.Text(c, m.SetSkillsCount(len(shown), s.skillsScope)).FontSize(12).TextColor(t.TextMuted)
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Gap(6).Children(func() {
 			if len(shown) == 0 {
-				ui.Text(c, "No skills found in this scope.").FontSize(12).TextColor(t.TextMuted)
+				ui.Text(c, m.SetNoSkillsScope()).FontSize(12).TextColor(t.TextMuted)
 				return
 			}
 			for i, sk := range shown {
@@ -495,7 +420,7 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 						ui.Text(c, layout).FontSize(11).TextColor(t.TextMuted)
 						ui.Spacer(c)
 						if ro {
-							ui.Text(c, "read-only").FontSize(11).TextColor(t.Warning)
+							ui.Text(c, m.SetReadOnly()).FontSize(11).TextColor(t.Warning)
 						}
 					})
 					if desc != "" {
@@ -506,14 +431,22 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 		})
 	})
 
-	// Custom skills (central store ~/.yoyocode/skills) — create / list / delete,
+	// Custom skills (central store ~/.gocode/skills) — create / list / delete,
 	// shared across agents (upstream custom_* skill routes).
 	ui.Divider(c)
-	ui.Text(c, "Custom skills (central store)").FontSize(14).Bold()
-	ui.Text(c, "Authored once in ~/.yoyocode/skills, enable per agent from the matrix.").FontSize(11).TextColor(t.TextMuted)
+	s.customSkillsBody(c)
+}
+
+// customSkillsBody is the central-store CRUD list — shared by the Skills page
+// and the Skill Packs hub's Custom tab.
+func (s *Shell) customSkillsBody(c *ui.Context) {
+	t := c.Theme()
+	m := cat(c)
+	ui.Text(c, m.SetCustomSkills()).FontSize(14).Bold()
+	ui.Text(c, m.SetCustomSkillsHint()).FontSize(11).TextColor(t.TextMuted)
 	ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-		ui.TextInput(c.Key("sk-newid"), &s.newSkillID).Placeholder("new-skill-id").Grow(1)
-		if ui.PrimaryButton(c.Key("sk-create"), "Create").Disabled(s.newSkillID == "").Clicked() {
+		ui.TextInput(c.Key("sk-newid"), &s.newSkillID).Placeholder(m.SetNewSkillId()).Grow(1)
+		if ui.PrimaryButton(c.Key("sk-create"), m.ActionNew()).Disabled(s.newSkillID == "").Clicked() {
 			s.createCustomSkill(s.newSkillID)
 		}
 	})
@@ -521,7 +454,7 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 	if custom == nil {
 		loadingState(c, "")
 	} else if len(custom) == 0 {
-		ui.Text(c, "No custom skills yet.").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, m.SetNoCustomSkills()).FontSize(12).TextColor(t.TextMuted)
 	} else {
 		ui.Column(c).Gap(4).Children(func() {
 			for i, ck := range custom {
@@ -535,7 +468,7 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 							ui.Text(c, desc).FontSize(10).TextColor(t.TextMuted).MaxLines(1)
 						}
 					})
-					if ui.Button(c.Key(itoa("cskdel", i)), "Delete").Clicked() {
+					if ui.Button(c.Key(itoa("cskdel", i)), m.ActionDelete()).Clicked() {
 						s.deleteCustomSkill(id)
 					}
 				})
@@ -549,8 +482,16 @@ func (s *Shell) viewSettingsSkills(c *ui.Context) {
 func (s *Shell) createCustomSkill(id string) {
 	scaffold := "---\nname: " + id + "\ndescription: \n---\n\n# " + id + "\n"
 	go func() {
-		_, _ = s.B.raw("custom_create_skill", map[string]any{"id": id, "content": scaffold})
+		if _, err := s.B.raw("custom_create_skill", map[string]any{"id": id, "content": scaffold}); err != nil {
+			// Keep the typed id so the user does not lose it, and say why: a
+			// silent failure here looked like the button did nothing.
+			s.notifyErr(err.Error())
+			s.svc.Invalidate()
+			return
+		}
+		s.mu.Lock()
 		s.newSkillID = ""
+		s.mu.Unlock()
 		s.invalidate("custom-skills")
 		s.svc.Invalidate()
 	}()
@@ -559,7 +500,11 @@ func (s *Shell) createCustomSkill(id string) {
 // deleteCustomSkill removes a custom skill from the central store.
 func (s *Shell) deleteCustomSkill(id string) {
 	go func() {
-		_, _ = s.B.raw("custom_delete_skills", map[string]any{"ids": []any{id}})
+		if _, err := s.B.raw("custom_delete_skills", map[string]any{"ids": []any{id}}); err != nil {
+			s.notifyErr(err.Error())
+			s.svc.Invalidate()
+			return
+		}
 		s.invalidate("custom-skills")
 		s.svc.Invalidate()
 	}()
@@ -573,27 +518,28 @@ func (s *Shell) skillsCacheKey() string {
 // (list_chat_channels) — Lark / Telegram / WeChat outbound bots.
 func (s *Shell) viewSettingsChatChannels(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Chat Channels").FontSize(22).Bold()
+		ui.Text(c, m.NavChatChannels()).FontSize(22).Bold()
 		ui.Spacer(c)
-		iconButton(c, "cc-refresh", iconRefresh, "Refresh", func() {
+		iconButton(c, "cc-refresh", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidate("chat-channels")
 		})
 	})
-	ui.Text(c, "Outbound chat integrations (Lark / Telegram / WeChat).").FontSize(12).TextColor(t.TextMuted)
+	ui.Text(c, m.SetChatChannelsHint()).FontSize(12).TextColor(t.TextMuted)
 	list := asList(s.ensure("chat-channels", "list_chat_channels", nil))
 	if list == nil {
 		loadingState(c, "")
 		return
 	}
 	if len(list) == 0 {
-		ui.Text(c, "No chat channels configured.").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, m.SetNoChatChannels()).FontSize(12).TextColor(t.TextMuted)
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Gap(6).Children(func() {
 			for i, ch := range list {
-				name := firstNonEmpty(str(ch, "name"), "(unnamed)")
+				name := firstNonEmpty(str(ch, "name"), m.SetUnnamed())
 				ctype := str(ch, "channel_type")
 				enabled := false
 				if v, ok := ch["enabled"].(bool); ok {
@@ -605,9 +551,9 @@ func (s *Shell) viewSettingsChatChannels(c *ui.Context) {
 						ui.Text(c, ctype).FontSize(11).TextColor(t.TextMuted)
 						ui.Spacer(c)
 						if enabled {
-							ui.Text(c, "● enabled").FontSize(11).TextColor(t.Success)
+							ui.Text(c, m.SetEnabled()).FontSize(11).TextColor(t.Success)
 						} else {
-							ui.Text(c, "○ disabled").FontSize(11).TextColor(t.TextMuted)
+							ui.Text(c, m.SetDisabled()).FontSize(11).TextColor(t.TextMuted)
 						}
 					})
 				})
@@ -620,7 +566,8 @@ func (s *Shell) viewSettingsChatChannels(c *ui.Context) {
 // (computer_available) and on which platform.
 func (s *Shell) viewSettingsComputerUse(c *ui.Context) {
 	t := c.Theme()
-	ui.Text(c, "Computer Use").FontSize(22).Bold()
+	m := cat(c)
+	ui.Text(c, m.NavComputerUse()).FontSize(22).Bold()
 	info := asObj(s.ensure("computer-available", "computer_available", nil))
 	if info == nil {
 		loadingState(c, "")
@@ -631,19 +578,19 @@ func (s *Shell) viewSettingsComputerUse(c *ui.Context) {
 		available = v
 	}
 	ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Status").TextColor(t.TextMuted)
+		ui.Text(c, m.SetStatus()).TextColor(t.TextMuted)
 		if available {
-			ui.Text(c, "available").Bold().TextColor(t.Success)
+			ui.Text(c, m.SetAvailable()).Bold().TextColor(t.Success)
 		} else {
-			ui.Text(c, "not available on this backend").Bold().TextColor(t.TextMuted)
+			ui.Text(c, m.SetNotAvailable()).Bold().TextColor(t.TextMuted)
 		}
 	})
 	ui.Row(c).Gap(8).Children(func() {
-		ui.Text(c, "Platform").TextColor(t.TextMuted)
-		ui.Text(c, firstNonEmpty(str(info, "platform"), "unknown")).Bold()
+		ui.Text(c, m.SetPlatform()).TextColor(t.TextMuted)
+		ui.Text(c, firstNonEmpty(str(info, "platform"), m.SetUnknown())).Bold()
 	})
 	if !available {
-		ui.Text(c, "Computer use is served only by a desktop session started with YOYOCODE_COMPUTER_USE=1.").FontSize(11).TextColor(t.TextMuted).Wrap()
+		ui.Text(c, m.SetComputerUseHint()).FontSize(11).TextColor(t.TextMuted).Wrap()
 	}
 }
 
@@ -651,15 +598,23 @@ func (s *Shell) viewSettingsComputerUse(c *ui.Context) {
 // This build ships none, so the list is empty by design.
 func (s *Shell) viewSettingsExperts(c *ui.Context) {
 	t := c.Theme()
-	ui.Text(c, "Experts").FontSize(22).Bold()
-	ui.Text(c, "Bundled expert skill packs. Enable per agent from the matrix.").FontSize(12).TextColor(t.TextMuted)
+	m := cat(c)
+	ui.Text(c, m.NavExperts()).FontSize(22).Bold()
+	ui.Text(c, m.SetExpertsHint()).FontSize(12).TextColor(t.TextMuted)
+	s.expertsBody(c, m)
+}
+
+// expertsBody is the experts list without its page header — shared with the
+// Skill Packs hub's Experts tab.
+func (s *Shell) expertsBody(c *ui.Context, m locales.Messages) {
+	t := c.Theme()
 	list := asList(s.ensure("experts-list", "experts_list", nil))
 	if list == nil {
 		loadingState(c, "")
 		return
 	}
 	if len(list) == 0 {
-		ui.Text(c, "No bundled expert packs in this build. Author your own under Skills → Custom skills.").FontSize(12).TextColor(t.TextMuted).Wrap()
+		ui.Text(c, m.SetNoExperts()).FontSize(12).TextColor(t.TextMuted).Wrap()
 		return
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
@@ -681,22 +636,23 @@ func (s *Shell) viewSettingsExperts(c *ui.Context) {
 // the whole window on the next paint.
 func (s *Shell) viewSettingsAppearance(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	mode := s.appearanceMode
 	if raw := s.ensure("appearance-mode", "get_appearance_mode", nil); raw != nil {
-		if m := asObj(raw); m != nil {
-			if v := str(m, "mode"); v != "" {
+		if m2 := asObj(raw); m2 != nil {
+			if v := str(m2, "mode"); v != "" {
 				mode = v
 			}
 		}
 	}
-	ui.Text(c, "Appearance").FontSize(22).Bold()
+	ui.Text(c, m.NavAppearance()).FontSize(22).Bold()
 	if s.errFor("appearance-mode") != "" {
 		s.errorState(c, "appearance-mode", nil)
 		return
 	}
 
-	ui.Text(c, "Theme mode").FontSize(12).Bold().TextColor(t.TextMuted)
-	ui.Text(c, "Choose how YoYoCode looks. \u201cSystem\u201d follows the OS where supported.").FontSize(12).TextColor(t.TextMuted)
+	ui.Text(c, m.SetThemeMode()).FontSize(12).Bold().TextColor(t.TextMuted)
+	ui.Text(c, m.SetAppearanceHint()).FontSize(12).TextColor(t.TextMuted)
 	ui.Row(c).Gap(8).Children(func() {
 		for _, opt := range []struct{ id, label string }{
 			{"system", cat(c).ThemeSystem()},
@@ -712,14 +668,14 @@ func (s *Shell) viewSettingsAppearance(c *ui.Context) {
 				clicked = ui.Button(c.Key(key), opt.label).Clicked()
 			}
 			if clicked {
-				s.setAppearanceMode(opt.id)
+				s.setAppearanceMode(c, opt.id)
 			}
 		}
 	})
 
 	ui.Divider(c)
 	ui.Row(c).Gap(8).Children(func() {
-		ui.Text(c, "Current").TextColor(t.TextMuted)
+		ui.Text(c, m.SetCurrent()).TextColor(t.TextMuted)
 		ui.Text(c, mode).Bold()
 	})
 	// A small live swatch so the choice is legible before it is committed.
@@ -732,14 +688,15 @@ func (s *Shell) viewSettingsAppearance(c *ui.Context) {
 
 // setAppearanceMode persists the mode and repaints the shell so the theme
 // applies immediately.
-func (s *Shell) setAppearanceMode(mode string) {
+func (s *Shell) setAppearanceMode(c *ui.Context, mode string) {
 	svc := s.svc
+	loc := c.Locale()
 	s.appearanceMode = mode // optimistic: repaint with the new theme at once
 	go func() {
 		_, err := s.B.raw("update_appearance_mode", map[string]any{"mode": mode})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "appearance update failed: " + err.Error()
+			s.actionMsg = locales.In(loc).SetAppearanceFailed(err.Error())
 		} else {
 			delete(s.cache, "appearance-mode")
 		}

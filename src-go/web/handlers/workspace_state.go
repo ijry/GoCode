@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 const workspaceStateProtocolVersion = 1

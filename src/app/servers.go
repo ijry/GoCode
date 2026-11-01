@@ -19,7 +19,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"yoyocode/locales"
+	"gocode/locales"
 )
 
 // serverProfile is a saved server connection: where it lives and the token to
@@ -45,12 +45,12 @@ type serverEditor struct {
 }
 
 // serversFile returns the path of the saved-connections file, honoring the
-// same YOYOCODE_DATA_DIR override the backend itself uses.
+// same GOCODE_DATA_DIR override the backend itself uses.
 func serversFile() string {
-	dir := os.Getenv("YOYOCODE_DATA_DIR")
+	dir := os.Getenv("GOCODE_DATA_DIR")
 	if dir == "" {
 		home, _ := os.UserHomeDir()
-		dir = filepath.Join(home, ".yoyocode")
+		dir = filepath.Join(home, ".gocode")
 	}
 	return filepath.Join(dir, "servers.json")
 }
@@ -119,7 +119,7 @@ func (s *Shell) activeProfile() serverProfile {
 
 // switchServer validates a connection and, if it answers /api/health, repoints
 // the whole shell at it. Failures keep the current server and explain why.
-func (s *Shell) switchServer(id string) {
+func (s *Shell) switchServer(loc, id string) {
 	s.mu.Lock()
 	p, ok := s.profileByID(id)
 	if !ok || p.ID == s.activeServer {
@@ -141,7 +141,7 @@ func (s *Shell) switchServer(id string) {
 		case !ok:
 			s.srvErr = fmt.Sprintf("%s answered %d to the health check.", p.Name, status)
 		default:
-			s.commitServerSwitch(p)
+			s.commitServerSwitch(loc, p)
 			s.srvEditor = nil
 		}
 		s.mu.Unlock()
@@ -151,7 +151,7 @@ func (s *Shell) switchServer(id string) {
 
 // commitServerSwitch repoints the shell at p and clears everything scoped to
 // the previous server. Caller holds s.mu.
-func (s *Shell) commitServerSwitch(p serverProfile) {
+func (s *Shell) commitServerSwitch(loc string, p serverProfile) {
 	// A new epoch: in-flight fetches for the old backend land and are dropped.
 	s.epoch++
 	s.cache = map[string]json.RawMessage{}
@@ -188,12 +188,16 @@ func (s *Shell) commitServerSwitch(p serverProfile) {
 		s.stream.Close()
 		s.stream = nil // ensureStream rebuilds against the new backend
 	}
-	s.notify("Connected to " + p.Name) // queue-only, safe inside s.mu
+	name := p.Name
+	if p.ID == localServerID {
+		name = locales.In(loc).ServersLocalName()
+	}
+	s.notify(locales.In(loc).SvConnected(name)) // queue-only, safe inside s.mu
 }
 
 // saveServerEditor validates the add/edit form, persists the connection and
 // switches to it. Validation failures keep the form open with an inline error.
-func (s *Shell) saveServerEditor() {
+func (s *Shell) saveServerEditor(c *ui.Context) {
 	ed := s.srvEditor
 	if ed == nil {
 		return
@@ -230,12 +234,12 @@ func (s *Shell) saveServerEditor() {
 	saveServers(s.servers)
 	s.srvEditor = nil
 	s.mu.Unlock()
-	s.switchServer(target)
+	s.switchServer(c.Locale(), target)
 }
 
 // deleteServer drops a saved connection, falling back to the local workspace
 // when the deleted one was active.
-func (s *Shell) deleteServer(id string) {
+func (s *Shell) deleteServer(loc, id string) {
 	s.mu.Lock()
 	kept := s.servers[:0]
 	for _, p := range s.servers {
@@ -249,7 +253,7 @@ func (s *Shell) deleteServer(id string) {
 	s.srvConfirm = ""
 	s.mu.Unlock()
 	if wasActive {
-		s.switchServer(localServerID)
+		s.switchServer(loc, localServerID)
 	}
 }
 
@@ -356,7 +360,7 @@ func (s *Shell) viewSettingsServers(c *ui.Context) {
 			}
 			ui.Row(c).Gap(6).Children(func() {
 				if ui.PrimaryButton(c.Key("srv-save"), cat(c).ServersSaveConnect()).Clicked() {
-					s.saveServerEditor()
+					s.saveServerEditor(c)
 				}
 				if ui.Button(c.Key("srv-cancel"), cat(c).ActionCancel()).Clicked() {
 					s.mu.Lock()
@@ -402,7 +406,7 @@ func (s *Shell) serverRow(c *ui.Context, p serverProfile, local bool) {
 			ui.Text(c, cat(c).ServersActiveRowBadge()).FontSize(11).TextColor(t.Success)
 		}
 		if !selected && ui.Button(c.Key("srv-connect-"+p.ID), cat(c).ActionConnect()).Clicked() {
-			s.switchServer(p.ID)
+			s.switchServer(c.Locale(), p.ID)
 		}
 		if ui.Button(c.Key("srv-edit-"+p.ID), cat(c).ActionEdit()).Clicked() {
 			s.mu.Lock()
@@ -413,7 +417,7 @@ func (s *Shell) serverRow(c *ui.Context, p serverProfile, local bool) {
 		if s.srvConfirm == p.ID {
 			ui.Text(c, cat(c).ActionDelete()+"?").FontSize(11).TextColor(t.Danger)
 			if ui.Button(c.Key("srv-rm-ok-"+p.ID), cat(c).ActionRemove()).Clicked() {
-				s.deleteServer(p.ID)
+				s.deleteServer(c.Locale(), p.ID)
 			}
 			if ui.Button(c.Key("srv-rm-no-"+p.ID), cat(c).ActionKeep()).Clicked() {
 				s.mu.Lock()

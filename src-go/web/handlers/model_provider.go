@@ -12,8 +12,8 @@ import (
 	"database/sql"
 	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // maskAPIKey mirrors models::model_provider::mask_api_key — operates on runes

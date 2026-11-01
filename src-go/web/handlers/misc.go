@@ -10,7 +10,7 @@ package handlers
 import (
 	"os"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // RegisterMisc wires the small standalone endpoints.

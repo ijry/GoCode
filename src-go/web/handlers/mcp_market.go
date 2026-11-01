@@ -21,10 +21,10 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
-const mcpMarketUserAgent = "yoyocode-mcp-market/1.0"
+const mcpMarketUserAgent = "gocode-mcp-market/1.0"
 
 var marketHTTPClient = &http.Client{
 	Timeout: 20 * time.Second,

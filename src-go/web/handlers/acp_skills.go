@@ -15,7 +15,7 @@ import (
 	"sort"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // skillStorageKind: whether an agent accepts directory bundles only, or also

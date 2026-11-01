@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"gocode/locales"
 )
 
 // TestInferFromPathAndBytes pins the attachment helpers: extension → MIME and
@@ -175,7 +176,7 @@ func TestUserMessageRendersAttachments(t *testing.T) {
 	}
 	s.stream.handle(&wsFrame{Type: "event", Envelope: ev})
 
-	items := buildTranscript(s.stream.Events("c1"))
+	items := buildTranscript(s.stream.Events("c1"), locales.In("en"))
 	var found bool
 	for _, it := range items {
 		if it.role == "user" && len(it.atts) == 1 && it.atts[0].Name == "schema.sql" {
@@ -217,7 +218,7 @@ func TestUploadAttachmentHTTP(t *testing.T) {
 			gotBody = string(b)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"path":"/home/u/.yoyocode/uploads/c1/report.txt","name":"report.txt","size":12,"mimeType":"text/plain"}`))
+		_, _ = w.Write([]byte(`{"path":"/home/u/.gocode/uploads/c1/report.txt","name":"report.txt","size":12,"mimeType":"text/plain"}`))
 	}))
 	defer srv.Close()
 
@@ -233,7 +234,7 @@ func TestUploadAttachmentHTTP(t *testing.T) {
 	if gotBody != "hello report" {
 		t.Errorf("uploaded body = %q, want the file's bytes", gotBody)
 	}
-	if item.Path != "/home/u/.yoyocode/uploads/c1/report.txt" || item.Name != "report.txt" || item.Size != 12 {
+	if item.Path != "/home/u/.gocode/uploads/c1/report.txt" || item.Name != "report.txt" || item.Size != 12 {
 		t.Errorf("parsed item = %+v", item)
 	}
 	if item.IsImage {

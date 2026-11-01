@@ -32,6 +32,9 @@ func TestImportSelectedAndLocal(t *testing.T) {
 	home := setHome(t)
 	claudeDir := filepath.Join(home, ".claude-test2")
 	t.Setenv("CLAUDE_CONFIG_DIR", claudeDir)
+	// The scan reads every agent's store, so pin them all: otherwise this machine's
+	// real sessions show up as extra folders.
+	pinAgentHomes(t, home)
 	srv := newTestServer(t)
 
 	// use a real OS-absolute cwd so folder-path reconcile matches after import
@@ -55,7 +58,7 @@ func TestImportSelectedAndLocal(t *testing.T) {
 	}
 	f0 := folders[0].(map[string]any)
 	if f0["exists_in_codeg"] != true || f0["folder_id"] == nil {
-		t.Fatalf("folder should now exist in YoYoCode: %v", f0)
+		t.Fatalf("folder should now exist in GoCode: %v", f0)
 	}
 	s0 := f0["sessions"].([]any)[0].(map[string]any)
 	if s0["status"] != "imported" {

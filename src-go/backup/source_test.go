@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"yoyocode/src-go/backup"
+	"gocode/src-go/backup"
 )
 
 func plaintextArchive(t *testing.T, dir string) string {

@@ -62,7 +62,12 @@ func waitText(t *testing.T, tt *ui.Tester, want string, present bool) bool {
 // waitUntil pumps frames until cond holds, or the budget runs out.
 func waitUntil(t *testing.T, tt *ui.Tester, cond func() bool) bool {
 	t.Helper()
-	for i := 0; i < 300; i++ {
+	// Ten seconds, not three: several of these tests shell out to git (commit,
+	// push, worktree) or hit the loopback backend, and on a loaded machine a
+	// step that normally takes 100ms can take seconds. Every caller uses this
+	// to wait for something to APPEAR, so a longer budget only slows genuine
+	// failures; steps known to be slower than this ask for waitUntilFor.
+	for i := 0; i < 1000; i++ {
 		tt.Frame()
 		if cond() {
 			return true
@@ -119,7 +124,9 @@ func TestAutomationDetailAndRunHistory(t *testing.T) {
 			t.Errorf("detail missing %q; texts = %v", want, tt.Texts())
 		}
 	}
-	if !tt.HasText("No runs yet.") {
+	// The run history arrives asynchronously: the first frame can still be the
+	// "RUN HISTORY Loading…" placeholder, so wait for the settled empty state.
+	if !waitText(t, tt, "No runs yet.", true) {
 		t.Errorf("run history should start empty; texts = %v", tt.Texts())
 	}
 

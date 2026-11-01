@@ -29,9 +29,9 @@ import (
 	"sync"
 	"time"
 
-	apperror "yoyocode/src-go/app_error"
-	"yoyocode/src-go/officewatch"
-	"yoyocode/src-go/web"
+	apperror "gocode/src-go/app_error"
+	"gocode/src-go/officewatch"
+	"gocode/src-go/web"
 )
 
 const (

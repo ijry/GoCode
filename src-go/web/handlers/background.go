@@ -31,7 +31,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 const (
@@ -42,7 +42,7 @@ const (
 	bgDirName       = "backgrounds"
 	bgStaleTmpAge   = 600 * time.Second
 	whSearchURL     = "https://wallhaven.cc/api/v1/search"
-	whUserAgent     = "yoyocode-wallpaper-market/1.0"
+	whUserAgent     = "gocode-wallpaper-market/1.0"
 	whPurity        = "100"
 	whMaxSearchJSON = 4 * 1024 * 1024
 	whMaxAssetBytes = 4 * 1024 * 1024
@@ -103,22 +103,22 @@ func RegisterBackground(reg *Registry) {
 }
 
 // backgroundsRoot resolves DataDir/backgrounds, mirroring paths.rs precedence:
-// YOYOCODE_HOME override, then YOYOCODE_DATA_DIR, then the AppState data dir, then
-// ~/.yoyocode. The dir is created lazily by the write path.
+// GOCODE_HOME override, then GOCODE_DATA_DIR, then the AppState data dir, then
+// ~/.gocode. The dir is created lazily by the write path.
 func backgroundsRoot(c *web.Context) string {
-	if custom := os.Getenv("YOYOCODE_HOME"); custom != "" {
+	if custom := os.Getenv("GOCODE_HOME"); custom != "" {
 		return filepath.Join(custom, bgDirName)
 	}
-	if data := os.Getenv("YOYOCODE_DATA_DIR"); data != "" {
+	if data := os.Getenv("GOCODE_DATA_DIR"); data != "" {
 		return filepath.Join(data, bgDirName)
 	}
 	if st, ok := appState(c); ok && st != nil && st.DataDir != "" {
 		return filepath.Join(st.DataDir, bgDirName)
 	}
 	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".yoyocode", bgDirName)
+		return filepath.Join(home, ".gocode", bgDirName)
 	}
-	return filepath.Join(".yoyocode", bgDirName)
+	return filepath.Join(".gocode", bgDirName)
 }
 
 // ─── disk ops ────────────────────────────────────────────────────────────

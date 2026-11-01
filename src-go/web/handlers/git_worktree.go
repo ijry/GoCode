@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // RegisterGitWorktree wires the worktree/branch-update write endpoints.

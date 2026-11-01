@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // RegisterWorkspaceFileTransfer wires upload/download of workspace files.
@@ -343,7 +343,7 @@ func uploadWorkspaceFile(c *web.Context) (any, error) {
 				}
 				return nil, web.ErrAlreadyExists("A file with this name already exists")
 			}
-			staging := filepath.Join(parent, ".yoyocode-upload-"+newChatUUID()+".part")
+			staging := filepath.Join(parent, ".gocode-upload-"+newChatUUID()+".part")
 			out, ocErr := os.OpenFile(staging, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 			if ocErr != nil {
 				return nil, web.ErrIO("Failed to create staging file: " + ocErr.Error())

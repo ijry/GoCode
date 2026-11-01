@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/assets"
+	"gocode/src-go/assets"
 )
 
 // modelsDevURL is the models.dev JSON API — the same source OpenCode reads.

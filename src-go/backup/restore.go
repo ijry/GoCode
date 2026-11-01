@@ -20,22 +20,22 @@ import (
 
 const (
 	// PendingMarker arms the swap (applied next startup).
-	PendingMarker = ".yoyocode-restore-pending.json"
+	PendingMarker = ".gocode-restore-pending.json"
 	// StagingDir holds extracted archives awaiting the swap.
-	StagingDir = ".yoyocode-restore-staging"
+	StagingDir = ".gocode-restore-staging"
 	// SafetyDir holds pre-restore snapshots (rollback sources).
-	SafetyDir = ".yoyocode-restore-backup"
+	SafetyDir = ".gocode-restore-backup"
 	// SwapStateDir is the durable per-unit state inside a staging dir.
-	SwapStateDir = ".yoyocode-swap-state"
+	SwapStateDir = ".gocode-swap-state"
 	// SnapshotManifestName names a safety snapshot's manifest (layout=="staging").
-	SnapshotManifestName = ".yoyocode-snapshot.json"
+	SnapshotManifestName = ".gocode-snapshot.json"
 	// DBStagingDir / DBStagingName are the archive path of the DB snapshot.
 	DBStagingDir  = "db"
-	DBStagingName = "yoyocode.db"
+	DBStagingName = "gocode.db"
 	// SafetySnapshotKeep prunes all but the newest N safety snapshots.
 	SafetySnapshotKeep = 2
 	// liveDBFileName mirrors db.Open's data-dir file.
-	liveDBFileName = "yoyocode.db"
+	liveDBFileName = "gocode.db"
 )
 
 // ErrAlreadyPending marks another restore already staged.

@@ -11,8 +11,8 @@ package handlers
 import (
 	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // RegisterGitRemoveWorktree wires git_remove_worktree.

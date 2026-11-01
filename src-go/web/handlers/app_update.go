@@ -9,30 +9,30 @@ package handlers
 import (
 	"os"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func updateCapability() string {
-	if os.Getenv("YOYOCODE_SUPERVISED") == "1" {
+	if os.Getenv("GOCODE_SUPERVISED") == "1" {
 		return "supervised"
 	}
 	return "reexec"
 }
 
-// yoyocodeVersion tracks the upstream Cargo package version (src-tauri/Cargo.toml);
-// overridable via YOYOCODE_VERSION so a build can stamp its own.
-const yoyocodeVersion = "0.34.0"
+// gocodeVersion tracks the upstream Cargo package version (src-tauri/Cargo.toml);
+// overridable via GOCODE_VERSION so a build can stamp its own.
+const gocodeVersion = "0.34.0"
 
 func serverVersion() string {
-	if v := os.Getenv("YOYOCODE_VERSION"); v != "" {
+	if v := os.Getenv("GOCODE_VERSION"); v != "" {
 		return v
 	}
-	return yoyocodeVersion
+	return gocodeVersion
 }
 
 // updateRuntimeLabel: "docker" when running in a container, else "standalone".
 func updateRuntimeLabel() string {
-	if os.Getenv("YOYOCODE_RUNTIME") == "docker" {
+	if os.Getenv("GOCODE_RUNTIME") == "docker" {
 		return "docker"
 	}
 	if _, err := os.Stat("/.dockerenv"); err == nil {

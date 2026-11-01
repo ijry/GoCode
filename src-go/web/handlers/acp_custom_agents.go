@@ -21,8 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/web"
 )
 
 // ─── value helpers (mirror acp::custom_registry) ───────────────────────────

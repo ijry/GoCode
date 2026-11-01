@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func TestNormalizeGitAndNumstatPaths(t *testing.T) {

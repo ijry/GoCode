@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"gocode/locales"
 )
 
 func TestDecodeHelpers(t *testing.T) {
@@ -73,7 +74,7 @@ func TestToolStatusLabel(t *testing.T) {
 		"":         "Pending",
 	}
 	for in, want := range cases {
-		if got := toolStatusLabel(in); got != want {
+		if got := toolStatusLabel(locales.In("en"), in); got != want {
 			t.Fatalf("toolStatusLabel(%q) = %q, want %q", in, got, want)
 		}
 	}
@@ -111,7 +112,7 @@ func TestBuildTranscript(t *testing.T) {
 		{"type": "content_delta", "text": "done"},
 		{"type": "turn_complete", "stop_reason": "end_turn"},
 		{"type": "error", "message": "boom"},
-	})
+	}, locales.In("en"))
 	if len(got) != 5 {
 		t.Fatalf("rows = %d, want 5: %+v", len(got), got)
 	}
@@ -133,16 +134,17 @@ func TestBuildTranscript(t *testing.T) {
 }
 
 func TestComposerStatus(t *testing.T) {
-	if composerStrip("connected", "") != "" {
+	en := locales.In("en")
+	if composerStrip(en, "connected", "") != "" {
 		t.Fatal("connected should have no strip")
 	}
-	if composerStrip("error", "") == "" || composerStrip("disconnected", "") == "" {
+	if composerStrip(en, "error", "") == "" || composerStrip(en, "disconnected", "") == "" {
 		t.Fatal("degraded states should warn")
 	}
-	if composerStrip("error", "custom") != "custom" {
+	if composerStrip(en, "error", "custom") != "custom" {
 		t.Fatal("explicit message should win")
 	}
-	if composerHint("prompting") == "" || composerHint("connected") != "" {
+	if composerHint(en, "prompting") == "" || composerHint(en, "connected") != "" {
 		t.Fatal("hint mapping")
 	}
 }

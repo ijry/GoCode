@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/egoist/mygo/ui"
+	"gocode/locales"
 )
 
 // taskEditor holds the create/edit form's working state. id == "" means create.
@@ -33,12 +34,15 @@ type taskEditor struct {
 }
 
 // taskColumns are the four board columns, in board order (upstream
-// BOARD_COLUMN_IDS).
-var taskColumns = []struct{ id, label string }{
-	{"todo", "To do"},
-	{"inProgress", "In progress"},
-	{"attention", "Needs attention"},
-	{"done", "Done"},
+// BOARD_COLUMN_IDS). The labels come from the catalogs, so the column headers
+// follow the window's language.
+func taskColumns(m locales.Messages) []struct{ id, label string } {
+	return []struct{ id, label string }{
+		{"todo", m.TkColTodo()},
+		{"inProgress", m.TkColInProgress()},
+		{"attention", m.TkColAttention()},
+		{"done", m.TkColDone()},
+	}
 }
 
 // taskColumnForStatus maps a DB status to its board column (upstream
@@ -61,22 +65,23 @@ func taskColumnForStatus(status string) string {
 // create/edit form, or the selected task's detail.
 func (s *Shell) viewTasks(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	list := asList(s.ensure(s.tasksKey(), "work_task_list", s.tasksBody()))
 
 	ui.Row(c.Key("tk-head")).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "To-dos").FontSize(22).Bold()
+		ui.Text(c, m.NavTodos()).FontSize(22).Bold()
 		ui.Spacer(c)
-		iconButton(c, "tk-refresh", iconRefresh, "Refresh", func() {
+		iconButton(c, "tk-refresh", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidate(s.tasksKey())
 		})
-		if ui.Button(c.Key("tk-startall"), "Start all").Clicked() {
-			s.taskStartAll()
+		if ui.Button(c.Key("tk-startall"), m.TkStartAll()).Clicked() {
+			s.taskStartAll(c)
 		}
-		if ui.PrimaryButton(c.Key("tk-new"), "New to-do").Clicked() {
+		if ui.PrimaryButton(c.Key("tk-new"), m.TkNew()).Clicked() {
 			s.startNewTask()
 		}
 	})
-	ui.Text(c, "The to-do board driving background agent work.").FontSize(12).TextColor(t.TextMuted)
+	ui.Text(c, m.TkHint()).FontSize(12).TextColor(t.TextMuted)
 
 	if s.taskEditor != nil {
 		s.viewTaskEditor(c)
@@ -95,8 +100,8 @@ func (s *Shell) viewTasks(c *ui.Context) {
 		return
 	}
 	ui.Row(c.Key("tk-toggles")).Gap(14).AlignItems(ui.Center).Children(func() {
-		ui.Checkbox(c.Key("tk-show-canceled"), &s.taskShowCanceled, "Show canceled")
-		ui.Checkbox(c.Key("tk-show-archived"), &s.taskShowArchived, "Show archived")
+		ui.Checkbox(c.Key("tk-show-canceled"), &s.taskShowCanceled, m.TkShowCanceled())
+		ui.Checkbox(c.Key("tk-show-archived"), &s.taskShowArchived, m.TkShowArchived())
 	})
 	if len(list) == 0 {
 		s.viewTasksEmpty(c)
@@ -105,7 +110,7 @@ func (s *Shell) viewTasks(c *ui.Context) {
 
 	visible := s.visibleTasks(list)
 	ui.Row(c.Key("tk-board")).Grow(1).Gap(10).Children(func() {
-		for _, col := range taskColumns {
+		for _, col := range taskColumns(m) {
 			tasks := tasksInColumn(visible, col.id)
 			col := col
 			ui.Column(c.Key("tk-col-" + col.id)).Grow(1).FillHeight().Gap(6).Children(func() {
@@ -132,11 +137,12 @@ func (s *Shell) viewTasks(c *ui.Context) {
 // viewTasksEmpty is the onboarding empty state.
 func (s *Shell) viewTasksEmpty(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	ui.Column(c.Key("tk-empty")).Fill().Center().Gap(10).Children(func() {
-		ui.Text(c, "No to-dos yet").FontSize(18).Bold()
-		ui.Text(c, "Queue a task and let an agent work it in its own worktree.").
+		ui.Text(c, m.TkEmptyTitle()).FontSize(18).Bold()
+		ui.Text(c, m.TkEmptyHint()).
 			FontSize(13).TextColor(t.TextMuted)
-		if ui.PrimaryButton(c.Key("tk-empty-new"), "New to-do").Clicked() {
+		if ui.PrimaryButton(c.Key("tk-empty-new"), m.TkNew()).Clicked() {
 			s.startNewTask()
 		}
 	})
@@ -146,8 +152,9 @@ func (s *Shell) viewTasksEmpty(c *ui.Context) {
 // status-dependent actions on its right-click menu.
 func (s *Shell) taskCard(c *ui.Context, tk map[string]any) {
 	t := c.Theme()
+	m := cat(c)
 	id := fmt.Sprintf("%v", tk["id"])
-	title := firstNonEmpty(str(tk, "title"), "(untitled)")
+	title := firstNonEmpty(str(tk, "title"), m.Untitled())
 	status := str(tk, "status")
 	agent := str(tk, "agent_type")
 	branch := str(tk, "work_branch")
@@ -157,23 +164,23 @@ func (s *Shell) taskCard(c *ui.Context, tk map[string]any) {
 	card.Children(func() {
 		ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, title).Grow(1).MaxLines(2).TextColor(t.Text)
-			taskStatusChip(c, "tk-chip-"+id, status)
+			taskStatusChip(c, "tk-chip-"+id, status, m)
 		})
 		meta := agent
 		if branch != "" {
 			meta += sepIf(meta) + branch
 		}
 		if files > 0 {
-			meta += sepIf(meta) + fmt.Sprintf("%d files +%d -%d", files, intOf(tk["additions"]), intOf(tk["deletions"]))
+			meta += sepIf(meta) + m.TkFilesMeta(files, intOf(tk["additions"]), intOf(tk["deletions"]))
 		}
 		if meta != "" {
 			ui.Text(c, meta).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
 		}
 		if isArchived(tk) {
-			ui.Text(c, "archived").FontSize(10).TextColor(t.TextMuted)
+			ui.Text(c, m.TkArchived()).FontSize(10).TextColor(t.TextMuted)
 		}
 	})
-	card.ContextMenu(func(m *ui.Menu) { s.taskMenu(m, tk) })
+	card.ContextMenu(func(mn *ui.Menu) { s.taskMenu(c, mn, m, tk) })
 	if card.Clicked() {
 		s.taskSel = id
 		s.taskEditor = nil
@@ -183,61 +190,61 @@ func (s *Shell) taskCard(c *ui.Context, tk map[string]any) {
 
 // taskMenu fills the card's context menu with the actions the task's status
 // allows (upstream buildTaskActions).
-func (s *Shell) taskMenu(m *ui.Menu, tk map[string]any) {
+func (s *Shell) taskMenu(c *ui.Context, mn *ui.Menu, m locales.Messages, tk map[string]any) {
 	id := fmt.Sprintf("%v", tk["id"])
 	status := str(tk, "status")
 	if isArchived(tk) {
-		if m.Item("Unarchive").Chosen() {
-			s.taskArchive(id, false)
+		if mn.Item(m.TkUnarchive()).Chosen() {
+			s.taskArchive(c, id, false)
 		}
 		return
 	}
 	switch status {
 	case "todo":
-		if m.Item("Start").Chosen() {
-			s.taskStart(id)
+		if mn.Item(m.TkStart()).Chosen() {
+			s.taskStart(c, id)
 		}
-		if m.Item("Edit").Chosen() {
+		if mn.Item(m.ActionEdit()).Chosen() {
 			s.startEditTask(tk)
 		}
 	case "queued", "preparing", "running", "awaiting_input":
-		if m.Item("Cancel").Chosen() {
-			s.taskCancel(id)
+		if mn.Item(m.ActionCancel()).Chosen() {
+			s.taskCancel(c, id)
 		}
 	case "review":
 		// Nothing changed ⟹ nothing to merge: accept outright; else merge.
 		if intOf(tk["files_changed"]) == 0 {
-			if m.Item("Complete").Chosen() {
-				s.taskComplete(id)
+			if mn.Item(m.TkComplete()).Chosen() {
+				s.taskComplete(c, id)
 			}
 		} else {
-			if m.Item("Merge").Chosen() {
-				s.taskMerge(id)
+			if mn.Item(m.TkMerge()).Chosen() {
+				s.taskMerge(c, id)
 			}
 		}
 	case "merging":
 		// A merge is in flight — no action.
 	case "failed":
-		if m.Item("Retry").Chosen() {
-			s.taskRetry(id)
+		if mn.Item(m.TkRetry()).Chosen() {
+			s.taskRetry(c, id)
 		}
-		if m.Item("Archive").Chosen() {
-			s.taskArchive(id, true)
+		if mn.Item(m.TkArchive()).Chosen() {
+			s.taskArchive(c, id, true)
 		}
 	case "done":
-		if m.Item("Archive").Chosen() {
-			s.taskArchive(id, true)
+		if mn.Item(m.TkArchive()).Chosen() {
+			s.taskArchive(c, id, true)
 		}
 	case "canceled":
-		if m.Item("Requeue").Chosen() {
-			s.taskRequeue(id)
+		if mn.Item(m.TkRequeue()).Chosen() {
+			s.taskRequeue(c, id)
 		}
-		if m.Item("Archive").Chosen() {
-			s.taskArchive(id, true)
+		if mn.Item(m.TkArchive()).Chosen() {
+			s.taskArchive(c, id, true)
 		}
 	}
-	m.Separator()
-	if m.Item("Delete").Chosen() {
+	mn.Separator()
+	if mn.Item(m.ActionDelete()).Chosen() {
 		s.taskSel = id
 		s.taskEditor = nil
 		s.taskConfirm = id
@@ -247,34 +254,35 @@ func (s *Shell) taskMenu(m *ui.Menu, tk map[string]any) {
 // viewTaskDetail renders the selected task's facts, actions and events timeline.
 func (s *Shell) viewTaskDetail(c *ui.Context, tk map[string]any) {
 	t := c.Theme()
+	m := cat(c)
 	id := fmt.Sprintf("%v", tk["id"])
 	status := str(tk, "status")
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c.Key("tk-detail")).Gap(12).Children(func() {
 			ui.Row(c).AlignItems(ui.Center).Children(func() {
-				iconButton(c, "tk-back", iconBack, "Back to board", func() {
+				iconButton(c, "tk-back", iconBack, m.TkBack(), func() {
 					s.taskSel = ""
 					s.taskConfirm = ""
 				})
 			})
 			ui.Row(c.Key("tk-detail-head")).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, firstNonEmpty(str(tk, "title"), "(untitled)")).FontSize(18).Bold()
-				taskStatusChip(c, "tk-detail-chip", status)
+				ui.Text(c, firstNonEmpty(str(tk, "title"), m.Untitled())).FontSize(18).Bold()
+				taskStatusChip(c, "tk-detail-chip", status, m)
 				ui.Spacer(c)
 				if isArchived(tk) {
-					ui.Text(c, "archived").FontSize(11).TextColor(t.TextMuted)
+					ui.Text(c, m.TkArchived()).FontSize(11).TextColor(t.TextMuted)
 				}
 			})
 
 			// Actions, or the inline delete confirmation.
 			if s.taskConfirm == id {
 				ui.Row(c.Key("tk-detail-confirm")).Gap(8).AlignItems(ui.Center).Children(func() {
-					ui.Text(c, "Delete this to-do?").TextColor(t.Danger)
-					if ui.PrimaryButton(c.Key("tk-confirm-yes"), "Delete").Clicked() {
+					ui.Text(c, m.TkConfirmDelete()).TextColor(t.Danger)
+					if ui.PrimaryButton(c.Key("tk-confirm-yes"), m.ActionDelete()).Clicked() {
 						s.taskConfirm = ""
-						s.taskDelete(id)
+						s.taskDelete(c, id)
 					}
-					if ui.Button(c.Key("tk-confirm-no"), "Cancel").Clicked() {
+					if ui.Button(c.Key("tk-confirm-no"), m.ActionCancel()).Clicked() {
 						s.taskConfirm = ""
 					}
 				})
@@ -284,38 +292,39 @@ func (s *Shell) viewTaskDetail(c *ui.Context, tk map[string]any) {
 
 			// Facts.
 			ui.Column(c.Key("tk-facts")).Gap(4).Children(func() {
-				ui.Textf(c, "Agent: %s", firstNonEmpty(str(tk, "agent_type"), "—")).FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, m.AuAgentLine(firstNonEmpty(str(tk, "agent_type"), "—"))).FontSize(13).TextColor(t.TextMuted)
 				if b := str(tk, "work_branch"); b != "" {
-					ui.Textf(c, "Branch: %s (base %s)", b, firstNonEmpty(str(tk, "base_branch"), "—")).FontSize(13).TextColor(t.TextMuted)
+					ui.Text(c, m.TkBranchLine(b, firstNonEmpty(str(tk, "base_branch"), "—"))).FontSize(13).TextColor(t.TextMuted)
 				}
 				if n := intOf(tk["files_changed"]); n > 0 {
-					ui.Textf(c, "Changes: %d files +%d -%d", n, intOf(tk["additions"]), intOf(tk["deletions"])).FontSize(13).TextColor(t.TextMuted)
+					ui.Text(c, m.TkChangesLine(n, intOf(tk["additions"]), intOf(tk["deletions"]))).FontSize(13).TextColor(t.TextMuted)
 				}
 				if v := str(tk, "verdict"); v != "" {
-					ui.Textf(c, "Verdict: %s", v).FontSize(13).TextColor(t.TextMuted)
+					ui.Text(c, m.TkVerdictLine(v)).FontSize(13).TextColor(t.TextMuted)
 				}
 				if rs := str(tk, "result_summary"); rs != "" {
-					ui.Textf(c, "Summary: %s", rs).FontSize(13).TextColor(t.TextMuted).Wrap()
+					ui.Text(c, m.TkSummaryLine(rs)).FontSize(13).TextColor(t.TextMuted).Wrap()
 				}
 				if fe := firstNonEmpty(str(tk, "failure_reason"), str(tk, "last_error")); fe != "" {
-					ui.Textf(c, "Error: %s", fe).FontSize(13).TextColor(t.Danger).Wrap()
+					ui.Text(c, m.TkErrorLine(fe)).FontSize(13).TextColor(t.Danger).Wrap()
 				}
-				ui.Text(c, cat(c).TasksUpdated(firstNonEmpty(autoAbsTime(str(tk, "updated_at"), c.Locale()), "—"))).FontSize(13).TextColor(t.TextMuted)
+				ui.Text(c, m.TasksUpdated(firstNonEmpty(autoAbsTime(str(tk, "updated_at"), c.Locale()), "—"))).FontSize(13).TextColor(t.TextMuted)
 			})
 
 			// Events timeline.
-			ui.Text(c, "ACTIVITY").FontSize(10).Bold().TextColor(t.TextMuted)
+			ui.Text(c, m.TkActivity()).FontSize(10).Bold().TextColor(t.TextMuted)
 			evs := asList(s.ensure("task-events:"+id, "work_task_events", map[string]any{"taskId": numOrString(id)}))
 			if evs == nil {
 				loadingState(c, "")
 			} else if len(evs) == 0 {
-				ui.Text(c, "No activity yet.").FontSize(12).TextColor(t.TextMuted)
+				ui.Text(c, m.TkNoActivity()).FontSize(12).TextColor(t.TextMuted)
 			} else {
 				ui.Column(c.Key("tk-events")).Gap(3).Children(func() {
 					for _, ev := range evs {
-						ui.Textf(c, "%s · %s · %s", firstNonEmpty(str(ev, "kind"), "event"),
-							firstNonEmpty(str(ev, "actor"), "system"),
-							firstNonEmpty(autoAbsTime(str(ev, "created_at"), c.Locale()), "—")).
+						ui.Text(c, m.TkEventLine(
+							firstNonEmpty(str(ev, "kind"), m.TkEventKindFallback()),
+							firstNonEmpty(str(ev, "actor"), m.TkEventActorFallback()),
+							firstNonEmpty(autoAbsTime(str(ev, "created_at"), c.Locale()), "—"))).
 							FontSize(12).TextColor(t.TextMuted)
 					}
 				})
@@ -326,58 +335,59 @@ func (s *Shell) viewTaskDetail(c *ui.Context, tk map[string]any) {
 
 // taskActionRow renders the status-appropriate primary + secondary actions.
 func (s *Shell) taskActionRow(c *ui.Context, tk map[string]any) {
+	m := cat(c)
 	id := fmt.Sprintf("%v", tk["id"])
 	status := str(tk, "status")
 	archived := isArchived(tk)
 	ui.Row(c.Key("tk-actions")).Gap(6).Wrap().Children(func() {
 		if archived {
-			if ui.PrimaryButton(c.Key("tk-act-unarchive"), "Unarchive").Clicked() {
-				s.taskArchive(id, false)
+			if ui.PrimaryButton(c.Key("tk-act-unarchive"), m.TkUnarchive()).Clicked() {
+				s.taskArchive(c, id, false)
 			}
 			return
 		}
 		switch status {
 		case "todo":
-			if ui.PrimaryButton(c.Key("tk-act-start"), "Start").Clicked() {
-				s.taskStart(id)
+			if ui.PrimaryButton(c.Key("tk-act-start"), m.TkStart()).Clicked() {
+				s.taskStart(c, id)
 			}
-			if ui.Button(c.Key("tk-act-edit"), "Edit").Clicked() {
+			if ui.Button(c.Key("tk-act-edit"), m.ActionEdit()).Clicked() {
 				s.startEditTask(tk)
 			}
 		case "queued", "preparing", "running", "awaiting_input":
-			if ui.PrimaryButton(c.Key("tk-act-cancel"), "Cancel").Clicked() {
-				s.taskCancel(id)
+			if ui.PrimaryButton(c.Key("tk-act-cancel"), m.ActionCancel()).Clicked() {
+				s.taskCancel(c, id)
 			}
 		case "review":
 			if intOf(tk["files_changed"]) == 0 {
-				if ui.PrimaryButton(c.Key("tk-act-complete"), "Complete").Clicked() {
-					s.taskComplete(id)
+				if ui.PrimaryButton(c.Key("tk-act-complete"), m.TkComplete()).Clicked() {
+					s.taskComplete(c, id)
 				}
-			} else if ui.PrimaryButton(c.Key("tk-act-merge"), "Merge").Clicked() {
-				s.taskMerge(id)
+			} else if ui.PrimaryButton(c.Key("tk-act-merge"), m.TkMerge()).Clicked() {
+				s.taskMerge(c, id)
 			}
 		case "merging":
-			ui.Text(c, "Merging…").FontSize(12).TextColor(c.Theme().TextMuted)
+			ui.Text(c, m.TkMerging()).FontSize(12).TextColor(c.Theme().TextMuted)
 		case "failed":
-			if ui.PrimaryButton(c.Key("tk-act-retry"), "Retry").Clicked() {
-				s.taskRetry(id)
+			if ui.PrimaryButton(c.Key("tk-act-retry"), m.TkRetry()).Clicked() {
+				s.taskRetry(c, id)
 			}
-			if ui.Button(c.Key("tk-act-archive"), "Archive").Clicked() {
-				s.taskArchive(id, true)
+			if ui.Button(c.Key("tk-act-archive"), m.TkArchive()).Clicked() {
+				s.taskArchive(c, id, true)
 			}
 		case "done":
-			if ui.PrimaryButton(c.Key("tk-act-archive2"), "Archive").Clicked() {
-				s.taskArchive(id, true)
+			if ui.PrimaryButton(c.Key("tk-act-archive2"), m.TkArchive()).Clicked() {
+				s.taskArchive(c, id, true)
 			}
 		case "canceled":
-			if ui.PrimaryButton(c.Key("tk-act-requeue"), "Requeue").Clicked() {
-				s.taskRequeue(id)
+			if ui.PrimaryButton(c.Key("tk-act-requeue"), m.TkRequeue()).Clicked() {
+				s.taskRequeue(c, id)
 			}
-			if ui.Button(c.Key("tk-act-archive3"), "Archive").Clicked() {
-				s.taskArchive(id, true)
+			if ui.Button(c.Key("tk-act-archive3"), m.TkArchive()).Clicked() {
+				s.taskArchive(c, id, true)
 			}
 		}
-		if ui.Button(c.Key("tk-act-delete"), "Delete").Clicked() {
+		if ui.Button(c.Key("tk-act-delete"), m.ActionDelete()).Clicked() {
 			s.taskConfirm = id
 		}
 	})
@@ -386,34 +396,35 @@ func (s *Shell) taskActionRow(c *ui.Context, tk map[string]any) {
 // viewTaskEditor renders the create/edit form.
 func (s *Shell) viewTaskEditor(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	e := s.taskEditor
 	if e == nil {
 		return
 	}
-	title := "New to-do"
+	title := m.TkNewTitle()
 	if e.id != "" {
-		title = "Edit to-do"
+		title = m.TkEditTitle()
 	}
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c.Key("tk-form")).Gap(10).Children(func() {
 			ui.Text(c, title).FontSize(18).Bold()
 			if s.selectedFolder == "" && e.id == "" {
-				ui.Text(c, "Select a folder first — a to-do runs inside one.").FontSize(12).TextColor(t.Danger)
+				ui.Text(c, m.TkSelectFolderFirst()).FontSize(12).TextColor(t.Danger)
 			}
-			ui.Text(c, "Title").FontSize(12).TextColor(t.TextMuted)
-			ui.TextInput(c.Key("tk-f-title"), &e.title).Placeholder("Fix the flaky test")
-			ui.Text(c, "Prompt").FontSize(12).TextColor(t.TextMuted)
-			ui.TextArea(c.Key("tk-f-prompt"), &e.prompt).Placeholder("What should the agent do?").MinHeight(80)
+			ui.Text(c, m.SetTitle()).FontSize(12).TextColor(t.TextMuted)
+			ui.TextInput(c.Key("tk-f-title"), &e.title).Placeholder(m.TkTitlePlaceholder())
+			ui.Text(c, m.AuPrompt()).FontSize(12).TextColor(t.TextMuted)
+			ui.TextArea(c.Key("tk-f-prompt"), &e.prompt).Placeholder(m.AuPromptPlaceholder()).MinHeight(80)
 			ui.Column(c).Gap(4).Children(func() {
-				ui.Text(c, "Agent").FontSize(12).TextColor(t.TextMuted)
+				ui.Text(c, m.AuxAgent()).FontSize(12).TextColor(t.TextMuted)
 				ui.Select(c.Key("tk-f-agent"), &e.agent, s.agentOptions())
 			})
 			ui.Row(c).Gap(6).Children(func() {
 				saveDisabled := e.id == "" && s.selectedFolder == ""
-				if ui.PrimaryButton(c.Key("tk-f-save"), "Save").Disabled(saveDisabled).Clicked() {
-					s.taskSave()
+				if ui.PrimaryButton(c.Key("tk-f-save"), m.ActionSave()).Disabled(saveDisabled).Clicked() {
+					s.taskSave(c)
 				}
-				if ui.Button(c.Key("tk-f-cancel"), "Cancel").Clicked() {
+				if ui.Button(c.Key("tk-f-cancel"), m.ActionCancel()).Clicked() {
 					s.taskEditor = nil
 				}
 			})
@@ -518,7 +529,7 @@ func (s *Shell) startEditTask(tk map[string]any) {
 }
 
 // taskSave creates or updates the edited to-do off the UI thread.
-func (s *Shell) taskSave() {
+func (s *Shell) taskSave(c *ui.Context) {
 	e := s.taskEditor
 	if e == nil {
 		return
@@ -527,6 +538,7 @@ func (s *Shell) taskSave() {
 	id := e.id
 	folderID := numOrString(s.selectedFolder)
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		var err error
 		if id == "" {
@@ -540,9 +552,9 @@ func (s *Shell) taskSave() {
 		}
 		s.mu.Lock()
 		if err != nil {
-			s.notify("save failed: " + err.Error())
+			s.notifyErr(locales.In(loc).TkSaveFailed(err.Error()))
 		} else {
-			s.notify("to-do saved")
+			s.notify(locales.In(loc).TkSaved())
 			s.taskEditor = nil
 		}
 		delete(s.cache, s.tasksKey())
@@ -552,15 +564,16 @@ func (s *Shell) taskSave() {
 }
 
 // taskTransition runs a {id}-only lifecycle command and refreshes the board.
-func (s *Shell) taskTransition(cmd, id string) {
+func (s *Shell) taskTransition(c *ui.Context, cmd, id string) {
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		_, err := s.B.raw(cmd, map[string]any{"id": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.notify(cmd + " failed: " + err.Error())
+			s.notifyErr(locales.In(loc).TkTransitionFailed(err.Error()))
 		} else {
-			s.notify("to-do updated")
+			s.notify(locales.In(loc).TkUpdated())
 		}
 		delete(s.cache, s.tasksKey())
 		delete(s.cache, "task-events:"+id)
@@ -569,24 +582,25 @@ func (s *Shell) taskTransition(cmd, id string) {
 	}()
 }
 
-func (s *Shell) taskStart(id string)   { s.taskTransition("work_task_start", id) }
-func (s *Shell) taskRetry(id string)   { s.taskTransition("work_task_retry", id) }
-func (s *Shell) taskRequeue(id string) { s.taskTransition("work_task_requeue", id) }
-func (s *Shell) taskCancel(id string)  { s.taskTransition("work_task_cancel", id) }
-func (s *Shell) taskComplete(id string) {
-	s.taskTransition("work_task_complete", id)
+func (s *Shell) taskStart(c *ui.Context, id string)   { s.taskTransition(c, "work_task_start", id) }
+func (s *Shell) taskRetry(c *ui.Context, id string)   { s.taskTransition(c, "work_task_retry", id) }
+func (s *Shell) taskRequeue(c *ui.Context, id string) { s.taskTransition(c, "work_task_requeue", id) }
+func (s *Shell) taskCancel(c *ui.Context, id string)  { s.taskTransition(c, "work_task_cancel", id) }
+func (s *Shell) taskComplete(c *ui.Context, id string) {
+	s.taskTransition(c, "work_task_complete", id)
 }
-func (s *Shell) taskMerge(id string) { s.taskTransition("work_task_merge", id) }
+func (s *Shell) taskMerge(c *ui.Context, id string) { s.taskTransition(c, "work_task_merge", id) }
 
-func (s *Shell) taskArchive(id string, archived bool) {
+func (s *Shell) taskArchive(c *ui.Context, id string, archived bool) {
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		_, err := s.B.raw("work_task_archive", map[string]any{"id": numOrString(id), "archived": archived})
 		s.mu.Lock()
 		if err != nil {
-			s.notify("archive failed: " + err.Error())
+			s.notifyErr(locales.In(loc).TkArchiveFailed(err.Error()))
 		} else {
-			s.notify("to-do updated")
+			s.notify(locales.In(loc).TkUpdated())
 		}
 		delete(s.cache, s.tasksKey())
 		s.mu.Unlock()
@@ -594,15 +608,16 @@ func (s *Shell) taskArchive(id string, archived bool) {
 	}()
 }
 
-func (s *Shell) taskDelete(id string) {
+func (s *Shell) taskDelete(c *ui.Context, id string) {
 	svc := s.svc
+	loc := c.Locale()
 	go func() {
 		_, err := s.B.raw("work_task_delete", map[string]any{"id": numOrString(id)})
 		s.mu.Lock()
 		if err != nil {
-			s.notify("delete failed: " + err.Error())
+			s.notifyErr(locales.In(loc).TkDeleteFailed(err.Error()))
 		} else {
-			s.notify("to-do deleted")
+			s.notify(locales.In(loc).TkDeleted())
 			if s.taskSel == id {
 				s.taskSel = ""
 			}
@@ -613,8 +628,9 @@ func (s *Shell) taskDelete(id string) {
 	}()
 }
 
-func (s *Shell) taskStartAll() {
+func (s *Shell) taskStartAll(c *ui.Context) {
 	svc := s.svc
+	loc := c.Locale()
 	body := map[string]any{}
 	if s.selectedFolder != "" {
 		body["folderId"] = numOrString(s.selectedFolder)
@@ -623,9 +639,9 @@ func (s *Shell) taskStartAll() {
 		_, err := s.B.raw("work_task_start_all", body)
 		s.mu.Lock()
 		if err != nil {
-			s.notify("start all failed: " + err.Error())
+			s.notifyErr(locales.In(loc).TkStartAllFailed(err.Error()))
 		} else {
-			s.notify("started queued to-dos")
+			s.notify(locales.In(loc).TkStartedAll())
 		}
 		delete(s.cache, s.tasksKey())
 		s.mu.Unlock()
@@ -636,7 +652,7 @@ func (s *Shell) taskStartAll() {
 // ── status chip ──
 
 // taskStatusChip draws a tinted status pill for a work-task status.
-func taskStatusChip(c *ui.Context, key, status string) {
+func taskStatusChip(c *ui.Context, key, status string, m locales.Messages) {
 	if status == "" {
 		return
 	}
@@ -655,32 +671,32 @@ func taskStatusChip(c *ui.Context, key, status string) {
 		col = t.Success
 	}
 	ui.Row(c.Key(key)).PaddingX(8).PaddingY(2).Radius(10).Background(col.Alpha(0.12)).Children(func() {
-		ui.Text(c, taskStatusLabel(status)).FontSize(11).TextColor(col)
+		ui.Text(c, taskStatusLabel(m, status)).FontSize(11).TextColor(col)
 	})
 }
 
-func taskStatusLabel(status string) string {
+func taskStatusLabel(m locales.Messages, status string) string {
 	switch status {
 	case "todo":
-		return "To do"
+		return m.TkStatusToDo()
 	case "queued":
-		return "Queued"
+		return m.TkStatusQueued()
 	case "preparing":
-		return "Preparing"
+		return m.TkStatusPreparing()
 	case "running":
-		return "Running"
+		return m.TkStatusRunning()
 	case "awaiting_input":
-		return "Awaiting input"
+		return m.TkStatusAwaitingInput()
 	case "review":
-		return "Review"
+		return m.TkStatusReview()
 	case "merging":
-		return "Merging"
+		return m.TkStatusMerging()
 	case "failed":
-		return "Failed"
+		return m.TkStatusFailed()
 	case "done":
-		return "Done"
+		return m.TkStatusDone()
 	case "canceled":
-		return "Canceled"
+		return m.TkStatusCanceled()
 	}
 	return status
 }

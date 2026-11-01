@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"yoyocode/src-go/mcp"
+	"gocode/src-go/mcp"
 )
 
 func decodeResult(t *testing.T, resp []byte) map[string]any {
@@ -38,7 +38,7 @@ func TestCompanionInitializeAndList(t *testing.T) {
 
 	res := decodeResult(t, c.HandleLine([]byte(`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`)))
 	si, _ := res["serverInfo"].(map[string]any)
-	if si["name"] != "yoyocode-mcp" {
+	if si["name"] != "gocode-mcp" {
 		t.Fatalf("serverInfo = %v", res["serverInfo"])
 	}
 	if res["protocolVersion"] != mcp.ProtocolVersion {
@@ -51,7 +51,7 @@ func TestCompanionInitializeAndList(t *testing.T) {
 	}
 
 	tools := decodeResult(t, c.HandleLine([]byte(`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`)))["tools"].([]any)
-	want := []string{"get_session_info", "task_progress", "task_complete", "create_automation", "create_work_task", "resume_delegation"}
+	want := []string{"get_session_info", "task_progress", "task_complete", "create_automation", "create_work_task", "ask_user_question", "check_user_feedback", "resume_delegation"}
 	got := map[string]bool{}
 	for _, tv := range tools {
 		got[tv.(map[string]any)["name"].(string)] = true
@@ -65,8 +65,8 @@ func TestCompanionInitializeAndList(t *testing.T) {
 
 func TestCompanionToolNameNormalization(t *testing.T) {
 	c := mcp.NewCompanion("", "", "", "claude_code", "sess-9")
-	// Host spelling mcp__yoyocode-mcp__get_session_info must dispatch.
-	res := decodeResult(t, c.HandleLine([]byte(`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"mcp__yoyocode-mcp__get_session_info","arguments":{}}}`)))
+	// Host spelling mcp__gocode-mcp__get_session_info must dispatch.
+	res := decodeResult(t, c.HandleLine([]byte(`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"mcp__gocode-mcp__get_session_info","arguments":{}}}`)))
 	content := res["content"].([]any)[0].(map[string]any)["text"].(string)
 	if !strings.Contains(content, "sess-9") || !strings.Contains(content, "claude_code") {
 		t.Fatalf("get_session_info should report the session context, got %q", content)

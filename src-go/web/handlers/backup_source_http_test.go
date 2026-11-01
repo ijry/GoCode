@@ -2,7 +2,7 @@ package handlers_test
 
 // backup_prepare_source / backup_release_source over HTTP: upload a real backup
 // archive, prepare it (→ handle + compatible preview), release it, and confirm
-// idempotence. Isolated via YOYOCODE_HOME.
+// idempotence. Isolated via GOCODE_HOME.
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"yoyocode/src-go/backup"
+	"gocode/src-go/backup"
 )
 
 // buildBackupZipBytes builds a minimal, manifest-valid plaintext backup zip.
@@ -72,7 +72,7 @@ func uploadBackupBytes(t *testing.T, srvURL string, data []byte) string {
 }
 
 func TestBackupPrepareAndReleaseSource(t *testing.T) {
-	t.Setenv("YOYOCODE_HOME", t.TempDir())
+	t.Setenv("GOCODE_HOME", t.TempDir())
 	srv := newTestServer(t)
 
 	uploadID := uploadBackupBytes(t, srv.URL, buildBackupZipBytes(t))

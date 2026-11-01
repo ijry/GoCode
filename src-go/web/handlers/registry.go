@@ -4,7 +4,7 @@ package handlers
 
 import (
 	"net/http"
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // Registry owns the command→handler map shared with the router.

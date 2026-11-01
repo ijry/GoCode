@@ -17,7 +17,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
-	"yoyocode/locales"
+	"gocode/locales"
 )
 
 func TestCatalogsSayBothLanguages(t *testing.T) {
@@ -26,7 +26,7 @@ func TestCatalogsSayBothLanguages(t *testing.T) {
 	if got := locales.SectionSettings(); got != "Settings" {
 		t.Errorf("SectionSettings() = %q, want the source language's", got)
 	}
-	if got := locales.AppTitle(); got != "YoYoCode" {
+	if got := locales.AppTitle(); got != "GoCode" {
 		t.Errorf("AppTitle() = %q", got)
 	}
 	// Plural rules are the language's: English has one/other, Chinese one.
@@ -150,5 +150,26 @@ func TestSidebarFollowsTheLanguage(t *testing.T) {
 	// rides the strip's tail; the new/close verbs are in the catalogs).
 	if !tt.HasText("终端") {
 		t.Errorf("zh tab strip missing the terminal toggle; texts = %v", tt.Texts())
+	}
+}
+
+// TestLocalizedUILabels covers the labels that used to be hardcoded English in
+// the views (browser bridge ports / public host, the custom-agent badge).
+func TestLocalizedUILabels(t *testing.T) {
+	en := locales.In("en")
+	zh := locales.In("zh-Hans")
+	for _, c := range []struct {
+		got, want, what string
+	}{
+		{en.BrowserPorts("3000, 3001"), "ports: 3000, 3001", "en ports"},
+		{zh.BrowserPorts("3000, 3001"), "端口：3000, 3001", "zh ports"},
+		{en.BrowserPublicHost("abc.example"), "public host: abc.example", "en host"},
+		{zh.BrowserPublicHost("abc.example"), "公网地址：abc.example", "zh host"},
+		{en.AgentCustomBadge("mine"), "custom: mine", "en badge"},
+		{zh.AgentCustomBadge("mine"), "自定义：mine", "zh badge"},
+	} {
+		if c.got != c.want {
+			t.Errorf("%s = %q, want %q", c.what, c.got, c.want)
+		}
 	}
 }

@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/acp"
-	appstate "yoyocode/src-go/app_state"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	appstate "gocode/src-go/app_state"
+	"gocode/src-go/web"
 )
 
 const agentInstallTimeout = 10 * time.Minute
@@ -29,7 +29,7 @@ var NpmBinary = "npm"
 
 // piCodingAgentPackage is the upstream PI_CODING_AGENT_PACKAGE: the third-party
 // `@earendil-works/pi-coding-agent` npm package, installed globally as `pi`.
-// It is a literal dependency (not a YoYoCode brand string), so it is NOT rebranded.
+// It is a literal dependency (not a GoCode brand string), so it is NOT rebranded.
 const piCodingAgentPackage = "@earendil-works/pi-coding-agent"
 
 func RegisterACPInstall(reg *Registry) {

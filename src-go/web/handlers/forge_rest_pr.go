@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func RegisterForgePR(reg *Registry) {

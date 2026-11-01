@@ -1,10 +1,15 @@
 package app
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+
+	"gocode/locales"
+)
 
 // newStreamForTest builds a Stream without dialing, for handle() unit tests.
 func newStreamForTest() *Stream {
-	return &Stream{onChange: func(string, string) {}, byConn: map[string]*connStream{}, attached: map[string]bool{}}
+	return &Stream{onChange: func(string, string, json.RawMessage) {}, byConn: map[string]*connStream{}, attached: map[string]bool{}}
 }
 
 func TestStreamHandleAccumulatesEvents(t *testing.T) {
@@ -22,7 +27,7 @@ func TestStreamHandleAccumulatesEvents(t *testing.T) {
 		t.Fatalf("event0 = %v", evs[0])
 	}
 	// The accumulated envelopes fold into one assistant bubble.
-	if rows := buildTranscript(evs); len(rows) != 1 || rows[0].kind != "message" || rows[0].text != "hello world" {
+	if rows := buildTranscript(evs, locales.In("en")); len(rows) != 1 || rows[0].kind != "message" || rows[0].text != "hello world" {
 		t.Fatalf("rows = %+v", rows)
 	}
 	if s.byConn["c1"].lastSeq != 5 {

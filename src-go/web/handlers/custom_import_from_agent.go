@@ -12,7 +12,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // RegisterCustomImportFromAgent wires custom_import_from_agent.

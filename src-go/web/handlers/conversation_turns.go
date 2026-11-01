@@ -15,9 +15,9 @@ import (
 	"fmt"
 	"time"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/parsers"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/parsers"
+	"gocode/src-go/web"
 )
 
 const maxWindowTurns = 500
@@ -191,6 +191,28 @@ func millisToRFC3339(ms int64) string {
 	return time.UnixMilli(ms).UTC().Format(time.RFC3339)
 }
 
+// transcriptReaders maps a conversation's agent_type to the reader that parses
+// that agent's own transcript store. Adding an agent means one entry here plus
+// its parser; anything absent keeps the empty-history behaviour.
+var transcriptReaders = map[string]func(string) []parsers.Turn{
+	"claude_code": parsers.ReadClaudeTurns,
+	"claude":      parsers.ReadClaudeTurns,
+	"codex":       parsers.ReadCodexTurns,
+	"gemini":      parsers.ReadGeminiTurns,
+	"kimi_code":   parsers.ReadKimiTurns,
+	"code_buddy":  parsers.ReadCodeBuddyTurns,
+	"cline":       parsers.ReadClineTurns,
+	"deepseek":    parsers.ReadDeepseekTurns,
+	"hermes":      parsers.ReadHermesTurns,
+	"qoder":       parsers.ReadQoderTurns,
+	"open_claw":   parsers.ReadOpenClawTurns,
+	"pi":          parsers.ReadPiTurns,
+	"grok":        parsers.ReadGrokTurns,
+	"open_code":   parsers.ReadOpenCodeTurns,
+	"antigravity": parsers.ReadAntigravityTurns,
+	"cursor":      parsers.ReadCursorTurns,
+}
+
 func loadConversationTurns(d *db.Database, convID int64) []convTurn {
 	if d == nil || d.Conn == nil {
 		return []convTurn{}
@@ -203,13 +225,13 @@ func loadConversationTurns(d *db.Database, convID int64) []convTurn {
 		return []convTurn{}
 	}
 	// Per-agent transcript readers (mirrors upstream src-tauri/src/parsers).
-	// Only claude_code is ported so far; other agents fall through to an empty
-	// history (same honest no-JSONL path) until their reader lands.
-	var raw []parsers.Turn
-	switch agent {
-	case "claude_code", "claude":
-		raw = parsers.ReadClaudeTurns(ext.String)
+	// An agent without a reader yields an empty history — the same honest
+	// no-JSONL path upstream takes.
+	read := transcriptReaders[agent]
+	if read == nil {
+		return []convTurn{}
 	}
+	raw := read(ext.String)
 	out := make([]convTurn, 0, len(raw))
 	for _, t := range raw {
 		out = append(out, convTurn{role: t.Role, tsMillis: t.TSMillis, hasTS: t.HasTS, raw: t.Raw})

@@ -15,7 +15,7 @@ import (
 	"runtime"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // RegisterOpencodePlugins wires opencode_list_plugins plus the install /

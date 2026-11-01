@@ -22,7 +22,7 @@ import (
 
 // PreparedDir holds prepared sources awaiting inspect/scan/stage (upstream
 // PREPARED_DIR, rebranded). Wiped at startup by CleanupPreparedSources.
-const PreparedDir = ".yoyocode-restore-prepared"
+const PreparedDir = ".gocode-restore-prepared"
 
 const (
 	sourceMetaFile = "meta.json"

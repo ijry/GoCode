@@ -1,6 +1,6 @@
 package app
 
-// yoyocodeTheme mirrors upstream's default (zinc / neutral) design tokens
+// gocodeTheme mirrors upstream's default (zinc / neutral) design tokens
 // from src/app/globals.css: a white canvas, off-white panels, light-gray
 // borders, near-black text and a dark "primary" accent. These are functional
 // color tokens, applied to mygo's Theme so the native UI reads like upstream.

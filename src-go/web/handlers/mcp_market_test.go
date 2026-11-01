@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func TestTransportProtocol(t *testing.T) {

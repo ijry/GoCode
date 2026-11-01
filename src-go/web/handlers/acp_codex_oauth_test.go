@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"yoyocode/src-go/web/handlers"
+	"gocode/src-go/web/handlers"
 )
 
 func makeCodexTestJWT(accountID string) string {

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"yoyocode/src-go/web/handlers"
+	"gocode/src-go/web/handlers"
 )
 
 func writeFakeBun(t *testing.T, dir string) {

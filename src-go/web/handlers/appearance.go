@@ -5,7 +5,7 @@ package handlers
 // stored in app_metadata under "appearance_mode"; the native UI reads it on
 // startup and applies the matching light/dark theme.
 
-import "yoyocode/src-go/web"
+import "gocode/src-go/web"
 
 const appearanceModeKey = "appearance_mode"
 

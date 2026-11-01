@@ -1,13 +1,15 @@
-module yoyocode
+module gocode
 
 go 1.27.1
 
 require (
 	github.com/aymanbagabas/go-pty v0.2.3
-	github.com/egoist/mygo v0.5.5
+	github.com/egoist/mygo v0.6.3
 	github.com/gorilla/websocket v1.5.3
+	github.com/klauspost/compress v1.18.0
 	github.com/pelletier/go-toml/v2 v2.2.3
 	github.com/robfig/cron/v3 v3.0.1
+	golang.org/x/image v0.46.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.60.1
 )
@@ -22,8 +24,8 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/u-root/u-root v0.16.0 // indirect
-	golang.org/x/crypto v0.51.0 // indirect
-	golang.org/x/image v0.46.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 	modernc.org/libc v1.77.1 // indirect

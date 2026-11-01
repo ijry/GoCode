@@ -31,9 +31,12 @@ var (
 	// Conversation-detail glyphs. Tool cards mirror upstream's lucide set: a
 	// wrench for a tool, a clock while it runs, a check / cross when it
 	// settles, and a chevron that flips with the card's open state.
-	iconWrench   = mustIcon(`<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0 5 5l-9 9a2.1 2.1 0 0 1-3-3l9-9z" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/></svg>`)
-	iconClock    = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><path d="M12 7v5l3.5 2" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
-	iconCheck    = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><path d="M8 12.5l2.6 2.6L16 9.5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	iconWrench = mustIcon(`<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0 5 5l-9 9a2.1 2.1 0 0 1-3-3l9-9z" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/></svg>`)
+	iconClock  = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><path d="M12 7v5l3.5 2" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
+	iconCheck  = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><path d="M8 12.5l2.6 2.6L16 9.5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	// iconCircle is the empty (unchecked) twin of iconCheck, used by the
+	// click-to-toggle selection rows in the import picker and skill installer.
+	iconCircle   = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/></svg>`)
 	iconCross    = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><path d="M9 9l6 6M15 9l-6 6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
 	iconChevron  = mustIcon(`<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
 	iconChevronD = mustIcon(`<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
@@ -44,25 +47,37 @@ var (
 	// Attachment affordances in the composer and message bubbles.
 	iconPaperclip = mustIcon(`<svg viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
 	iconFile      = mustIcon(`<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/><path d="M13 3v5h5" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/></svg>`)
+	iconDownload  = mustIcon(`<svg viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
 	iconImage     = mustIcon(`<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="black" stroke-width="2"/><circle cx="8.5" cy="10" r="1.6" fill="black"/><path d="M5 18l5-5 4 4 3-3 4 4" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/></svg>`)
 	iconX         = mustIcon(`<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
 	// Generic affordances — use these, never a text stand-in like "✕"/"⟳"/"←".
-	iconRefresh  = mustIcon(`<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M20 3.5V8h-4.5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
-	iconBack     = mustIcon(`<svg viewBox="0 0 24 24"><path d="M19 12H5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M11 6l-6 6 6 6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
-	iconSearch   = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="black" stroke-width="2"/><line x1="15.6" y1="15.6" x2="20" y2="20" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
-	iconPlus     = mustIcon(`<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" stroke="black" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
-	iconMore     = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="black"/><circle cx="12" cy="12" r="1.8" fill="black"/><circle cx="19" cy="12" r="1.8" fill="black"/></svg>`)
+	iconRefresh = mustIcon(`<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M20 3.5V8h-4.5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	iconBack    = mustIcon(`<svg viewBox="0 0 24 24"><path d="M19 12H5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M11 6l-6 6 6 6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	iconSearch  = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="black" stroke-width="2"/><line x1="15.6" y1="15.6" x2="20" y2="20" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
+	iconPlus    = mustIcon(`<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" stroke="black" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
+	iconMore    = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="black"/><circle cx="12" cy="12" r="1.8" fill="black"/><circle cx="19" cy="12" r="1.8" fill="black"/></svg>`)
 	// Git branch: the two-commit fork upstream's branch chip uses.
 	iconBranch = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="7" cy="6" r="2.2" fill="none" stroke="black" stroke-width="2"/><circle cx="7" cy="18" r="2.2" fill="none" stroke="black" stroke-width="2"/><circle cx="17" cy="10" r="2.2" fill="none" stroke="black" stroke-width="2"/><path d="M7 8.2v7.6" fill="none" stroke="black" stroke-width="2"/><path d="M7 11c0-2.2 1.8-4 4-4h3.8" fill="none" stroke="black" stroke-width="2"/></svg>`)
-	iconExternal = mustIcon(`<svg viewBox="0 0 24 24"><path d="M14 4h6v6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 4l-8 8" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M18 15v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	// Cloud-off marks an unpushed commit, arrow-right joins a branch to its
+	// push target (upstream's CloudOff / ArrowRight).
+	iconCloudOff   = mustIcon(`<svg viewBox="0 0 24 24"><path d="M6.5 18h10a3.5 3.5 0 0 0 .6-6.95A5.5 5.5 0 0 0 8.2 8.3" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M3 3l18 18" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>`)
+	iconArrowRight = mustIcon(`<svg viewBox="0 0 24 24"><path d="M4 12h15" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M13 6l6 6-6 6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	iconExternal   = mustIcon(`<svg viewBox="0 0 24 24"><path d="M14 4h6v6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 4l-8 8" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M18 15v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h4" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
+	iconPlay       = mustIcon(`<svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="black"/></svg>`)
+	iconUsage      = mustIcon(`<svg viewBox="0 0 24 24"><rect x="4" y="12" width="4" height="8" fill="black"/><rect x="10" y="6" width="4" height="14" fill="black"/><rect x="16" y="9" width="4" height="11" fill="black"/></svg>`)
+	iconBrowser    = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="black" stroke-width="2"/><line x1="3" y1="12" x2="21" y2="12" stroke="black" stroke-width="2"/></svg>`)
 )
 
 // iconButton renders a compact icon-only button. label keeps it discoverable to
 // the mygo tester (Find/Click match on labels) and to assistive tech — so an
 // icon-only control is never an unlabelled mystery.
+// iconButton is the icon-only button every header and toolbar uses. Its label
+// is both the accessible name and the hover tooltip — an icon alone tells a
+// pointer user nothing, and the label was already written for assistive tech.
 func iconButton(c *ui.Context, key string, icon *ui.SVG, label string, onClick func()) {
 	t := c.Theme()
-	btn := ui.Row(c.Key(key)).Padding(4).Radius(6).AlignItems(ui.Center).Label(label)
+	btn := ui.Row(c.Key(key)).Padding(4).Radius(6).AlignItems(ui.Center).
+		Label(label).Tooltip(label)
 	btn.Children(func() {
 		if icon != nil {
 			ui.Icon(c, icon).Width(15).Height(15).TextColor(t.TextMuted)

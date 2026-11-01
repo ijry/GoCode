@@ -1,6 +1,6 @@
 package handlers
 
-// Custom (user-authored) skills — the central store at ~/.yoyocode/skills/<id>/
+// Custom (user-authored) skills — the central store at ~/.gocode/skills/<id>/
 // SKILL.md (upstream commands/custom_skills.rs). This implements the
 // store-CRUD surface: list / read / create / save / duplicate / import /
 // delete. The link engine (custom_apply_links / custom_list_all_install_statuses
@@ -17,11 +17,11 @@ import (
 	"sort"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func customCentralDir() string {
-	return filepath.Join(skillHomeDir(), ".yoyocode", "skills")
+	return filepath.Join(skillHomeDir(), ".gocode", "skills")
 }
 
 func customCentralPath(id string) string { return filepath.Join(customCentralDir(), id) }

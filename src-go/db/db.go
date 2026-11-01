@@ -21,12 +21,12 @@ type AppDatabase struct {
 	DB *Database
 }
 
-// Open opens (and creates) the SQLite database at dataDir/yoyocode.db.
+// Open opens (and creates) the SQLite database at dataDir/gocode.db.
 func Open(dataDir string) (*Database, error) {
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		return nil, err
 	}
-	path := filepath.Join(dataDir, "yoyocode.db")
+	path := filepath.Join(dataDir, "gocode.db")
 	conn, err := sql.Open("sqlite", path)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)

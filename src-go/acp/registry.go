@@ -25,7 +25,7 @@ type BuiltinAgent struct {
 	Distribution string
 	// IsACPAdapter: a third-party ACP adapter wrapping a differently-named CLI.
 	IsACPAdapter bool
-	// SkillsCapable: has a yoyocode-known skill store (every built-in).
+	// SkillsCapable: has a gocode-known skill store (every built-in).
 	SkillsCapable bool
 	// SupportsCustomVersion: an explicit "install version X" can fetch it
 	// (true for npx; false for uvx; binary depends on platform URL).

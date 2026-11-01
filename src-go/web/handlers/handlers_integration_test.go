@@ -13,10 +13,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"yoyocode/src-go/app_state"
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
-	"yoyocode/src-go/web/handlers"
+	"gocode/src-go/app_state"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
+	"gocode/src-go/web/handlers"
 )
 
 func newTestServer(t *testing.T) *httptest.Server {

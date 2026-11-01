@@ -31,7 +31,7 @@ import (
 	"sync"
 	"time"
 
-	"yoyocode/src-go/assets"
+	"gocode/src-go/assets"
 )
 
 const (

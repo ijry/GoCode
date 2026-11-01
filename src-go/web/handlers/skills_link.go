@@ -1,7 +1,7 @@
 package handlers
 
 // Skill link engine (upstream commands/experts.rs link primitives, shared by
-// experts + custom skills): symlink a central-store skill (~/.yoyocode/skills/<id>)
+// experts + custom skills): symlink a central-store skill (~/.gocode/skills/<id>)
 // into an agent's own global skill directory so the agent loads it. Backs
 // custom_apply_links / custom_list_all_install_statuses and
 // experts_link_to_agent / experts_apply_links / experts_unlink_from_agent.
@@ -19,8 +19,8 @@ import (
 	"runtime"
 	"strings"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/web"
 )
 
 // skillSupportedAgents is the set of agents with a known skill store (every
@@ -58,7 +58,7 @@ func resolveReal(p string) (string, bool) {
 	return r, true
 }
 
-// classifyLink mirrors experts::classify_link: NotLinked / LinkedToYoyocode /
+// classifyLink mirrors experts::classify_link: NotLinked / LinkedToGocode /
 // LinkedElsewhere / BlockedByRealDirectory / Broken.
 func classifyLink(linkPath, expectedTarget string) string {
 	info, err := os.Lstat(linkPath)

@@ -40,6 +40,20 @@ type tabItem struct {
 	pinned   bool
 }
 
+// closedTab is one entry of the reopen stack (upstream's
+// ClosedConversationTab): the strip slot it closed from is kept so reopening
+// splices it back where it was instead of appending.
+type closedTab struct {
+	convID   string
+	folderID string
+	agent    string
+	title    string
+	index    int
+}
+
+// closedTabLimit caps the stack as upstream's CLOSED_TAB_STACK_LIMIT does.
+const closedTabLimit = 20
+
 // ─── state ────────────────────────────────────────────────────────────────
 
 // tabIndexOf returns the slot of a conversation in openTabs, or -1. Call with
@@ -99,6 +113,7 @@ func (s *Shell) closeConversationTab(convID string) {
 		s.mu.Unlock()
 		return
 	}
+	s.pushClosedTabLocked(s.openTabs[i], i)
 	s.openTabs = append(s.openTabs[:i:i], s.openTabs[i+1:]...)
 	if s.selectedConv == convID {
 		switch {
@@ -136,6 +151,16 @@ func (s *Shell) closeOtherConversationTabs(convID string) {
 		s.mu.Unlock()
 		return
 	}
+	closed := 0
+	for slot, tab := range s.openTabs {
+		if tab.convID == convID {
+			continue
+		}
+		// The batch's slots are counted as if the batch closed one tab at a
+		// time, so reopening them rebuilds the strip ahead of what remains.
+		s.pushClosedTabLocked(tab, slot-closed)
+		closed++
+	}
 	if len(s.openTabs) > 1 {
 		s.openTabs = []tabItem{s.openTabs[i]}
 	}
@@ -155,8 +180,62 @@ func (s *Shell) closeAllConversationTabs() {
 		s.mu.Unlock()
 		return
 	}
+	for _, tab := range s.openTabs {
+		s.pushClosedTabLocked(tab, 0)
+	}
 	s.openTabs = nil
 	s.selectedConv = ""
+	s.mu.Unlock()
+	s.persistTabs()
+}
+
+// pushClosedTabLocked records a closed tab for reopen_last_closed_tab. One
+// entry per conversation: recording it again moves it to the top, as upstream's
+// pushClosedTab does. Caller holds s.mu.
+func (s *Shell) pushClosedTabLocked(tab tabItem, index int) {
+	for i := range s.closedTabs {
+		if s.closedTabs[i].convID == tab.convID {
+			s.closedTabs = append(s.closedTabs[:i:i], s.closedTabs[i+1:]...)
+			break
+		}
+	}
+	s.closedTabs = append(s.closedTabs, closedTab{
+		convID: tab.convID, folderID: tab.folderID, agent: tab.agent,
+		title: tab.title, index: index,
+	})
+	if len(s.closedTabs) > closedTabLimit {
+		s.closedTabs = s.closedTabs[len(s.closedTabs)-closedTabLimit:]
+	}
+}
+
+// reopenClosedTab restores the newest stack entry at the slot it was closed
+// from. An already-open conversation is focused where it is, as upstream's
+// openTab does.
+func (s *Shell) reopenClosedTab() {
+	s.mu.Lock()
+	if len(s.closedTabs) == 0 {
+		s.mu.Unlock()
+		return
+	}
+	ct := s.closedTabs[len(s.closedTabs)-1]
+	s.closedTabs = s.closedTabs[:len(s.closedTabs)-1]
+	if s.tabIndexOf(ct.convID) >= 0 {
+		s.mu.Unlock()
+		s.focusConversationTab(ct.convID)
+		return
+	}
+	index := min(max(ct.index, 0), len(s.openTabs))
+	tab := tabItem{convID: ct.convID, folderID: ct.folderID, agent: ct.agent, title: ct.title}
+	s.openTabs = append(s.openTabs, tabItem{})
+	copy(s.openTabs[index+1:], s.openTabs[index:])
+	s.openTabs[index] = tab
+	s.tabsLoaded = true
+	s.selectedConv = ct.convID
+	if ct.folderID != "" {
+		s.selectedFolder = ct.folderID
+	}
+	s.workbench = ""
+	s.actionMsg = ""
 	s.mu.Unlock()
 	s.persistTabs()
 }
@@ -391,44 +470,27 @@ func (s *Shell) viewConversationTabs(c *ui.Context) {
 
 	ui.Row(c.Key("conv-tabs")).FillWidth().Background(t.Surface).
 		PaddingY(5).AlignItems(ui.Center).Children(func() {
-			if len(tabs) > 0 {
-				ui.ScrollHorizontal(c.Key("conv-tabs-scroll")).Grow(1).Children(func() {
-					ui.Row(c).Gap(2).AlignItems(ui.Center).Children(func() {
-						for _, tab := range tabs {
-							s.viewOneTab(c, tab, tab.convID == active)
-						}
-					})
+		if len(tabs) > 0 {
+			ui.ScrollHorizontal(c.Key("conv-tabs-scroll")).Grow(1).Children(func() {
+				ui.Row(c).Gap(2).AlignItems(ui.Center).Children(func() {
+					for _, tab := range tabs {
+						s.viewOneTab(c, tab, tab.convID == active)
+					}
 				})
-			} else {
-				ui.Row(c).Grow(1).PaddingX(8).Children(func() {
-					ui.Text(c, cat(c).ConvTabNone()).FontSize(12).TextColor(t.TextMuted)
-				})
-			}
-			// Trailing new-conversation affordance (upstream's SquarePen
-			// button): upstream reuses the active folder's context, falling
-			// back to a folderless chat when none resolves — which here means
-			// the same create_chat_conversation the sidebar's "New chat" runs.
-			iconButton(c, "conv-tab-new", iconNewChat, cat(c).ConvTabNew(), func() {
-				s.createChatConversation()
 			})
-			// Terminal lives on the strip's tail rather than in the tab set:
-			// upstream keeps it as a toggled bottom panel shared by every tab,
-			// not a per-tab document.
-			termOpen := s.detailTab == "terminal"
-			var clicked bool
-			if termOpen {
-				clicked = ui.PrimaryButton(c.Key("dt-terminal"), cat(c).ConvTabTerminal()).Clicked()
-			} else {
-				clicked = ui.Button(c.Key("dt-terminal"), cat(c).ConvTabTerminal()).Clicked()
-			}
-			if clicked {
-				if termOpen {
-					s.detailTab = "chat"
-				} else {
-					s.detailTab = "terminal"
-				}
-			}
+		} else {
+			ui.Row(c).Grow(1).PaddingX(8).Children(func() {
+				ui.Text(c, cat(c).ConvTabNone()).FontSize(12).TextColor(t.TextMuted)
+			})
+		}
+		// Trailing new-conversation affordance (upstream's SquarePen
+		// button): upstream reuses the active folder's context, falling
+		// back to a folderless chat when none resolves — which here means
+		// the same create_chat_conversation the sidebar's "New chat" runs.
+		iconButton(c, "conv-tab-new", iconNewChat, cat(c).ConvTabNew(), func() {
+			s.createChatConversation(c.Locale())
 		})
+	})
 }
 
 // viewOneTab renders a single conversation tab: the status dot, the title and a
@@ -456,8 +518,9 @@ func (s *Shell) viewOneTab(c *ui.Context, tab tabItem, active bool) {
 			ui.Icon(c, iconPinned).Width(11).Height(11).TextColor(t.TextMuted)
 		}
 		// The close affordance, mirrored from upstream's tab button.
-		closeBtn := ui.Row(c.Key("ct-x-"+tab.convID)).Width(16).Height(16).Radius(4).
-			AlignItems(ui.Center).Justify(ui.Center).Label(cat(c).ConvTabClose())
+		closeBtn := ui.Row(c.Key("ct-x-" + tab.convID)).Width(16).Height(16).Radius(4).
+			AlignItems(ui.Center).Justify(ui.Center).Label(cat(c).ConvTabClose()).
+			Tooltip(cat(c).ConvTabClose())
 		closeBtn.Children(func() {
 			ui.Icon(c, iconX).Width(11).Height(11).TextColor(t.TextMuted)
 		})
@@ -482,21 +545,13 @@ func (s *Shell) viewOneTab(c *ui.Context, tab tabItem, active bool) {
 	}
 }
 
-// viewDetailTabs renders the main area: the conversation tabs strip on top,
-// then the active surface — the conversation detail, or the terminal when the
-// strip's terminal toggle is on. Files / changes / commits live in the
-// right-hand aux panel instead (see aux_panel.go), matching upstream's
-// workspace skeleton (Sidebar | main | AuxPanel).
+// viewDetailTabs renders the main area: the conversation tabs strip on top, then
+// the conversation detail. Files / changes / commits live in the right-hand aux
+// panel (see aux_panel.go), and the terminal lives in the bottom collapsible
+// panel below the three columns — none of them a main-area tab. This matches
+// upstream's workspace skeleton (Sidebar | main | AuxPanel | bottom Terminal).
 func (s *Shell) viewDetailTabs(c *ui.Context) {
-	if s.detailTab == "" {
-		s.detailTab = "chat"
-	}
 	s.viewConversationTabs(c)
 	ui.Divider(c)
-	switch s.detailTab {
-	case "terminal":
-		s.viewTerminal(c)
-	default:
-		s.viewConversationDetail(c)
-	}
+	s.viewConversationDetail(c)
 }

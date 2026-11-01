@@ -13,9 +13,9 @@ import (
 )
 
 func TestZZRenderSnapshot(t *testing.T) {
-	out := os.Getenv("YOYOCODE_SNAPSHOT")
+	out := os.Getenv("GOCODE_SNAPSHOT")
 	if out == "" {
-		t.Skip("set YOYOCODE_SNAPSHOT=<path.png> to render")
+		t.Skip("set GOCODE_SNAPSHOT=<path.png> to render")
 	}
 	s := New(newBackendForTest(t))
 	s.stream = newStreamForTest()

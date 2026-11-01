@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"yoyocode/src-go/backup"
-	"yoyocode/src-go/db"
+	"gocode/src-go/backup"
+	"gocode/src-go/db"
 )
 
 func openTestDB(t *testing.T) *sql.DB {

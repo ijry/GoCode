@@ -73,6 +73,13 @@ type PendingPermissionState struct {
 	Queued     uint32          `json:"queued"`
 }
 
+// ContextUsage is the agent's context-window reading, folded from ACP
+// `usage_update` notifications ({"used": tokens, "size": window}).
+type ContextUsage struct {
+	Used uint64 `json:"used"`
+	Size uint64 `json:"size"`
+}
+
 // PendingQuestionState is an in-flight `ask_user_question`.
 type PendingQuestionState struct {
 	RequestID string          `json:"request_id"`
@@ -106,12 +113,34 @@ type LiveSessionSnapshot struct {
 	PendingUserMessage  *PendingUserMessage     `json:"pending_user_message,omitempty"`
 	ActiveDelegations   json.RawMessage         `json:"active_delegations,omitempty"`
 	Feedback            json.RawMessage         `json:"feedback,omitempty"`
+	// FeedbackToolAvailable reports whether the agent can read live-feedback
+	// notes through the companion `check_user_feedback` tool (the pull
+	// channel). NativeSteeringAvailable reports the ACP `_session/steering`
+	// push channel, which this build does not implement (always false).
+	FeedbackToolAvailable   bool `json:"feedback_tool_available"`
+	NativeSteeringAvailable bool `json:"native_steering_available"`
 	// Modes and ConfigOptions are the agent's advertised selectors (from
 	// `session_modes` / `session_config_options` events) plus their current
 	// values. The snapshot endpoint exposes them so the UI can render mode
 	// and model pickers without a separate probe call.
 	Modes         *SessionModeStateInfo     `json:"modes,omitempty"`
 	ConfigOptions []SessionConfigOptionInfo `json:"config_options"`
+	// ContextUsage is the agent's last reported context-window reading (from
+	// `usage_update`); nil until the agent reports one.
+	ContextUsage *ContextUsage `json:"context_usage,omitempty"`
+	// Plan is the agent's latest plan (ACP `plan` update: an array of
+	// {content, status, priority}), so a cold attach can show it without
+	// waiting for the next update.
+	Plan json.RawMessage `json:"plan,omitempty"`
+	// QueuedPrompts are the sends waiting behind the running turn, oldest
+	// first, so the composer can list them.
+	QueuedPrompts []string `json:"queued_prompts"`
+	// AsyncTasks are the agent's live background tasks (ACP
+	// async_task_* updates), so a cold attach can render the strip too.
+	AsyncTasks []AsyncTaskState `json:"async_tasks"`
+	// ApiRetry is the agent's in-flight API retry (claude's `api_retry` SDK
+	// message); nil when the turn is not retrying.
+	ApiRetry *ApiRetryState `json:"api_retry,omitempty"`
 }
 
 // ─── SessionState ─────────────────────────────────────────────────────────
@@ -138,12 +167,21 @@ type SessionState struct {
 	// Selector catalog populated by session/update events during a probe or a
 	// live session's handshake. Mirrors upstream SessionState's
 	// modes/config_options/prompt_capabilities/available_commands/selectors_ready/last_error.
-	Modes              *SessionModeStateInfo
-	ConfigOptions      []SessionConfigOptionInfo
-	AvailableCommands  []AvailableCommandInfo
-	PromptCapabilities *PromptCapabilitiesInfo
-	SelectorsReady     bool
-	LastError          *SessionLastError
+	ContextUsage  *ContextUsage
+	Plan          json.RawMessage
+	QueuedPrompts []string
+	AsyncTasks    []AsyncTaskState
+	Feedback      []FeedbackItem
+	ApiRetry      *ApiRetryState
+	// FeedbackToolAvailable is set at spawn when the companion (which provides
+	// check_user_feedback) is offered to the agent.
+	FeedbackToolAvailable bool
+	Modes                 *SessionModeStateInfo
+	ConfigOptions         []SessionConfigOptionInfo
+	AvailableCommands     []AvailableCommandInfo
+	PromptCapabilities    *PromptCapabilitiesInfo
+	SelectorsReady        bool
+	LastError             *SessionLastError
 
 	// EventSeq is the high-water mark; the next emitted envelope takes
 	// EventSeq+1 and every `event` frame delivered after a snapshot/replay
@@ -172,20 +210,131 @@ func (s *SessionState) Snapshot() *LiveSessionSnapshot {
 	if opts == nil {
 		opts = []SessionConfigOptionInfo{}
 	}
-	return &LiveSessionSnapshot{
-		ConnectionID:       s.ConnectionID,
-		ConversationID:     s.ConversationID,
-		FolderID:           s.FolderID,
-		Status:             s.Status,
-		ExternalID:         s.ExternalID,
-		LiveMessage:        s.LiveMessage,
-		ActiveToolCalls:    toolCalls,
-		PendingPermission:  s.PendingPermission,
-		PendingQuestion:    s.PendingQuestion,
-		PendingUserMessage: s.PendingUserMessage,
-		Modes:              s.Modes,
-		ConfigOptions:      opts,
+	queued := s.QueuedPrompts
+	if queued == nil {
+		queued = []string{}
 	}
+	tasks := s.AsyncTasks
+	if tasks == nil {
+		tasks = []AsyncTaskState{}
+	}
+	var feedbackRaw json.RawMessage
+	if len(s.Feedback) > 0 {
+		feedbackRaw, _ = json.Marshal(s.Feedback)
+	}
+	return &LiveSessionSnapshot{
+		ConnectionID:            s.ConnectionID,
+		ConversationID:          s.ConversationID,
+		FolderID:                s.FolderID,
+		Status:                  s.Status,
+		ExternalID:              s.ExternalID,
+		LiveMessage:             s.LiveMessage,
+		ActiveToolCalls:         toolCalls,
+		PendingPermission:       s.PendingPermission,
+		PendingQuestion:         s.PendingQuestion,
+		PendingUserMessage:      s.PendingUserMessage,
+		Modes:                   s.Modes,
+		ConfigOptions:           opts,
+		ContextUsage:            s.ContextUsage,
+		Plan:                    s.Plan,
+		QueuedPrompts:           queued,
+		AsyncTasks:              tasks,
+		ApiRetry:                s.ApiRetry,
+		Feedback:                feedbackRaw,
+		FeedbackToolAvailable:   s.FeedbackToolAvailable,
+		NativeSteeringAvailable: false,
+	}
+}
+
+// SetQueuedPrompts records the sends waiting behind the running turn.
+func (s *SessionState) SetQueuedPrompts(prompts []string) {
+	s.mu.Lock()
+	s.QueuedPrompts = prompts
+	s.mu.Unlock()
+}
+
+// SetAsyncTasks replaces the tracked background tasks.
+func (s *SessionState) SetAsyncTasks(tasks []AsyncTaskState) {
+	s.mu.Lock()
+	s.AsyncTasks = tasks
+	s.mu.Unlock()
+}
+
+// AppendFeedback adds a live-feedback note for the current turn.
+func (s *SessionState) AppendFeedback(item FeedbackItem) {
+	s.mu.Lock()
+	s.Feedback = append(s.Feedback, item)
+	s.mu.Unlock()
+}
+
+// DeliverFeedback flips every pending note to delivered and returns the ones it
+// delivered (oldest first), so the caller can broadcast which ids the agent read.
+func (s *SessionState) DeliverFeedback() []FeedbackItem {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := nowRFC3339()
+	var out []FeedbackItem
+	for i := range s.Feedback {
+		if s.Feedback[i].Status == "pending" {
+			s.Feedback[i].Status = "delivered"
+			s.Feedback[i].DeliveredAt = now
+			out = append(out, s.Feedback[i])
+		}
+	}
+	return out
+}
+
+// ClearFeedback drops the turn's notes (a new prompt starts a fresh turn).
+func (s *SessionState) ClearFeedback() {
+	s.mu.Lock()
+	s.Feedback = nil
+	s.mu.Unlock()
+}
+
+// SetApiRetry records the agent's in-flight API retry.
+func (s *SessionState) SetApiRetry(r *ApiRetryState) {
+	s.mu.Lock()
+	s.ApiRetry = r
+	s.mu.Unlock()
+}
+
+// ClearApiRetry drops the retry reading once the turn makes progress or ends.
+func (s *SessionState) ClearApiRetry() {
+	s.mu.Lock()
+	s.ApiRetry = nil
+	s.mu.Unlock()
+}
+
+// SetPendingQuestion parks an in-flight ask_user_question so the snapshot and
+// the event stream can show it.
+func (s *SessionState) SetPendingQuestion(q *PendingQuestionState) {
+	s.mu.Lock()
+	s.PendingQuestion = q
+	s.mu.Unlock()
+}
+
+// ClearPendingQuestion drops the pending question when it is the one with the
+// given id (a stale clear must not wipe a newer question).
+func (s *SessionState) ClearPendingQuestion(requestID string) {
+	s.mu.Lock()
+	if s.PendingQuestion != nil && s.PendingQuestion.RequestID == requestID {
+		s.PendingQuestion = nil
+	}
+	s.mu.Unlock()
+}
+
+// SetPlan records the agent's latest plan entries (ACP `plan` update).
+func (s *SessionState) SetPlan(entries json.RawMessage) {
+	s.mu.Lock()
+	s.Plan = entries
+	s.mu.Unlock()
+}
+
+// SetContextUsage records the agent's context-window reading.
+func (s *SessionState) SetContextUsage(used, size uint64) {
+	s.mu.Lock()
+	s.ContextUsage = &ContextUsage{Used: used, Size: size}
+	s.mu.Unlock()
 }
 
 // EventSeqNow returns the current high-water mark.

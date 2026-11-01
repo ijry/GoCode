@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 	"time"
 
@@ -50,24 +49,21 @@ func TestComposerRendersModelAndModeSelectors(t *testing.T) {
 	// Click "Plan" — a non-active mode pill, rendered as a Button. The
 	// dispatch goroutine posts to the test backend; without a live session
 	// the engine returns ConnectionUnknown, which the handler surfaces as
-	// a non-200. We only care that the closure fired (errorMsg names the
+	// a non-200. We only care that the closure fired (the toast names the
 	// route), not that it succeeded.
 	if err := tt.Click("Plan"); err != nil {
 		t.Fatalf("click Plan: %v", err)
 	}
-	if !waitForErrorMsg(s, "acp_set_mode", 2*time.Second) {
-		s.mu.Lock()
-		got := s.errorMsg
-		s.mu.Unlock()
-		t.Fatalf("mode dispatch did not land; errorMsg = %q", got)
+	if !waitForToastText(tt, "acp_set_mode", 2*time.Second) {
+		t.Fatalf("mode dispatch did not land; texts = %v", tt.Texts())
 	}
 
 	// Clicking a model pill dispatches acp_set_config_option with
-	// configId "model" and the picked value. This click overwrites errorMsg.
+	// configId "model" and the picked value.
 	if err := tt.Click("GPT-4o"); err != nil {
 		t.Fatalf("click GPT-4o: %v", err)
 	}
-	if !waitForErrorMsg(s, "acp_set_config_option", 2*time.Second) {
+	if !waitForToastText(tt, "acp_set_config_option", 2*time.Second) {
 		s.mu.Lock()
 		got := s.errorMsg
 		s.mu.Unlock()
@@ -75,17 +71,14 @@ func TestComposerRendersModelAndModeSelectors(t *testing.T) {
 	}
 }
 
-// waitForErrorMsg polls errorMsg (under s.mu) until it contains the given
-// substring or the timeout fires. The dispatch is a goroutine that hits
-// loopback httptest, so the round-trip is microseconds — the timeout is
-// generous to absorb scheduler jitter on busy machines.
-func waitForErrorMsg(s *Shell, contains string, timeout time.Duration) bool {
+// waitForToastText frames until a rendered toast mentions the given route.
+// The queue itself is drained into mygo's toast manager every frame, so the
+// rendered text is what a test can observe.
+func waitForToastText(tt *ui.Tester, contains string, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		s.mu.Lock()
-		got := s.errorMsg
-		s.mu.Unlock()
-		if strings.Contains(got, contains) {
+		tt.Frame()
+		if tt.HasText(contains) {
 			return true
 		}
 		time.Sleep(20 * time.Millisecond)

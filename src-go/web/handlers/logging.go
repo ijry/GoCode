@@ -18,8 +18,8 @@ import (
 	"sort"
 	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const loggingLevelKey = "logging.level"
@@ -60,27 +60,27 @@ func RegisterLogging(reg *Registry) {
 	})
 }
 
-// logsRoot resolves the logs dir, mirroring paths.rs yoyocode_logs_root:
-// YOYOCODE_HOME/logs, then YOYOCODE_DATA_DIR/logs, then AppState.DataDir/logs, then
-// ~/.yoyocode/logs.
+// logsRoot resolves the logs dir, mirroring paths.rs gocode_logs_root:
+// GOCODE_HOME/logs, then GOCODE_DATA_DIR/logs, then AppState.DataDir/logs, then
+// ~/.gocode/logs.
 func logsRoot(c *web.Context) string {
-	if custom := os.Getenv("YOYOCODE_HOME"); custom != "" {
+	if custom := os.Getenv("GOCODE_HOME"); custom != "" {
 		return filepath.Join(custom, "logs")
 	}
-	if data := os.Getenv("YOYOCODE_DATA_DIR"); data != "" {
+	if data := os.Getenv("GOCODE_DATA_DIR"); data != "" {
 		return filepath.Join(data, "logs")
 	}
 	if st, ok := appState(c); ok && st != nil && st.DataDir != "" {
 		return filepath.Join(st.DataDir, "logs")
 	}
 	if home, err := os.UserHomeDir(); err == nil {
-		return filepath.Join(home, ".yoyocode", "logs")
+		return filepath.Join(home, ".gocode", "logs")
 	}
-	return filepath.Join(".yoyocode", "logs")
+	return filepath.Join(".gocode", "logs")
 }
 
 func envLevelIsSet() bool {
-	return strings.TrimSpace(os.Getenv("YOYOCODE_LOG")) != "" || strings.TrimSpace(os.Getenv("RUST_LOG")) != ""
+	return strings.TrimSpace(os.Getenv("GOCODE_LOG")) != "" || strings.TrimSpace(os.Getenv("RUST_LOG")) != ""
 }
 
 // readLogSettings returns the persisted level (default "info") and target

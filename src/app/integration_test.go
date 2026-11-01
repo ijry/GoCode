@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	appstate "yoyocode/src-go/app_state"
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
-	"yoyocode/src-go/web/handlers"
+	appstate "gocode/src-go/app_state"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
+	"gocode/src-go/web/handlers"
 )
 
 // newBackendForTest boots the real upstream stack behind an httptest server and

@@ -20,7 +20,7 @@ import (
 // BackupExportTmpDir is the scratch root under the data dir (upstream
 // EXPORT_TMP_DIR ".codeg-backup-tmp", rebranded). Never the system temp: a
 // multi-GB archive staged in tmpfs would live in RAM.
-const BackupExportTmpDir = ".yoyocode-backup-tmp"
+const BackupExportTmpDir = ".gocode-backup-tmp"
 
 // ErrEncryptedDeferred marks that encrypted (.passphrase) backups are not yet
 // ported; the crypto envelope is a separate slice.
@@ -68,7 +68,7 @@ func CreateBackup(conn *sql.DB, opID, dataDir, appVersion string, roots LiveRoot
 	}
 	defer os.RemoveAll(work)
 
-	dbSnap := filepath.Join(work, "yoyocode.db")
+	dbSnap := filepath.Join(work, "gocode.db")
 	if err := snapshotDB(conn, dbSnap); err != nil {
 		return BackupManifest{}, err
 	}

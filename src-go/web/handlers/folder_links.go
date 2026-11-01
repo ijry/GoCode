@@ -15,8 +15,8 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const (
@@ -340,8 +340,8 @@ func addToGitExclude(root, name string) {
 	if next != "" && !strings.HasSuffix(next, "\n") {
 		next += "\n"
 	}
-	if !strings.Contains(next, "# yoyocode workspace links") {
-		next += "# yoyocode workspace links\n"
+	if !strings.Contains(next, "# gocode workspace links") {
+		next += "# gocode workspace links\n"
 	}
 	next += line + "\n"
 	_ = os.WriteFile(excludePath, []byte(next), 0o644)

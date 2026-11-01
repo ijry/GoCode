@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"gocode/locales"
 )
 
 // vcAddForm is the add-an-account form state.
@@ -82,16 +83,21 @@ func vcHostOf(a map[string]any) string {
 }
 
 // vcAccountName is how a card titles itself: the label, else the username,
-// else the id.
+// else the id. The last-resort fallback is a view-time label, so a card that
+// reaches for it without any identity falls back to the neutral wording.
 func vcAccountName(a map[string]any) string {
-	return firstNonEmpty(str(a, "label"), str(a, "username"), str(a, "id"), "(account)")
+	name := firstNonEmpty(str(a, "label"), str(a, "username"), str(a, "id"))
+	if name == "" {
+		return ""
+	}
+	return name
 }
 
 func (s *Shell) viewSettingsVersionControl(c *ui.Context) {
 	t := c.Theme()
-	ui.Text(c, "Version Control").FontSize(22).Bold()
-	ui.Text(c, "The git binary this app drives, and the forge accounts whose "+
-		"tokens Repositories reads issues and pull requests with.").
+	m := cat(c)
+	ui.Text(c, m.NavVersionControl()).FontSize(22).Bold()
+	ui.Text(c, m.VcHint()).
 		FontSize(12).TextColor(t.TextMuted).Wrap()
 
 	s.viewGitBinaryCard(c)
@@ -105,18 +111,19 @@ func (s *Shell) viewSettingsVersionControl(c *ui.Context) {
 // success), and an empty path means "the git found on PATH".
 func (s *Shell) viewGitBinaryCard(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	detected := asObj(s.ensure("git-detect", "detect_git", nil))
 	settings := asObj(s.ensure("git-settings", "get_git_settings", nil))
 
-	ui.Text(c, "Git").FontSize(14).Bold().Margin(10, 0, 0, 0)
+	ui.Text(c, m.SetGitTitle()).FontSize(14).Bold().Margin(10, 0, 0, 0)
 	ui.Column(c.Key("vc-git")).Gap(8).Padding(12).Background(t.Surface).Radius(8).Children(func() {
 		// Detection state.
 		if detected == nil {
-			ui.Text(c, "Detecting git…").FontSize(12).TextColor(t.TextMuted)
+			ui.Text(c, m.VcDetecting()).FontSize(12).TextColor(t.TextMuted)
 		} else if asBool(detected["installed"]) {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				ui.Box(c).Width(8).Height(8).Radius(4).Background(t.Success)
-				ui.Textf(c, "git %s", firstNonEmpty(str(detected, "version"), "(version unknown)")).
+				ui.Text(c, m.VcGitVersion(firstNonEmpty(str(detected, "version"), m.VcVersionUnknown()))).
 					FontSize(12).TextColor(t.TextMuted)
 				if p := str(detected, "path"); p != "" {
 					ui.Text(c, p).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
@@ -125,7 +132,7 @@ func (s *Shell) viewGitBinaryCard(c *ui.Context) {
 		} else {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				ui.Icon(c, iconAlert).Width(13).Height(13).TextColor(t.Danger)
-				ui.Text(c, "No git found. Install git, or point to its executable below.").
+				ui.Text(c, m.VcNoGit()).
 					FontSize(12).TextColor(t.Danger).Wrap()
 			})
 		}
@@ -134,29 +141,28 @@ func (s *Shell) viewGitBinaryCard(c *ui.Context) {
 		if settings != nil && s.gitCustomPath == "" && s.gitTestOK == nil {
 			s.gitCustomPath = firstNonEmpty(str(settings, "custom_path"), "")
 		}
-		ui.Text(c, "Custom git path").FontSize(11).TextColor(t.TextMuted)
+		ui.Text(c, m.VcCustomGitPath()).FontSize(11).TextColor(t.TextMuted)
 		ui.Row(c).Gap(6).Children(func() {
 			ui.TextInput(c.Key("vc-git-path"), &s.gitCustomPath).
-				Placeholder("leave empty to use the git on PATH").Grow(1)
-			if ui.Button(c.Key("vc-git-test"), "Test").Clicked() && strings.TrimSpace(s.gitCustomPath) != "" {
-				s.testGitPath()
+				Placeholder(m.VcPathPlaceholder()).Grow(1)
+			if ui.Button(c.Key("vc-git-test"), m.ActionTest()).Clicked() && strings.TrimSpace(s.gitCustomPath) != "" {
+				s.testGitPath(c)
 			}
-			if ui.PrimaryButton(c.Key("vc-git-save"), "Save").Clicked() {
-				s.saveGitPath()
+			if ui.PrimaryButton(c.Key("vc-git-save"), m.ActionSave()).Clicked() {
+				s.saveGitPath(c)
 			}
 		})
-		ui.Text(c, "Changes and commits run through this git. Leave the path "+
-			"empty to use the one on PATH.").FontSize(11).TextColor(t.TextMuted).Wrap()
+		ui.Text(c, m.VcCustomPathHint()).FontSize(11).TextColor(t.TextMuted).Wrap()
 		if s.gitTestOK != nil {
 			if *s.gitTestOK {
 				ui.Row(c.Key("vc-git-test-ok")).Gap(6).AlignItems(ui.Center).Children(func() {
 					ui.Icon(c, iconCheck).Width(13).Height(13).TextColor(t.Success)
-					ui.Text(c, "Path works.").FontSize(12).TextColor(t.Success)
+					ui.Text(c, m.VcPathWorks()).FontSize(12).TextColor(t.Success)
 				})
 			} else {
 				ui.Row(c.Key("vc-git-test-err")).Gap(6).AlignItems(ui.Center).Children(func() {
 					ui.Icon(c, iconAlert).Width(13).Height(13).TextColor(t.Danger)
-					ui.Text(c, firstNonEmpty(s.gitTestMsg, "not a valid git executable")).
+					ui.Text(c, firstNonEmpty(s.gitTestMsg, m.VcNotValidGit())).
 						FontSize(12).TextColor(t.Danger).Wrap()
 				})
 			}
@@ -165,7 +171,8 @@ func (s *Shell) viewGitBinaryCard(c *ui.Context) {
 }
 
 // testGitPath asks the backend to run the typed path's git --version.
-func (s *Shell) testGitPath() {
+func (s *Shell) testGitPath(c *ui.Context) {
+	loc := c.Locale()
 	path := strings.TrimSpace(s.gitCustomPath)
 	if path == "" {
 		return
@@ -183,7 +190,7 @@ func (s *Shell) testGitPath() {
 			ok := asBool(asObj(raw)["installed"])
 			s.gitTestOK = &ok
 			if !ok {
-				s.gitTestMsg = "not a valid git executable"
+				s.gitTestMsg = locales.In(loc).VcNotValidGit()
 			}
 		}
 		s.mu.Unlock()
@@ -193,7 +200,8 @@ func (s *Shell) testGitPath() {
 
 // saveGitPath tests a non-empty path first (upstream's order) and only then
 // writes the settings.
-func (s *Shell) saveGitPath() {
+func (s *Shell) saveGitPath(c *ui.Context) {
+	loc := c.Locale()
 	path := strings.TrimSpace(s.gitCustomPath)
 	svc := s.svc
 	go func() {
@@ -206,17 +214,17 @@ func (s *Shell) saveGitPath() {
 				s.gitTestMsg = err.Error()
 				s.mu.Unlock()
 				svc.Invalidate()
-				s.notify("Save failed: " + err.Error())
+				s.notifyErr(locales.In(loc).VcSaveFailedGit(err.Error()))
 				return
 			}
 			if !asBool(asObj(raw)["installed"]) {
 				s.mu.Lock()
 				ok := false
 				s.gitTestOK = &ok
-				s.gitTestMsg = "not a valid git executable"
+				s.gitTestMsg = locales.In(loc).VcNotValidGit()
 				s.mu.Unlock()
 				svc.Invalidate()
-				s.notify("Save failed: not a valid git executable")
+				s.notifyErr(locales.In(loc).VcSaveFailedGit(locales.In(loc).VcNotValidGit()))
 				return
 			}
 		}
@@ -225,7 +233,7 @@ func (s *Shell) saveGitPath() {
 		})
 		s.mu.Lock()
 		if err != nil {
-			s.actionMsg = "save failed: " + err.Error()
+			s.actionMsg = locales.In(loc).SetSaveFailed(err.Error())
 		} else {
 			s.gitTestOK = nil
 			s.gitTestMsg = ""
@@ -234,9 +242,9 @@ func (s *Shell) saveGitPath() {
 		s.invalidate("git-settings")
 		s.invalidate("git-detect")
 		if err != nil {
-			s.notify("Save failed: " + err.Error())
+			s.notifyErr(locales.In(loc).VcSaveFailedGit(err.Error()))
 		} else {
-			s.notify("Saved.")
+			s.notify(locales.In(loc).SetSaved())
 		}
 		svc.Invalidate()
 	}()
@@ -246,22 +254,22 @@ func (s *Shell) saveGitPath() {
 // testable, its token rotatable in place and removable, with an add form.
 func (s *Shell) viewForgeAccountsCard(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	accts := asObj(s.ensure("gh-accounts", "get_github_accounts", nil))
 
 	ui.Row(c.Key("vc-accts-head")).Gap(10).AlignItems(ui.Center).Margin(10, 0, 0, 0).Children(func() {
-		ui.Text(c, "Forge accounts").FontSize(14).Bold()
+		ui.Text(c, m.VcForgeAccounts()).FontSize(14).Bold()
 		ui.Spacer(c)
-		if ui.Button(c.Key("vc-accts-refresh"), "Refresh").Clicked() {
+		if ui.Button(c.Key("vc-accts-refresh"), m.ActionRefresh()).Clicked() {
 			s.invalidate("gh-accounts")
 		}
-		if ui.Button(c.Key("vc-add-open"), "Add account").Clicked() {
+		if ui.Button(c.Key("vc-add-open"), m.VcAddAccountBtn()).Clicked() {
 			s.mu.Lock()
 			s.vcAdd = &vcAddForm{provider: "github"}
 			s.mu.Unlock()
 		}
 	})
-	ui.Text(c, "A token let you read this server's issues and pull requests "+
-		"from the Repositories panel.").FontSize(11).TextColor(t.TextMuted).Wrap()
+	ui.Text(c, m.VcAccountsHint()).FontSize(11).TextColor(t.TextMuted).Wrap()
 
 	var list []map[string]any
 	if accts != nil {
@@ -271,10 +279,9 @@ func (s *Shell) viewForgeAccountsCard(c *ui.Context) {
 		ui.Column(c.Key("vc-accts-empty")).Gap(4).Padding(12).Background(t.Surface).Radius(8).Children(func() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				ui.Icon(c, iconInfo).Width(14).Height(14).TextColor(t.TextMuted)
-				ui.Text(c, "No forge accounts yet.").FontSize(12).Bold()
+				ui.Text(c, m.VcNoAccounts()).FontSize(12).Bold()
 			})
-			ui.Text(c, "Add a GitHub, GitLab or Gitea token to open the "+
-				"Repositories panel for a folder's remote.").FontSize(11).TextColor(t.TextMuted).Wrap()
+			ui.Text(c, m.VcNoAccountsHint()).FontSize(11).TextColor(t.TextMuted).Wrap()
 		})
 	} else {
 		for _, p := range vcProviders {
@@ -305,6 +312,7 @@ func (s *Shell) viewForgeAccountsCard(c *ui.Context) {
 // Test / Rotate / Remove actions. Removing asks first, inline.
 func (s *Shell) viewForgeAccountCard(c *ui.Context, a map[string]any) {
 	t := c.Theme()
+	m := cat(c)
 	id := str(a, "id")
 	provider := vcProviderOf(a)
 	host := vcHostOf(a)
@@ -313,7 +321,7 @@ func (s *Shell) viewForgeAccountCard(c *ui.Context, a map[string]any) {
 	ui.Column(c.Key("vc-acct-" + id)).Gap(4).Padding(12).Background(t.Surface).Radius(8).Children(func() {
 		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Box(c).Width(8).Height(8).Radius(4).Background(t.TextMuted)
-			ui.Text(c, vcAccountName(a)).Bold().MaxLines(1)
+			ui.Text(c, firstNonEmpty(vcAccountName(a), m.VcAccountFallback())).Bold().MaxLines(1)
 			ui.Spacer(c)
 			ui.Text(c, vcProviderLabel(provider)).FontSize(11).TextColor(t.TextMuted)
 		})
@@ -333,38 +341,38 @@ func (s *Shell) viewForgeAccountCard(c *ui.Context, a map[string]any) {
 				}
 			}
 			if len(names) > 0 {
-				ui.Text(c, "Scopes: "+strings.Join(names, ", ")).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
+				ui.Text(c, m.VcScopes(strings.Join(names, ", "))).FontSize(11).TextColor(t.TextMuted).MaxLines(1)
 			}
 		}
 		if token == "" {
-			ui.Text(c, "No token saved.").FontSize(11).TextColor(t.Danger)
+			ui.Text(c, m.VcNoToken()).FontSize(11).TextColor(t.Danger)
 		} else {
-			ui.Text(c, "Token saved.").FontSize(11).TextColor(t.TextMuted)
+			ui.Text(c, m.VcTokenSaved()).FontSize(11).TextColor(t.TextMuted)
 		}
 
 		ui.Row(c).Gap(6).Children(func() {
 			if s.vcTesting == id {
-				ui.Text(c, "Checking…").FontSize(11).TextColor(t.TextMuted)
-			} else if ui.Button(c.Key("vc-test-"+id), "Test").Disabled(token == "").Clicked() {
-				s.testForgeToken(id, provider, host, token)
+				ui.Text(c, m.VcChecking()).FontSize(11).TextColor(t.TextMuted)
+			} else if ui.Button(c.Key("vc-test-"+id), m.ActionTest()).Disabled(token == "").Clicked() {
+				s.testForgeToken(c, id, provider, host, token)
 			}
-			if ui.Button(c.Key("vc-rotate-"+id), "Rotate token").Clicked() {
+			if ui.Button(c.Key("vc-rotate-"+id), m.VcRotateToken()).Clicked() {
 				s.mu.Lock()
 				s.vcRotate = id
 				s.vcRotateToken = ""
 				s.mu.Unlock()
 			}
 			if s.vcRemove == id {
-				ui.Text(c, "Remove?").FontSize(11).TextColor(t.Danger)
-				if ui.Button(c.Key("vc-rm-ok-"+id), "Remove").Clicked() {
-					s.removeForgeAccount(id)
+				ui.Text(c, m.VcRemovePrompt()).FontSize(11).TextColor(t.Danger)
+				if ui.Button(c.Key("vc-rm-ok-"+id), m.ActionRemove()).Clicked() {
+					s.removeForgeAccount(c, id)
 				}
-				if ui.Button(c.Key("vc-rm-no-"+id), "Keep").Clicked() {
+				if ui.Button(c.Key("vc-rm-no-"+id), m.ActionKeep()).Clicked() {
 					s.mu.Lock()
 					s.vcRemove = ""
 					s.mu.Unlock()
 				}
-			} else if ui.Button(c.Key("vc-del-"+id), "Delete").Clicked() {
+			} else if ui.Button(c.Key("vc-del-"+id), m.ActionDelete()).Clicked() {
 				s.mu.Lock()
 				s.vcRemove = id
 				s.mu.Unlock()
@@ -375,13 +383,13 @@ func (s *Shell) viewForgeAccountCard(c *ui.Context, a map[string]any) {
 		// upstream replaces a token without appending a second row.
 		if s.vcRotate == id {
 			ui.Column(c.Key("vc-rotate-" + id)).Gap(6).Padding(10).Background(t.Background).Radius(6).Children(func() {
-				ui.Text(c, "New access token").FontSize(11).TextColor(t.TextMuted)
+				ui.Text(c, m.VcNewToken()).FontSize(11).TextColor(t.TextMuted)
 				ui.TextInput(c.Key("vc-rotate-input-"+id), &s.vcRotateToken).Grow(1)
 				ui.Row(c).Gap(6).Children(func() {
-					if ui.PrimaryButton(c.Key("vc-rotate-save-"+id), "Save token").Disabled(s.vcRotateToken == "").Clicked() {
-						s.saveForgeToken(id, provider, host, s.vcRotateToken, nil)
+					if ui.PrimaryButton(c.Key("vc-rotate-save-"+id), m.VcSaveToken()).Disabled(s.vcRotateToken == "").Clicked() {
+						s.saveForgeToken(c, id, provider, host, s.vcRotateToken, nil)
 					}
-					if ui.Button(c.Key("vc-rotate-cancel-"+id), "Cancel").Clicked() {
+					if ui.Button(c.Key("vc-rotate-cancel-"+id), m.ActionCancel()).Clicked() {
 						s.mu.Lock()
 						s.vcRotate = ""
 						s.vcRotateToken = ""
@@ -398,10 +406,11 @@ func (s *Shell) viewForgeAccountCard(c *ui.Context, a map[string]any) {
 // creates a row (a bad one says why, here, rather than in Repositories).
 func (s *Shell) viewForgeAddForm(c *ui.Context) {
 	t := c.Theme()
+	m := cat(c)
 	f := s.vcAdd
 	ui.Column(c.Key("vc-add")).Gap(8).Padding(12).Margin(8, 0, 0, 0).Background(t.Surface).Radius(8).Children(func() {
-		ui.Text(c, "Add a forge account").FontSize(14).Bold()
-		ui.Text(c, "Provider").FontSize(11).TextColor(t.TextMuted)
+		ui.Text(c, m.VcAddAccount()).FontSize(14).Bold()
+		ui.Text(c, m.VcProvider()).FontSize(11).TextColor(t.TextMuted)
 		ui.Row(c.Key("vc-add-provider")).Gap(6).Children(func() {
 			for _, p := range vcProviders {
 				active := f.provider == p.id
@@ -416,7 +425,7 @@ func (s *Shell) viewForgeAddForm(c *ui.Context) {
 				}
 			}
 		})
-		ui.Text(c, "Host").FontSize(11).TextColor(t.TextMuted)
+		ui.Text(c, m.VcHost()).FontSize(11).TextColor(t.TextMuted)
 		ui.TextInput(c.Key("vc-add-host"), &f.host).
 			Placeholder(firstNonEmpty(func() string {
 				for _, p := range vcProviders {
@@ -425,11 +434,10 @@ func (s *Shell) viewForgeAddForm(c *ui.Context) {
 					}
 				}
 				return ""
-			}(), "https://git.example.com")).Grow(1)
-		ui.Text(c, "Access token").FontSize(11).TextColor(t.TextMuted)
+			}(), m.VcHostPlaceholder())).Grow(1)
+		ui.Text(c, m.VcAccessToken()).FontSize(11).TextColor(t.TextMuted)
 		ui.TextInput(c.Key("vc-add-token"), &f.token).Grow(1)
-		ui.Text(c, "The token needs read access to the repositories you open "+
-			"in Repositories.").FontSize(11).TextColor(t.TextMuted).Wrap()
+		ui.Text(c, m.VcTokenHint()).FontSize(11).TextColor(t.TextMuted).Wrap()
 		if f.err != "" {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				ui.Icon(c, iconAlert).Width(13).Height(13).TextColor(t.Danger)
@@ -437,10 +445,10 @@ func (s *Shell) viewForgeAddForm(c *ui.Context) {
 			})
 		}
 		ui.Row(c).Gap(6).Children(func() {
-			if ui.PrimaryButton(c.Key("vc-add-save"), "Validate & add").Disabled(f.token == "").Clicked() {
-				s.addForgeAccount()
+			if ui.PrimaryButton(c.Key("vc-add-save"), m.VcValidateAdd()).Disabled(f.token == "").Clicked() {
+				s.addForgeAccount(c)
 			}
-			if ui.Button(c.Key("vc-add-cancel"), "Cancel").Clicked() {
+			if ui.Button(c.Key("vc-add-cancel"), m.ActionCancel()).Clicked() {
 				s.mu.Lock()
 				s.vcAdd = nil
 				s.mu.Unlock()
@@ -450,7 +458,8 @@ func (s *Shell) viewForgeAddForm(c *ui.Context) {
 }
 
 // testForgeToken asks the forge who a token belongs to and reports it inline.
-func (s *Shell) testForgeToken(id, provider, host, token string) {
+func (s *Shell) testForgeToken(c *ui.Context, id, provider, host, token string) {
+	loc := c.Locale()
 	if token == "" {
 		return
 	}
@@ -464,16 +473,16 @@ func (s *Shell) testForgeToken(id, provider, host, token string) {
 		s.vcTesting = ""
 		switch {
 		case err != nil:
-			s.actionMsg = "test failed: " + err.Error()
+			s.actionMsg = locales.In(loc).VcTestFailed(err.Error())
 		case asBool(asObj(raw)["success"]):
 			who := str(asObj(raw), "username")
 			if who != "" {
-				s.actionMsg = "Token works — signed in as " + who + "."
+				s.actionMsg = locales.In(loc).VcTokenWorksAs(who)
 			} else {
-				s.actionMsg = "Token works."
+				s.actionMsg = locales.In(loc).VcTokenWorks()
 			}
 		default:
-			s.actionMsg = "test failed: " + firstNonEmpty(str(asObj(raw), "message"), "the forge rejected the token")
+			s.actionMsg = locales.In(loc).VcTestFailed(firstNonEmpty(str(asObj(raw), "message"), locales.In(loc).VcForgeRejected()))
 		}
 		s.mu.Unlock()
 		svc.Invalidate()
@@ -483,7 +492,8 @@ func (s *Shell) testForgeToken(id, provider, host, token string) {
 // saveForgeToken stores a token for an account (rotating it in place) after
 // the forge has said the token works. onDone, when set, runs after the save —
 // the add form uses it to append the new account.
-func (s *Shell) saveForgeToken(id, provider, host, token string, onDone func(username string)) {
+func (s *Shell) saveForgeToken(c *ui.Context, id, provider, host, token string, onDone func(username string)) {
+	loc := c.Locale()
 	svc := s.svc
 	go func() {
 		raw, verr := s.B.raw(vcValidateCmd(provider), map[string]any{"serverUrl": host, "token": token})
@@ -492,18 +502,18 @@ func (s *Shell) saveForgeToken(id, provider, host, token string, onDone func(use
 			if s.vcAdd != nil {
 				s.vcAdd.err = verr.Error()
 			}
-			s.actionMsg = "save failed: " + verr.Error()
+			s.actionMsg = locales.In(loc).VcSaveFailed(verr.Error())
 			s.mu.Unlock()
 			svc.Invalidate()
 			return
 		}
 		if !asBool(asObj(raw)["success"]) {
-			msg := firstNonEmpty(str(asObj(raw), "message"), "the forge rejected the token")
+			msg := firstNonEmpty(str(asObj(raw), "message"), locales.In(loc).VcForgeRejected())
 			s.mu.Lock()
 			if s.vcAdd != nil {
 				s.vcAdd.err = msg
 			}
-			s.actionMsg = "save failed: " + msg
+			s.actionMsg = locales.In(loc).VcSaveFailed(msg)
 			s.mu.Unlock()
 			svc.Invalidate()
 			return
@@ -511,7 +521,7 @@ func (s *Shell) saveForgeToken(id, provider, host, token string, onDone func(use
 		username := str(asObj(raw), "username")
 		if _, err := s.B.raw("save_account_token", map[string]any{"accountId": id, "token": token}); err != nil {
 			s.mu.Lock()
-			s.actionMsg = "save failed: " + err.Error()
+			s.actionMsg = locales.In(loc).VcSaveFailed(err.Error())
 			s.mu.Unlock()
 			svc.Invalidate()
 			return
@@ -522,7 +532,7 @@ func (s *Shell) saveForgeToken(id, provider, host, token string, onDone func(use
 		if s.vcAdd != nil {
 			s.vcAdd = nil
 		}
-		s.actionMsg = "Token saved."
+		s.actionMsg = locales.In(loc).VcTokenSaved()
 		s.mu.Unlock()
 		s.invalidate("acct-token:" + id)
 		if onDone != nil {
@@ -534,7 +544,7 @@ func (s *Shell) saveForgeToken(id, provider, host, token string, onDone func(use
 
 // addForgeAccount validates the form's token, then appends the account and
 // saves its token. A refused token keeps the form open with the reason.
-func (s *Shell) addForgeAccount() {
+func (s *Shell) addForgeAccount(c *ui.Context) {
 	s.mu.Lock()
 	f := s.vcAdd
 	if f == nil {
@@ -557,13 +567,14 @@ func (s *Shell) addForgeAccount() {
 	s.mu.Unlock()
 
 	id := fmt.Sprintf("acct-%d", time.Now().UnixNano())
-	s.saveForgeToken(id, provider, host, token, func(username string) {
-		s.appendForgeAccount(id, provider, host, username)
+	s.saveForgeToken(c, id, provider, host, token, func(username string) {
+		s.appendForgeAccount(c, id, provider, host, username)
 	})
 }
 
 // appendForgeAccount adds the new account to the saved settings.
-func (s *Shell) appendForgeAccount(id, provider, host, username string) {
+func (s *Shell) appendForgeAccount(c *ui.Context, id, provider, host, username string) {
+	loc := c.Locale()
 	s.mu.Lock()
 	accts := asObj(s.ensure("gh-accounts", "get_github_accounts", nil))
 	list := asListVal(accts["accounts"])
@@ -577,15 +588,16 @@ func (s *Shell) appendForgeAccount(id, provider, host, username string) {
 	payload, _ := json.Marshal(map[string]any{"accounts": list})
 	s.mu.Unlock()
 	if _, err := s.B.raw("update_github_accounts", map[string]any{"settings": json.RawMessage(payload)}); err != nil {
-		s.notify("Account saved, but the list failed: " + err.Error())
+		s.notifyErr(locales.In(loc).VcAccountSavedListFailed(err.Error()))
 		return
 	}
 	s.invalidate("gh-accounts")
-	s.notify("Account added.")
+	s.notify(locales.In(loc).VcAccountAdded())
 }
 
 // removeForgeAccount drops an account: its token first, then its row.
-func (s *Shell) removeForgeAccount(id string) {
+func (s *Shell) removeForgeAccount(c *ui.Context, id string) {
+	loc := c.Locale()
 	svc := s.svc
 	go func() {
 		_, _ = s.B.raw("delete_account_token", map[string]any{"accountId": id})
@@ -603,13 +615,13 @@ func (s *Shell) removeForgeAccount(id string) {
 		s.vcRotate = ""
 		s.mu.Unlock()
 		if _, err := s.B.raw("update_github_accounts", map[string]any{"settings": json.RawMessage(payload)}); err != nil {
-			s.notify("Remove failed: " + err.Error())
+			s.notifyErr(locales.In(loc).VcRemoveFailed(err.Error()))
 			svc.Invalidate()
 			return
 		}
 		s.invalidate("acct-token:" + id)
 		s.invalidate("gh-accounts")
-		s.notify("Account removed.")
+		s.notify(locales.In(loc).VcAccountRemoved())
 		svc.Invalidate()
 	}()
 }

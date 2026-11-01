@@ -16,8 +16,8 @@ import (
 
 	cron "github.com/robfig/cron/v3"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const automationCols = `SELECT id, name, enabled, trigger_kind, cron, timezone, next_run_at,

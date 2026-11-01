@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func TestEnvLevelIsSet(t *testing.T) {
-	t.Setenv("YOYOCODE_LOG", "")
+	t.Setenv("GOCODE_LOG", "")
 	t.Setenv("RUST_LOG", "")
 	if envLevelIsSet() {
 		t.Error("expected not locked with no env")

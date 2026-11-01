@@ -21,8 +21,8 @@ import (
 	"sort"
 	"strings"
 
-	apperror "yoyocode/src-go/app_error"
-	"yoyocode/src-go/web"
+	apperror "gocode/src-go/app_error"
+	"gocode/src-go/web"
 )
 
 const (

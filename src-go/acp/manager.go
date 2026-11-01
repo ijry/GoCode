@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"yoyocode/src-go/db"
+	"gocode/src-go/db"
 )
 
 // EventSink is the narrow contract the ACP engine needs to publish onto the
 // legacy web firehose. It exists to keep this package independent of
-// `yoyocode/src-go/web` — upstream's acp module is likewise unaware of the web
+// `gocode/src-go/web` — upstream's acp module is likewise unaware of the web
 // layer, and the dependency would otherwise form an import cycle (web needs acp
 // for the attach protocol).
 //
@@ -32,9 +32,13 @@ type Manager struct {
 	bc     EventSink
 	seq    uint64
 
+	// questions parks ask_user_question calls by request id until the UI answers
+	// (see ask_user.go).
+	questions map[string]chan string
+
 	// companionBackend is the loopback address + bearer token of the running
-	// YoYoCode backend, injected so ConnectLive can offer the yoyocode-mcp
-	// companion to the agent with a working YOYOCODE_API / YOYOCODE_TOKEN. Set
+	// GoCode backend, injected so ConnectLive can offer the gocode-mcp
+	// companion to the agent with a working GOCODE_API / GOCODE_TOKEN. Set
 	// once at startup via SetCompanionBackend; empty means "not configured",
 	// and ConnectLive skips companion injection.
 	companionAPI   string
@@ -81,13 +85,14 @@ type AgentInfo struct {
 
 func NewManager(database *db.Database, bc EventSink) *Manager {
 	return &Manager{
-		conn:     map[string]*Connection{},
-		agents:   []*AgentInfo{},
-		db:       database,
-		bc:       bc,
-		live:     map[string]*liveSession{},
-		spawner:  SpawnAgent,
-		resolver: ResolveSpawn,
+		conn:      map[string]*Connection{},
+		agents:    []*AgentInfo{},
+		db:        database,
+		bc:        bc,
+		live:      map[string]*liveSession{},
+		questions: map[string]chan string{},
+		spawner:   SpawnAgent,
+		resolver:  ResolveSpawn,
 	}
 }
 
@@ -128,7 +133,7 @@ func (m *Manager) DisconnectByAgentType(agentType string) int {
 }
 
 // SetCompanionBackend records the loopback backend address + bearer token the
-// yoyocode-mcp companion should talk to. Called once at startup after the web
+// gocode-mcp companion should talk to. Called once at startup after the web
 // server is listening (app_state creates the Manager before the port is known).
 func (m *Manager) SetCompanionBackend(apiBase, token string) {
 	m.mu.Lock()
@@ -137,10 +142,10 @@ func (m *Manager) SetCompanionBackend(apiBase, token string) {
 	m.companionToken = token
 }
 
-// companionSpec builds the yoyocode-mcp MCP server entry for a real session, or
+// companionSpec builds the gocode-mcp MCP server entry for a real session, or
 // nil when injection should be skipped (backend not configured, or the
 // companion binary is missing on disk). agentType/sessionID seed the companion's
-// environment so the workbench tools report the right context back to YoYoCode.
+// environment so the workbench tools report the right context back to GoCode.
 func (m *Manager) companionSpec(agentType, sessionID string) map[string]any {
 	m.mu.RLock()
 	api, token := m.companionAPI, m.companionToken

@@ -20,7 +20,7 @@ import (
 	"sort"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 var fileTreeIgnoredDirs = map[string]bool{".git": true, "__pycache__": true}

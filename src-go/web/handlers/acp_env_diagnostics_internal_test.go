@@ -62,7 +62,7 @@ func TestComputeVerdict(t *testing.T) {
 	// user_prefix_not_on_path
 	in := baseDiagInputs()
 	a := npxAgentInstalledUnresolved()
-	a.userPrefixBin = "/home/u/.yoyocode/npm-global/bin/codex-acp"
+	a.userPrefixBin = "/home/u/.gocode/npm-global/bin/codex-acp"
 	in.agent = a
 	v := computeVerdict(&in)
 	if v["code"] != "user_prefix_not_on_path" || v["level"] != "fail" {

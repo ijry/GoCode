@@ -29,7 +29,9 @@ func TestTranscriptVirtualizesLongConversations(t *testing.T) {
 	s.cache["turns:1"] = json.RawMessage(sb.String())
 	s.stream = newStreamForTest() // drop the seeded live events; only the 200 turns
 
-	tt := ui.NewTester(s.View, 1240, 320)
+	// 420 tall leaves room for the multiline composer and still shows only a
+	// couple of the 200 rows, so the window is unmistakably virtualized.
+	tt := ui.NewTester(s.View, 1240, 420)
 	tt.Frame()
 
 	first, last := s.transcriptList.Visible()

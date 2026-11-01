@@ -15,8 +15,8 @@ package handlers
 // codex_bundled_catalog returns codex's own opaque ModelInfo objects verbatim.
 
 import (
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/web"
 )
 
 func registerACPCatalogs(reg *Registry) {

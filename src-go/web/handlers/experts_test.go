@@ -24,12 +24,12 @@ func TestExpertsReadAndCentralDir(t *testing.T) {
 	home := setHome(t)
 	srv := newTestServer(t)
 
-	// open_central_dir creates and returns ~/.yoyocode/skills
+	// open_central_dir creates and returns ~/.gocode/skills
 	code, dir := rawPostJSON(t, srv, "experts_open_central_dir", map[string]any{})
 	if code != 200 {
 		t.Fatalf("open_central_dir failed: %d", code)
 	}
-	want := filepath.Join(home, ".yoyocode", "skills")
+	want := filepath.Join(home, ".gocode", "skills")
 	if _, err := os.Stat(want); err != nil {
 		t.Fatalf("central dir not created: %v", err)
 	}

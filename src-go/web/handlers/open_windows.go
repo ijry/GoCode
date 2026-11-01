@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func navResult(path string) map[string]any { return map[string]any{"path": path} }

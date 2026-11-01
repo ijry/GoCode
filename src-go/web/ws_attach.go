@@ -3,7 +3,7 @@ package web
 import (
 	"encoding/json"
 
-	"yoyocode/src-go/acp"
+	"gocode/src-go/acp"
 )
 
 // ─── Client→Server messages (upstream ws_attach.rs ClientMsg) ───

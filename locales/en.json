@@ -1,8 +1,7 @@
 {
   "@@locale": "en",
-  "appTitle": "YoYoCode",
+  "appTitle": "GoCode",
   "appTagline": "Your agents, your workspace — pick up a chat or open a folder to begin.",
-
   "statusConnecting": "connecting",
   "statusConnected": "connected",
   "sectionWorkspace": "Workspace",
@@ -10,10 +9,19 @@
   "sectionPet": "Pet",
   "routeImportSessions": "Import sessions",
   "routeProjectBoot": "Project boot",
-
-  "navGeneral": "General",
+  "routeCommands": "Commands",
   "navAppearance": "Appearance",
   "navAgents": "Agents",
+  "agentCustomBadge": "custom: {id}",
+  "@agentCustomBadge": {
+    "description": "Badge marking an agent that came from the user's own definition.",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "example": "my-agent"
+      }
+    }
+  },
   "navVersionControl": "Version Control",
   "navMCP": "MCP",
   "navQuickMessages": "Quick Messages",
@@ -31,21 +39,18 @@
   "navBrowser": "Browser",
   "navLogs": "Logs",
   "navSystem": "System",
-
-  "loginTitle": "YoYoCode",
+  "loginTitle": "GoCode",
   "loginHint": "Enter this server's access token to connect.",
   "loginTokenPlaceholder": "Access token",
   "loginConnect": "Connect",
   "loginInvalid": "Invalid token",
   "loginConnFailed": "Connection failed",
   "loginTokenHint": "The token is shown under Settings → Web Service.",
-
   "generalTitle": "General",
   "generalInterfaceLanguage": "Interface language",
   "languageSection": "Language",
   "languageHelp": "The whole window — its own text, MyGo's controls and dialogs — follows the language you pick here.",
   "languageFollowSystem": "Follow system language",
-
   "actionRefresh": "Refresh",
   "actionNewChat": "New chat",
   "actionSend": "Send",
@@ -57,14 +62,17 @@
   "actionRemove": "Remove",
   "actionKeep": "Keep",
   "actionRename": "Rename",
+  "actionFork": "Fork",
+  "toastForked": "conversation forked",
+  "toastForkFailed": "fork failed: {message}",
   "actionPin": "Pin",
   "actionUnpin": "Unpin",
-
   "navAutomations": "Automations",
   "navTodos": "To-dos",
   "navRepositories": "Repositories",
   "navCanvas": "Canvas",
-
+  "navUsage": "Usage",
+  "navModelProviders": "Model providers",
   "sidebarSearchPlaceholder": "Search chats",
   "sidebarClearSearch": "Clear search",
   "sidebarOpenFolder": "Open folder…",
@@ -79,7 +87,6 @@
   "sidebarNoFolders": "No folders open",
   "untitled": "(untitled)",
   "routeNotBuilt": "This panel is not built yet.",
-
   "activeSessions": "Active sessions",
   "themeLight": "Light",
   "themeDark": "Dark",
@@ -88,11 +95,9 @@
   "paletteWorkbench": "Workbench",
   "paletteGoto": "Go to",
   "paletteTheme": "Theme",
-
   "sidebarChatsCount": "{count, plural, =0 {No chats} one {# chat} other {# chats}}",
-
   "serversTitle": "Servers",
-  "serversHelp": "Connect this window to other YoYoCode servers. Switching swaps the whole workspace over — folders, conversations and panels all come from the server you pick.",
+  "serversHelp": "Connect this window to other GoCode servers. Switching swaps the whole workspace over — folders, conversations and panels all come from the server you pick.",
   "serversActiveBadge": "Connected",
   "serversLocalName": "Local workspace",
   "serversLocalNote": "This computer's in-process backend.",
@@ -116,17 +121,25 @@
   "@serversSwitchFailed": {
     "description": "The Servers page, when a server did not answer the health check.",
     "placeholders": {
-      "name": { "type": "String", "example": "Studio box" },
-      "reason": { "type": "String", "example": "dial tcp: connection refused" }
+      "name": {
+        "type": "String",
+        "example": "Studio box"
+      },
+      "reason": {
+        "type": "String",
+        "example": "dial tcp: connection refused"
+      }
     }
   },
   "@serversTokenRejected": {
     "description": "The Servers page, when a server answered 401 to the saved token.",
     "placeholders": {
-      "name": { "type": "String", "example": "Studio box" }
+      "name": {
+        "type": "String",
+        "example": "Studio box"
+      }
     }
   },
-
   "autoNextRun": "Next run: {when}",
   "autoLastRun": "Last run: {when}",
   "autoNever": "never",
@@ -134,29 +147,56 @@
   "@autoNextRun": {
     "description": "The automation detail, the schedule fact of the next run.",
     "placeholders": {
-      "when": { "type": "String", "example": "10/16/26, 09:30" }
+      "when": {
+        "type": "String",
+        "example": "10/16/26, 09:30"
+      }
     }
   },
   "@autoLastRun": {
     "description": "The automation detail, the schedule fact of the last run.",
     "placeholders": {
-      "when": { "type": "String", "example": "10/16/26, 09:30" }
+      "when": {
+        "type": "String",
+        "example": "10/16/26, 09:30"
+      }
+    }
+  },
+  "@toastForkFailed": {
+    "description": "The chat header, a failed fork.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "a turn is already in progress"
+      }
+    }
+  },
+  "@convLoadEarlierFailed": {
+    "description": "The chat, a failed earlier-history page load.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
     }
   },
   "@tasksUpdated": {
     "description": "The to-do detail, when the task last changed.",
     "placeholders": {
-      "when": { "type": "String", "example": "10/16/26, 09:30" }
+      "when": {
+        "type": "String",
+        "example": "10/16/26, 09:30"
+      }
     }
   },
-
+  "convLoadEarlier": "Load earlier messages",
+  "convLoadEarlierFailed": "could not load earlier messages: {message}",
   "convTabNew": "New conversation",
   "convTabTerminal": "Terminal",
   "convTabClose": "Close tab",
   "convTabCloseOthers": "Close Others",
   "convTabCloseAll": "Close All",
   "convTabNone": "No open conversations",
-
   "gitOpsMenu": "Git operations",
   "gitBack": "Back to workspace",
   "gitSelectFolder": "Select a folder to run git operations in it.",
@@ -206,21 +246,63 @@
   "gitContinue": "Continue",
   "gitMergeAborted": "merge aborted",
   "gitMergeCompleted": "merge completed",
-
+  "gitSelectionCount": "{selected} / {total} files",
+  "gitSelectAllFiles": "Select all files",
+  "gitUnselectAllFiles": "Unselect all files",
+  "gitTrackedChanges": "Tracked changes ({count})",
+  "gitUntrackedFiles": "Untracked files ({count})",
+  "gitSelectTracked": "Select tracked changes",
+  "gitUnselectTracked": "Unselect tracked changes",
+  "gitSelectUntracked": "Select untracked files",
+  "gitUnselectUntracked": "Unselect untracked files",
+  "gitSelectFile": "Select {file}",
+  "gitUnselectFile": "Unselect {file}",
+  "gitClickFileToDiff": "Click a file name to view diff",
+  "gitHeadLabel": "HEAD",
+  "gitWorkingTreeLabel": "Working Tree",
+  "gitDiffBinary": "Binary file — no text diff",
+  "gitCommitButton": "Commit ({count})",
+  "gitCommitAndPushButton": "Commit and Push ({count})",
+  "gitCommitAndPushLabel": "Commit and push",
+  "gitCommitUnmerged": "Resolve the unmerged files before committing.",
+  "gitOpenMerge": "Open Merge",
+  "gitCommitFailed": "Commit failed: {message}",
+  "gitCommitPushFailed": "Committed, but the push failed: {message}",
+  "gitCommittedAndPushed": "Committed and pushed {count} files",
+  "gitCommittedFiles": "Committed {count} files",
+  "gitNoUnpushedCommits": "No unpushed commits",
+  "gitNewBranchNoCommits": "New branch — push to create remote tracking branch",
+  "gitSelectFileToViewDiff": "Select a file to view diff",
+  "gitBefore": "Before",
+  "gitAfter": "After",
+  "gitNoFileChangeDetails": "No file change details available.",
+  "gitPushWithCount": "Push ({count})",
+  "gitPushing": "Pushing…",
+  "gitPushFailed": "Push failed: {message}",
+  "gitPushedCommits": "Pushed {count} commits",
+  "gitPushedUpstream": "Upstream set — pushed {count} commits",
   "@gitChangedFiles": {
     "description": "The commit page, the changed-file count.",
-    "placeholders": { "count": { "type": "int", "example": "3" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
   "@gitConflictedFiles": {
     "description": "The merge page, the conflicted-file count.",
-    "placeholders": { "count": { "type": "int", "example": "2" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
   },
-
   "gitCommitActionLabel": "Commit changes",
   "gitStashActionLabel": "Create stash",
   "gitPushActionLabel": "Push branch",
   "gitMergeActionLabel": "Merge branch",
-
   "gitBranchesTitle": "Branches",
   "gitBranchChip": "Branch: {branch}",
   "gitNewBranch": "Create a branch",
@@ -233,11 +315,2381 @@
   "gitSwitchAction": "Switch",
   "gitForceDelete": "Force delete",
   "gitWorktreesLabel": "Worktrees",
+  "gitOtherWorktrees": "Other worktrees ({count})",
+  "gitNoOtherWorktrees": "No other worktrees",
+  "gitNewWorktree": "Create a worktree",
+  "gitWorktreeBranchPlaceholder": "Worktree branch name",
+  "gitWorktreePathPlaceholder": "Worktree directory path",
+  "gitWorktreeCreateAction": "Create worktree",
+  "gitWorktreeCreateLabel": "Create worktree",
+  "gitWorktreeRemoveAction": "Remove worktree",
+  "gitWorktreeRemoveBranchAction": "Remove + delete branch",
+  "gitWorktreeForceAction": "Force remove",
+  "gitWorktreeForceBranchAction": "Force remove + delete branch",
+  "gitWorktreeForceNeeded": "The worktree has local work — confirm force removal.",
+  "gitWorktreeCreated": "worktree created",
+  "gitWorktreeRemoved": "worktree removed",
+  "gitWorktreeSwitched": "switched to worktree",
+  "gitMainWorktreeBadge": "main worktree",
+  "gitRebaseAction": "Rebase",
+  "gitRebaseActionLabel": "Rebase branch",
+  "gitRebased": "rebased",
+  "gitRemoteBranches": "Remote branches ({count})",
+  "gitRemoteBranchesLabel": "Remote branches",
+  "gitCheckoutRemoteAction": "Checkout",
   "gitRemotesLabel": "Remotes",
   "gitSwitched": "branch switched",
   "gitBranchCreated": "branch created",
   "gitBranchDeleted": "branch deleted",
-
-  "@gitBranchChip": {"description": "The composer branch chip, the checked-out branch name.", "placeholders": {"branch": {"type": "String", "example": "main"}}},
-  "@gitLocalBranches": {"description": "The branches page, the local-branch count.", "placeholders": {"count": {"type": "int", "example": "4"}}}
+  "gitRemoteAdd": "Add remote",
+  "gitRemoteNamePlaceholder": "Name (e.g. origin)",
+  "gitRemoteURLPlaceholder": "https://…",
+  "gitRemoteAddAction": "Add",
+  "gitRemoteFetchAction": "Fetch",
+  "gitRemoteSetURLAction": "Set URL",
+  "gitRemoteRemoveAction": "Remove",
+  "gitRemoteSave": "Save",
+  "gitRemoteCancel": "Cancel",
+  "gitRemoteRemoveConfirm": "Remove remote {name}?",
+  "gitRemoteConfirmRemove": "Confirm remove",
+  "gitRemoteRequired": "Name and URL are required.",
+  "gitRemoteAdded": "remote added",
+  "gitRemoteUpdated": "remote updated",
+  "gitRemoteRemoved": "remote removed",
+  "gitRemoteFetched": "fetched",
+  "cloneTitle": "Clone repository",
+  "cloneShort": "Clone repo",
+  "cloneURL": "Repository URL",
+  "cloneTarget": "Target directory",
+  "cloneChoose": "Choose…",
+  "cloneAction": "Clone",
+  "cloneCreated": "Cloned to {path}",
+  "cloneOpenFolder": "Open folder",
+  "cloneRequired": "Repository URL and target directory are required.",
+  "usageTitle": "Token usage",
+  "usageSync": "Sync",
+  "usageBucketDay": "Day",
+  "usageBucketWeek": "Week",
+  "usageBucketMonth": "Month",
+  "usageTotal": "Total tokens",
+  "usageInput": "Input",
+  "usageOutput": "Output",
+  "usageCacheCreate": "Cache write",
+  "usageCacheRead": "Cache read",
+  "usageTurns": "Turns",
+  "usageConversations": "Conversations",
+  "usageActiveDays": "Active days",
+  "usageStreak": "Streak",
+  "usageStreakValue": "{current} days now · {longest} longest",
+  "usageSeries": "Activity",
+  "usageByFolder": "By folder",
+  "usageByAgent": "By agent",
+  "usageByModel": "By model",
+  "usageTopConversations": "Top conversations",
+  "usageHeatmap": "When you work",
+  "usageEmpty": "No usage recorded yet. Sync to populate the dashboard.",
+  "usageStatus": "{fact} turns · {synced}/{total} conversations synced",
+  "usageSynced": "sync complete",
+  "usageTruncated": "Large dataset — some rows were truncated.",
+  "usageRange": "Range",
+  "usageAll": "All",
+  "usage7d": "7d",
+  "usage30d": "30d",
+  "usage90d": "90d",
+  "usageComparePrev": "Compare previous",
+  "usageVsPrevious": "vs previous",
+  "usageFolderFilter": "Folder",
+  "usageAgentFilter": "Agent",
+  "usageModelFilter": "Model",
+  "usageResetFilters": "Reset filters",
+  "usageNoMatches": "No matches",
+  "usageHeatmapHint": "Tokens by local weekday and hour.",
+  "usageHeatmapPeak": "Densest around {hour}:00.",
+  "usageHeatmapCell": "{weekday} {hour}:00 — {value} tokens",
+  "usageLess": "Less",
+  "usageMore": "More",
+  "usageWeekMon": "Mon",
+  "usageWeekTue": "Tue",
+  "usageWeekWed": "Wed",
+  "usageWeekThu": "Thu",
+  "usageWeekFri": "Fri",
+  "usageWeekSat": "Sat",
+  "usageWeekSun": "Sun",
+  "mpTitle": "Model providers",
+  "mpAdd": "Add provider",
+  "mpName": "Name",
+  "mpAPIURL": "API URL",
+  "mpAPIKey": "API key",
+  "mpAgentType": "Agent type",
+  "mpModel": "Model (optional)",
+  "mpCreate": "Create",
+  "mpSave": "Save",
+  "mpCancel": "Cancel",
+  "mpEdit": "Edit",
+  "mpDelete": "Delete",
+  "mpConfirmDelete": "Confirm delete",
+  "mpEmpty": "No model providers configured yet.",
+  "mpKeyHint": "Keys are stored locally and shown masked.",
+  "mpNameURLRequired": "Name and API URL are required.",
+  "mpDeletePrompt": "Delete provider {name}?",
+  "mpCreated": "provider added",
+  "mpUpdated": "provider updated",
+  "mpDeleted": "provider deleted",
+  "browserAddress": "Address",
+  "browserAddressPlaceholder": "http://localhost:3000",
+  "browserOpenExternal": "Open in browser",
+  "browserOpenBridge": "Open via bridge",
+  "browserBridge": "Bridge",
+  "browserRunning": "running",
+  "browserStopped": "stopped",
+  "browserPorts": "ports: {list}",
+  "@browserPorts": {
+    "description": "Ports the local browser bridge listens on.",
+    "placeholders": {
+      "list": {
+        "type": "String",
+        "example": "3000, 3001"
+      }
+    }
+  },
+  "@browserPublicHost": {
+    "description": "Public hostname the browser bridge is exposed at.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "abc.ngrok.io"
+      }
+    }
+  },
+  "browserPublicHost": "public host: {host}",
+  "browserBridgeOffHint": "The port bridge is not enabled in this build, so the panel cannot embed the page. Use \"Open in browser\" to launch it externally.",
+  "browserOpenSettings": "Open Settings → Browser",
+  "browserOpened": "opened in the system browser",
+  "browserBridgeOpened": "bridge opened",
+  "wfTitle": "Workspace folders",
+  "wfAdd": "Link a folder",
+  "wfTarget": "Folder to link",
+  "wfName": "Link name (optional)",
+  "wfChoose": "Choose…",
+  "wfAddAction": "Add link",
+  "wfPreviewTitle": "Ready to link",
+  "wfWillAppearAs": "Will appear as {name}",
+  "wfRenamedForDuplicate": "Renamed — {base} is already used by another link",
+  "wfRenamedForExistingEntry": "Renamed — {base} already exists in this folder",
+  "wfDiscard": "Discard",
+  "wfLinkCount": "Link {count} folder(s)",
+  "wfGitExclude": "Keep links out of git status",
+  "wfRepair": "Recreate link",
+  "wfRepaired": "link recreated",
+  "wfRejectNotFound": "This folder could not be found",
+  "wfRejectNotADirectory": "This path is not a folder",
+  "wfRejectSameAsRoot": "This is the workspace folder itself",
+  "wfRejectAncestorOfRoot": "This folder contains the workspace",
+  "wfRejectInsideRoot": "Already inside the workspace",
+  "wfRejectAlreadyLinked": "Already linked",
+  "wfRejectNameUnavailable": "No free name is left for this folder",
+  "wfRejectAlreadyLinkedAs": "Already linked as {name}",
+  "wfEmpty": "No linked folders yet.",
+  "wfRename": "Rename",
+  "wfRemove": "Remove",
+  "wfSave": "Save",
+  "wfCancel": "Cancel",
+  "wfConfirmRemove": "Confirm remove",
+  "wfRemovePrompt": "Remove link {name}?",
+  "wfTargetRequired": "Choose a folder to link.",
+  "wfLinked": "folder linked",
+  "wfRenamed": "link renamed",
+  "wfRemoved": "link removed",
+  "wfStatusOk": "ok",
+  "wfStatusMissing": "missing",
+  "wfStatusBroken": "broken",
+  "wfStatusConflicted": "conflicted",
+  "wfUpload": "Upload a file",
+  "wfUploadPick": "Choose file…",
+  "wfUploadRel": "Target subpath (optional)",
+  "wfUploadAction": "Upload",
+  "wfUploaded": "uploaded {path}",
+  "wfUploadNoFile": "Choose a file to upload.",
+  "wfNoFolder": "Select a folder to manage its workspace folders.",
+  "auxTabSession": "Session",
+  "auxTabFiles": "Files",
+  "auxTabChanges": "Changes",
+  "auxTabCommits": "Commits",
+  "auxFolder": "Folder",
+  "auxConversation": "Conversation",
+  "auxConnection": "Connection",
+  "auxStatus": "Status",
+  "auxAgent": "Agent",
+  "auxSelectFolderCommits": "Select a folder to see its commit history.",
+  "auxNoCommits": "No commits",
+  "auxCommitTitle": "Commit {id}",
+  "auxNoFileChanges": "No file changes",
+  "actionClose": "Close",
+  "actionNew": "New",
+  "loadingLabel": "Loading…",
+  "actionSave": "Save",
+  "actionStop": "Stop",
+  "actionAttach": "Attach file",
+  "convTitlePlaceholder": "Conversation title",
+  "noMessagesTitle": "No messages yet",
+  "noMessagesHint": "Send a prompt below to start the agent.",
+  "streamingCursor": "Streaming cursor",
+  "planTitle": "Plan",
+  "composerQueued": "Queued",
+  "toastQueueRemoved": "queued message removed",
+  "asyncTaskStop": "Stop",
+  "asyncTaskOpenOutput": "Open output",
+  "asyncTaskStopped": "task stopped",
+  "asyncTaskStopDeclined": "the agent declined to stop the task",
+  "feedbackTitle": "Live feedback",
+  "feedbackEntry": "Feedback",
+  "feedbackPlaceholder": "Tell the agent what to change…",
+  "feedbackSend": "Send",
+  "feedbackCancel": "Cancel",
+  "feedbackPending": "waiting",
+  "feedbackDelivered": "received",
+  "feedbackExpired": "The turn ended before the agent read these",
+  "feedbackSendAsMessage": "Send as message",
+  "feedbackDismiss": "Dismiss",
+  "feedbackSubmitFailed": "could not send feedback",
+  "welcomeTipMention": "Type @ in the composer to reference a file.",
+  "welcomeTipQueue": "Sending while a turn is running queues the message.",
+  "welcomeTipFork": "Fork a conversation from its header to branch the session.",
+  "welcomeTipTerminal": "The terminal panel at the bottom shares the folder.",
+  "welcomeTipFeedback": "Enable live feedback to steer a running turn.",
+  "welcomeTipSearch": "Search conversations from the sidebar.",
+  "welcomeTipTasks": "Track work on the To-dos board.",
+  "welcomeTipAux": "The right panel shows the session, files, changes and commits.",
+  "welcomeTipDrop": "Drag files onto the composer to attach them.",
+  "apiRetryAttempt": "attempt {attempt}/{max}",
+  "apiRetryAttemptOnly": "attempt {attempt}",
+  "apiRetryHttp": "HTTP {status}",
+  "apiRetryNextIn": "next in {seconds}s",
+  "apiRetryFallbackError": "the API call failed",
+  "@apiRetryAttempt": {
+    "description": "The composer's API-retry line, the attempt counter.",
+    "placeholders": {
+      "attempt": {
+        "type": "int",
+        "example": "2"
+      },
+      "max": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "@apiRetryAttemptOnly": {
+    "description": "The composer's API-retry line when the max is unknown.",
+    "placeholders": {
+      "attempt": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@apiRetryHttp": {
+    "description": "The composer's API-retry line, the HTTP status.",
+    "placeholders": {
+      "status": {
+        "type": "int",
+        "example": "429"
+      }
+    }
+  },
+  "@apiRetryNextIn": {
+    "description": "The composer's API-retry line, the delay before the next attempt.",
+    "placeholders": {
+      "seconds": {
+        "type": "String",
+        "example": "3.0"
+      }
+    }
+  },
+  "composerMentionNoMatch": "no matching files",
+  "composerPlaceholder": "Message the agent…",
+  "composerAgentWorking": "Agent is working…",
+  "composerConnecting": "Connecting to the agent…",
+  "composerLastFailed": "Last turn failed",
+  "composerDisconnected": "Disconnected",
+  "composerStripFailed": "The last turn failed.",
+  "composerStripDisconnected": "The agent connection is closed.",
+  "selectorMode": "Mode",
+  "selectorModel": "Model",
+  "toolFallback": "Tool",
+  "toolStatusCompleted": "Completed",
+  "toolStatusFailed": "Failed",
+  "toolStatusRejected": "Rejected",
+  "toolStatusRunning": "Running",
+  "toolStatusQueued": "Queued",
+  "toolStatusPending": "Pending",
+  "toolEditIndex": "edit {index}",
+  "noteError": "The agent reported an error.",
+  "permRequested": "Permission requested",
+  "permAnswerSend": "Answer",
+  "permAnswerPlaceholder": "type your answer",
+  "toastAnswerSent": "answer sent",
+  "permQuestion": "The agent is asking a question",
+  "permAnswerHint": "Pick an option, or type your answer and send it.",
+  "toastCancelFailed": "Cancel failed: {message}",
+  "toastCancelRequested": "Cancel requested",
+  "toastCreateFailed": "Conversation create failed: {message}",
+  "toastCreated": "Conversation created",
+  "toastPermissionFailed": "Permission failed: {message}",
+  "toastPermissionSent": "Permission: {option}",
+  "toastRenameFailed": "Rename failed: {message}",
+  "toastRenamed": "Renamed",
+  "toastPinFailed": "Pin failed: {message}",
+  "toastPinned": "Pinned",
+  "toastUnpinned": "Unpinned",
+  "toastDeleteFailed": "Delete failed: {message}",
+  "toastDeleted": "Deleted",
+  "toastOpenFailed": "Open failed: {message}",
+  "toastNewChatFailed": "New chat failed: {message}",
+  "toastConnecting": "Connecting…",
+  "toastUploadFailed": "Upload failed: {message}",
+  "toastPromptFailed": "Prompt failed: {message}",
+  "toastPromptSent": "Prompt sent",
+  "dialogOpenFolder": "Open folder",
+  "actionCloseToast": "Close toast",
+  "setNotBuilt": "Not built yet",
+  "setPageNotPorted": "This page mirrors upstream src/app/settings/{page}; its backend is not ported yet.",
+  "setCollabHint": "How agents work with each other, and which of gocode's own tools they can reach from inside a conversation.",
+  "setCollabDelegationTitle": "Multi-Agent Collaboration",
+  "setCollabDelegationDesc": "Allow active agents to delegate sub-tasks to other agents.",
+  "setCollabTabGeneral": "General",
+  "setCollabTabAgentDefaults": "Agent defaults",
+  "setCollabEnable": "Enable delegation",
+  "setCollabEnableHint": "When off, the delegate_to_agent tool is hidden from the agent's MCP catalog.",
+  "setCollabDepth": "Maximum delegation depth",
+  "setCollabDepthHint": "Allowed range: 1–8. Caps how deep a chain (root → child → grandchild…) can recurse.",
+  "setCollabCache": "Completed-result cache (MB)",
+  "setCollabCacheHint": "In-memory budget for finished sub-agent results; 0 = unlimited. Cleared when the delegating session ends.",
+  "setCollabDefaultsEmpty": "No per-agent delegation overrides.",
+  "setCollabDefaultsMode": "Mode: {mode}",
+  "setCollabDefaultsInherit": "inherit",
+  "setCollabRemoveOverride": "Remove override",
+  "setCollabLoadFailed": "Failed to load: {message}",
+  "setUnsaved": "Unsaved changes",
+  "setToolsTitle": "In-conversation tools",
+  "setToolsDesc": "Extra tools gocode gives an agent inside a conversation. Each is injected when the agent starts, so a change applies to agents started afterwards.",
+  "setToolFeedback": "Live Feedback",
+  "setToolFeedbackHint": "Send notes and corrections to an agent while it's working.",
+  "setToolQuestion": "Ask user question",
+  "setToolQuestionHint": "Let agents pause and ask you a multiple-choice question above the conversation input box.",
+  "setToolSessionInfo": "Get session info",
+  "setToolSessionInfoHint": "Let agents look up a session you reference to read its title, status, workspace and recent messages.",
+  "setToolBrowser": "Read and drive the built-in browser",
+  "setToolBrowserHint": "Open, read and act on pages in the built-in browser. Off by default.",
+  "setToolBrowserEval": "Run code in the built-in browser",
+  "setToolBrowserEvalHint": "Run its own JavaScript on a page you've shared. Needs the switch above.",
+  "setToolComputer": "See and use your desktop's windows",
+  "setToolComputerHint": "List apps and windows; read the ones you share, act on the ones you allow.",
+  "setToolAutomations": "Create automations",
+  "setToolAutomationsHint": "Save the conversation as an automation that runs on a schedule. Off by default.",
+  "setToolWorkTasks": "Create to-do tasks",
+  "setToolWorkTasksHint": "Queue a card on the to-do board from the conversation. Off by default.",
+  "setShortcutsReset": "Reset defaults",
+  "setShortcutsHint": "Click the right-side button, then press a key combination. Use Ctrl/Cmd, Alt, and Shift. Press Esc to cancel recording.",
+  "setShortcutsRecording": "Press shortcut…",
+  "setShortcutsConflict": "Shortcut is already used by \"{title}\"",
+  "setShortcutsSaveFailed": "Could not save shortcuts: {message}",
+  "setShortcutsResetDone": "Default shortcuts restored",
+  "setShortcutsUpdated": "Shortcut updated",
+  "setShortcutsUnassigned": "Unassigned",
+  "setShortcutsUnassignNamed": "Unassign {title}",
+  "setShortcutsCleared": "Shortcut unassigned",
+  "setShortcutToggleSearch": "Open Search",
+  "setShortcutToggleSearchHint": "Show or hide the conversation search panel",
+  "setShortcutToggleSidebar": "Toggle Left Sidebar",
+  "setShortcutToggleSidebarHint": "Show or hide the conversation list sidebar",
+  "setShortcutToggleTerminal": "Toggle Terminal",
+  "setShortcutToggleTerminalHint": "Show or hide the bottom terminal panel",
+  "setShortcutNewTerminalTab": "New Terminal",
+  "setShortcutNewTerminalTabHint": "Create a new terminal tab when focus is on the terminal",
+  "setShortcutCloseTerminalTab": "Close Current Terminal",
+  "setShortcutCloseTerminalTabHint": "Close the current terminal tab when focus is on the terminal",
+  "setShortcutToggleAux": "Toggle Right Panel",
+  "setShortcutToggleAuxHint": "Show or hide the auxiliary info panel",
+  "setShortcutNewConversation": "New Conversation",
+  "setShortcutNewConversationHint": "Create a new conversation tab in current folder",
+  "setShortcutOpenFolder": "Open Folder",
+  "setShortcutOpenFolderHint": "Open folder picker and open the folder in the workspace",
+  "setShortcutOpenSettings": "Open Settings",
+  "setShortcutOpenSettingsHint": "Open settings window",
+  "setShortcutCloseTab": "Close Current Tab",
+  "setShortcutCloseTabHint": "Close current conversation or file tab",
+  "setShortcutReopenTab": "Reopen Closed Tab",
+  "setShortcutReopenTabHint": "Reopen the most recently closed conversation tab",
+  "setShortcutNextTab": "Next Tab",
+  "setShortcutNextTabHint": "Switch to the next conversation or file tab",
+  "setShortcutPrevTab": "Previous Tab",
+  "setShortcutPrevTabHint": "Switch to the previous conversation or file tab",
+  "setShortcutSwitchTab1": "Switch to Tab 1",
+  "setShortcutSwitchTab2": "Switch to Tab 2",
+  "setShortcutSwitchTab3": "Switch to Tab 3",
+  "setShortcutSwitchTab4": "Switch to Tab 4",
+  "setShortcutSwitchTab5": "Switch to Tab 5",
+  "setShortcutSwitchTab6": "Switch to Tab 6",
+  "setShortcutSwitchTab7": "Switch to Tab 7",
+  "setShortcutSwitchTab8": "Switch to Tab 8",
+  "setShortcutSwitchTab9": "Switch to Tab 9",
+  "setShortcutSwitchTabHint": "Jump to the conversation tab at that position",
+  "setShortcutSendMessage": "Send Message",
+  "setShortcutSendMessageHint": "Send the current message in the input box",
+  "setShortcutNewlineMessage": "Newline in Message",
+  "setShortcutNewlineMessageHint": "Insert a newline in the message input box",
+  "setSkillPacksOpenFolder": "Open central folder",
+  "setSkillPacksAbout": "Curated skill bundles that gocode manages centrally and links into your AI agents — coding experts, scientific research, and office document tools. Enable them per agent below.",
+  "setSkillPackExperts": "Experts",
+  "setSkillPackScience": "Science",
+  "setSkillPackOffice": "Office Tools",
+  "setSkillPackCustom": "Custom",
+  "setSkillPacksOpenFailed": "Failed to open folder: {message}",
+  "setSystemDefault": "(system default)",
+  "setStatus": "Status",
+  "setRunning": "running",
+  "setStopped": "stopped",
+  "setPort": "Port",
+  "setAddress": "Address",
+  "setAgentsCount": "{count} agents in the built-in catalog",
+  "setAgentAvailable": "● available",
+  "setAgentNotInstalled": "○ not installed",
+  "setCheck": "Check",
+  "setChecking": "Checking…",
+  "setUpdateAvailable": "update available: v{version}",
+  "setAgentsHint": "Agents are launched over ACP. “Available” means the launcher resolves on this machine; run Check to probe the installed version and look for a newer release.",
+  "setAgentCheckFailed": "Version check failed: {message}",
+  "setAgentChecked": "{name} checked",
+  "setAgentNoLocalVersion": "No local installation found.",
+  "setCustomAgentsTitle": "Custom agents",
+  "setCustomAgentsHint": "Register an ACP agent outside the built-in catalog by pointing at its npm (npx) or PyPI (uvx) package.",
+  "setAddCustomAgent": "Add custom agent",
+  "setNoCustomAgents": "No custom agents yet.",
+  "setCustomAgentId": "Registry id",
+  "setCustomAgentIdHint": "Stable id used as custom:<id> — letters, digits, dot, dash, underscore; up to 64 characters.",
+  "setCustomAgentName": "Name",
+  "setCustomAgentDescription": "Description (optional)",
+  "setCustomAgentDistribution": "Distribution",
+  "setCustomAgentPackage": "Package",
+  "setCustomAgentPackageHint": "npm package for npx, Python package for uvx.",
+  "setCustomAgentVersion": "Version (optional)",
+  "setCustomAgentVersionHint": "Pin the package version; leave blank to use the latest.",
+  "setCustomAgentSkillsDir": "Skills directory (optional)",
+  "setCustomAgentSkillsDirHint": "Absolute path or ~/… where this agent's skills live.",
+  "setCustomAgentIdRequired": "A registry id is required.",
+  "setCustomAgentIdInvalid": "Use only letters, digits, dot, dash, or underscore (no leading dot, max 64).",
+  "setCustomAgentNameRequired": "A name is required.",
+  "setCustomAgentPackageRequired": "A package is required for the selected distribution.",
+  "setCustomAgentVersionInvalid": "Use only letters, digits, dot, dash, or underscore (no leading dot, max 128).",
+  "setCustomAgentSkillsAbs": "The skills directory must be absolute or start with ~/.",
+  "setCustomAgentSaved": "Custom agent {name} saved",
+  "setCustomAgentDeleted": "custom agent deleted",
+  "setCustomAgentDeleteFailed": "Failed to remove the custom agent: {message}",
+  "setCustomAgentDeletePrompt": "Remove custom agent {name}?",
+  "setCustomAgentProblem": "Cannot launch: {problem}",
+  "setSaveCustomAgent": "Save agent",
+  "setHomeDirectory": "Home directory",
+  "setBackend": "Backend",
+  "setBuild": "Build",
+  "setRescan": "Rescan",
+  "setScanning": "Scanning…",
+  "setMCPServersCount": "{count} local MCP server(s)",
+  "setNoMCPServers": "No MCP servers found in agent configs.",
+  "setLevel": "Level",
+  "setLogFiles": "Log files",
+  "setNoLogFiles": "No log files yet.",
+  "setSkillsHint": "Skills GoCode can see in the selected agent's own store.",
+  "setLoadingAgents": "(loading agents…)",
+  "setScope": "Scope",
+  "setSkillsUnsupported": "This agent does not support managing skills here.",
+  "setSkillsCount": "{count} skill(s) in {scope} scope",
+  "setNoSkillsScope": "No skills found in this scope.",
+  "setReadOnly": "read-only",
+  "setCustomSkills": "Custom skills (central store)",
+  "setCustomSkillsHint": "Authored once in ~/.gocode/skills, enable per agent from the matrix.",
+  "setNewSkillId": "new-skill-id",
+  "setNoCustomSkills": "No custom skills yet.",
+  "setChatChannelsHint": "Outbound chat integrations (Lark / Telegram / WeChat).",
+  "setNoChatChannels": "No chat channels configured.",
+  "setUnnamed": "(unnamed)",
+  "setEnabled": "● enabled",
+  "setEnabledRow": "Enabled",
+  "setDisabled": "○ disabled",
+  "setAvailable": "available",
+  "setNotAvailable": "not available on this backend",
+  "setPlatform": "Platform",
+  "setUnknown": "unknown",
+  "setComputerUseHint": "Computer use is served only by a desktop session started with GOCODE_COMPUTER_USE=1.",
+  "setExpertsHint": "Bundled expert skill packs. Enable per agent from the matrix.",
+  "setNoExperts": "No bundled expert packs in this build. Author your own under Skills → Custom skills.",
+  "setThemeMode": "Theme mode",
+  "setAppearanceHint": "Choose how GoCode looks. “System” follows the OS where supported.",
+  "setCurrent": "Current",
+  "setAppearanceFailed": "appearance update failed: {message}",
+  "setBrowserTools": "Browser tools",
+  "setBrowserToolsHint": "Let agents drive a loopback browser through the bridge.",
+  "setAllowEval": "Allow eval",
+  "setBridge": "Bridge",
+  "setPorts": "Ports",
+  "setPublicHost": "Public host",
+  "setOn": "on",
+  "setOff": "off",
+  "setToggle": "Toggle",
+  "setBrowserFailed": "browser settings: {message}",
+  "setOfficeToolsHint": "Upstream merges this page into Skill Packs (Office tab); officecli is the bundled document helper.",
+  "setInstalled": "installed",
+  "setVersion": "Version",
+  "setScienceHint": "Bundled science skill packs, installable per agent.",
+  "setNoSciencePacks": "No science packs in this build.",
+  "setQuickMessagesHint": "Reusable snippets you can drop into the composer — e.g. a code-review checklist or a bug-report template.",
+  "setNewMessage": "New message",
+  "setNoQuickMessages": "No quick messages yet",
+  "setNoQuickMessagesHint": "Add one and it appears in the composer's quick-message picker.",
+  "setDeleteNamed": "Delete {name}",
+  "setDeleteThis": "Delete this message?",
+  "setNewQuickMessage": "New quick message",
+  "setEditQuickMessage": "Edit quick message",
+  "setTitle": "Title",
+  "setContent": "Content",
+  "setTitlePlaceholder": "Review checklist",
+  "setContentPlaceholder": "The text to insert…",
+  "setTitleRequired": "A title is required.",
+  "setContentRequired": "Content is required.",
+  "setSaved": "Saved.",
+  "setSaveFailed": "save failed: {message}",
+  "setDeleted": "Deleted.",
+  "setDeleteFailed": "delete failed: {message}",
+  "setMessageFallback": "message",
+  "actionTest": "Test",
+  "vcHint": "The git binary this app drives, and the forge accounts whose tokens Repositories reads issues and pull requests with.",
+  "setGitTitle": "Git",
+  "vcCustomGitPath": "Custom git path",
+  "vcNotValidGit": "not a valid git executable",
+  "vcDetecting": "Detecting git…",
+  "vcGitVersion": "git {version}",
+  "vcVersionUnknown": "(version unknown)",
+  "vcNoGit": "No git found. Install git, or point to its executable below.",
+  "vcPathPlaceholder": "leave empty to use the git on PATH",
+  "vcCustomPathHint": "Changes and commits run through this git. Leave the path empty to use the one on PATH.",
+  "vcPathWorks": "Path works.",
+  "vcForgeAccounts": "Forge accounts",
+  "vcAccountsHint": "A token let you read this server's issues and pull requests from the Repositories panel.",
+  "vcNoAccounts": "No forge accounts yet.",
+  "vcNoAccountsHint": "Add a GitHub, GitLab or Gitea token to open the Repositories panel for a folder's remote.",
+  "vcAccountFallback": "(account)",
+  "vcScopes": "Scopes: {names}",
+  "vcNoToken": "No token saved.",
+  "vcTokenSaved": "Token saved.",
+  "vcChecking": "Checking…",
+  "vcRotateToken": "Rotate token",
+  "vcRemovePrompt": "Remove?",
+  "vcNewToken": "New access token",
+  "vcSaveToken": "Save token",
+  "vcAddAccountBtn": "Add account",
+  "vcProvider": "Provider",
+  "vcHost": "Host",
+  "vcHostPlaceholder": "https://git.example.com",
+  "vcAccessToken": "Access token",
+  "vcTokenHint": "The token needs read access to the repositories you open in Repositories.",
+  "vcValidateAdd": "Validate & add",
+  "vcAddAccount": "Add a forge account",
+  "vcTokenWorks": "Token works.",
+  "vcTestFailed": "test failed: {message}",
+  "vcTokenWorksAs": "Token works — signed in as {who}.",
+  "vcForgeRejected": "the forge rejected the token",
+  "vcSaveFailed": "save failed: {message}",
+  "vcSaveFailedGit": "Save failed: {message}",
+  "vcAccountSavedListFailed": "Account saved, but the list failed: {message}",
+  "vcAccountAdded": "Account added.",
+  "vcRemoveFailed": "Remove failed: {message}",
+  "vcAccountRemoved": "Account removed.",
+  "auNew": "New automation",
+  "auHint": "Scheduled and event-driven agent runs.",
+  "auNone": "No automations.",
+  "auSelect": "Select an automation",
+  "auEmptyTitle": "No automations yet",
+  "auEmptyHint": "Schedule an agent to run on a cron, or run it on demand.",
+  "auRunNow": "Run now",
+  "auDisable": "Disable",
+  "auEnable": "Enable",
+  "auConfirm": "Delete this automation?",
+  "auTriggerCron": "Trigger: every cron {cron} ({tz})",
+  "auTriggerManual": "Trigger: manual",
+  "auAgentLine": "Agent: {agent}",
+  "auIsolationLine": "Isolation: {value}",
+  "auPromptLabel": "PROMPT",
+  "auRunHistory": "RUN HISTORY",
+  "auNoRuns": "No runs yet.",
+  "auEditTitle": "Edit automation",
+  "auName": "Name",
+  "auNamePlaceholder": "Nightly review",
+  "auPrompt": "Prompt",
+  "auPromptPlaceholder": "What should the agent do?",
+  "auTriggerField": "Trigger",
+  "auCronField": "Cron (min hour dom mon dow)",
+  "auCronPlaceholder": "0 9 * * *",
+  "auTimezone": "Timezone",
+  "auIsolation": "Isolation",
+  "auStatusRunning": "Running",
+  "auStatusSucceeded": "Succeeded",
+  "auStatusFailed": "Failed",
+  "auStatusCancelled": "Cancelled",
+  "auStatusSkipped": "Skipped",
+  "auStatusIdle": "Idle",
+  "auSaveFailed": "save failed: {message}",
+  "auSaved": "automation saved",
+  "auUpdateFailed": "update failed: {message}",
+  "auEnabledToast": "automation enabled",
+  "auDisabledToast": "automation disabled",
+  "auRunFailed": "run failed: {message}",
+  "auRunStarted": "run started",
+  "auCancelFailed": "cancel failed: {message}",
+  "auRunCancelled": "run cancelled",
+  "auDeleteFailed": "delete failed: {message}",
+  "auDeleted": "automation deleted",
+  "cvNewBoard": "New board",
+  "cvHint": "Spatial boards of conversations, notes and terminals.",
+  "cvSearchPlaceholder": "Search boards",
+  "cvNoMatches": "No matches",
+  "cvEmptyTitle": "No canvas boards yet",
+  "cvEmptyHint": "Arrange conversations, notes and terminals on a spatial board.",
+  "cvOpen": "Open",
+  "cvBack": "Back to boards",
+  "cvBoardTitle": "Board {id}",
+  "cvRenameTitle": "Rename board",
+  "cvNamePlaceholder": "My board",
+  "cvDescription": "Description",
+  "cvDescPlaceholder": "What this board is for",
+  "cvColour": "Colour",
+  "cvUntitledBoard": "(untitled board)",
+  "cvSaveFailed": "save failed: {message}",
+  "cvSaved": "board saved",
+  "cvDeleteFailed": "delete failed: {message}",
+  "cvBoardDeleted": "board deleted",
+  "cvEmptyBoardHint": "Drag a card to move it; drag the background to pan.",
+  "cvSelectMode": "Select",
+  "cvPanMode": "Pan",
+  "cvSelectedCount": "{count} selected",
+  "cvDeleteSelected": "Delete selected",
+  "cvNodesDeleted": "{count} node(s) deleted",
+  "cvNewNote": "New note",
+  "cvNoteTitle": "Note",
+  "cvZoomReset": "Reset view",
+  "cvKindNote": "Note",
+  "cvKindGroup": "Group",
+  "cvKindAgent": "Agent",
+  "cvKindConversation": "Conversation",
+  "cvKindFolder": "Folder",
+  "cvKindFile": "File",
+  "cvKindTerminal": "Terminal",
+  "cvKindCustom": "Custom",
+  "cvNoteCreated": "note added",
+  "cvCreateFailed": "create failed: {message}",
+  "cvMoveFailed": "move failed: {message}",
+  "cvNodeDeleted": "node deleted",
+  "cvCounts": "{nodes} node(s) · {terminals} terminal(s)",
+  "cvEdited": "edited {when}",
+  "cvConfirmDelete": "Delete this board and its nodes?",
+  "cvNoNodes": "This board has no nodes yet.",
+  "fgHint": "Issues and pull requests for the selected folder's forge remote.",
+  "fgSelectFolder": "Select a folder",
+  "fgRemoteErr": "Could not read this folder's remote",
+  "fgNoRemote": "No forge remote",
+  "fgNoRemoteBody": "This folder has no recognized origin remote. Add one, e.g. `git remote add origin https://github.com/you/repo.git`, then refresh.",
+  "fgNoRepository": "(no repository)",
+  "fgUnrecognized": "Unrecognized forge host",
+  "fgUnrecognizedBody": "This remote's host isn't a supported forge: {host}",
+  "fgSignedIn": "Signed in as {who}",
+  "fgUnknown": "(unknown)",
+  "fgTabIssues": "Issues",
+  "fgTabPRs": "Pull requests",
+  "fgNewIssue": "New issue",
+  "fgLoadErr": "Could not load issues",
+  "fgNoItems": "No items",
+  "fgBy": "by {author}",
+  "fgComments": "{count} comment(s)",
+  "fgReopen": "Reopen",
+  "fgTitlePlaceholder": "Something is broken",
+  "fgBody": "Body",
+  "fgBodyPlaceholder": "What happened?",
+  "fgCreate": "Create",
+  "fgConnectTitle": "Connect a {provider} account",
+  "fgConnectBody": "{host} is a {provider} remote, but no matching account is connected.",
+  "fgConnectHost": "this host",
+  "fgConnectHint": "Add the account under Settings → Version Control, then refresh.",
+  "fgOpenSettings": "Open Version Control",
+  "fgUpdateFailed": "forge update failed: {message}",
+  "fgIssueClosed": "issue closed",
+  "fgIssueReopened": "issue reopened",
+  "fgCreateFailed": "create issue failed: {message}",
+  "fgIssueCreated": "issue created",
+  "ppActiveSessions": "Active sessions",
+  "ppNoSessions": "No active sessions",
+  "ppNoSessionsHint": "Sessions appear here while agents are working.",
+  "ppSubAgent": "sub-agent of · {parent}",
+  "ppStatusWaiting": "waiting",
+  "ppStatusError": "error",
+  "ppStatusRunning": "running",
+  "tkColTodo": "To do",
+  "tkColInProgress": "In progress",
+  "tkColAttention": "Needs attention",
+  "tkColDone": "Done",
+  "tkHint": "The to-do board driving background agent work.",
+  "tkNew": "New to-do",
+  "tkStartAll": "Start all",
+  "tkShowCanceled": "Show canceled",
+  "tkShowArchived": "Show archived",
+  "tkEmptyTitle": "No to-dos yet",
+  "tkEmptyHint": "Queue a task and let an agent work it in its own worktree.",
+  "tkArchived": "archived",
+  "tkUnarchive": "Unarchive",
+  "tkStart": "Start",
+  "tkComplete": "Complete",
+  "tkMerge": "Merge",
+  "tkRetry": "Retry",
+  "tkArchive": "Archive",
+  "tkRequeue": "Requeue",
+  "tkBack": "Back to board",
+  "tkConfirmDelete": "Delete this to-do?",
+  "tkBranchLine": "Branch: {branch} (base {base})",
+  "tkChangesLine": "Changes: {files} files +{additions} -{deletions}",
+  "tkVerdictLine": "Verdict: {verdict}",
+  "tkSummaryLine": "Summary: {summary}",
+  "tkErrorLine": "Error: {message}",
+  "tkActivity": "ACTIVITY",
+  "tkNoActivity": "No activity yet.",
+  "tkEventLine": "{kind} · {actor} · {when}",
+  "tkEventKindFallback": "event",
+  "tkEventActorFallback": "system",
+  "tkFilesMeta": "{files} files +{additions} -{deletions}",
+  "tkMerging": "Merging…",
+  "tkNewTitle": "New to-do",
+  "tkEditTitle": "Edit to-do",
+  "tkSelectFolderFirst": "Select a folder first — a to-do runs inside one.",
+  "tkTitlePlaceholder": "Fix the flaky test",
+  "tkStatusToDo": "To do",
+  "tkStatusQueued": "Queued",
+  "tkStatusPreparing": "Preparing",
+  "tkStatusRunning": "Running",
+  "tkStatusAwaitingInput": "Awaiting input",
+  "tkStatusReview": "Review",
+  "tkStatusMerging": "Merging",
+  "tkStatusFailed": "Failed",
+  "tkStatusDone": "Done",
+  "tkStatusCanceled": "Canceled",
+  "tkSaveFailed": "save failed: {message}",
+  "tkSaved": "to-do saved",
+  "tkUpdated": "to-do updated",
+  "tkTransitionFailed": "to-do update failed: {message}",
+  "tkArchiveFailed": "archive failed: {message}",
+  "tkDeleteFailed": "delete failed: {message}",
+  "tkDeleted": "to-do deleted",
+  "tkStartAllFailed": "start all failed: {message}",
+  "tkStartedAll": "started queued to-dos",
+  "ppSprite": "Sprite",
+  "psTitle": "Desktop sprite",
+  "psIntro": "A floating sprite window that follows your agents. Drag it anywhere; the badge opens the active sessions.",
+  "psActivePet": "Active pet",
+  "psSize": "Size",
+  "psNoPets": "No pets installed yet",
+  "psNoPetsHint": "Add a Codex-format sprite sheet — 1536×1872, 8 columns — to bring a pet to life.",
+  "psAdd": "Add pet…",
+  "psUse": "Use",
+  "psDelete": "Delete",
+  "psDeleteConfirm": "Delete “{name}”? Its files are removed from disk.",
+  "psDeleted": "Deleted “{name}”",
+  "psAdded": "Added “{name}”",
+  "psAddFailed": "Could not add the pet: {error}",
+  "psImportCodex": "Import from Codex",
+  "psImportNone": "No Codex pets to import.",
+  "psImported": "Imported {count} pet(s)",
+  "psOpenWindow": "Open pet window",
+  "psCloseWindow": "Close pet window",
+  "psNoActivePet": "Choose a pet before opening the sprite window.",
+  "psLoadFailed": "Could not load the pet: {error}",
+  "psJump": "Jump",
+  "psWave": "Wave",
+  "psBigger": "Bigger",
+  "psSmaller": "Smaller",
+  "psResetSize": "Reset size",
+  "psAlwaysOnTop": "Always on top",
+  "psOpenPage": "Open Pet page",
+  "psBadgeRunning": "{count} running",
+  "psBadgeWaiting": "{count} waiting for you",
+  "psBadgeError": "{count} with an error",
+  "psMenu": "Pet menu",
+  "psSpriteLabel": "{name} the pet",
+  "svConnected": "Connected to {name}",
+  "actionCopy": "Copy",
+  "toastCopied": "copied to clipboard",
+  "actionExportHTML": "Export as HTML",
+  "dialogExportHTML": "Export conversation",
+  "exportUntitled": "Conversation",
+  "toastExported": "saved {file}",
+  "toastExportFailed": "export failed: {message}",
+  "@toastExported": {
+    "description": "A conversation was written to the file the user picked.",
+    "placeholders": {
+      "file": {
+        "type": "String",
+        "example": "Fix the parser.html"
+      }
+    }
+  },
+  "@toastExportFailed": {
+    "description": "Writing the exported conversation failed.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "access denied"
+      }
+    }
+  },
+  "actionRetry": "Retry",
+  "actionReconnect": "Reconnect",
+  "actionCopyMarkdown": "Copy as Markdown",
+  "exportRoleUser": "User",
+  "exportRoleAssistant": "Assistant",
+  "pbSkillsInstalled": "HyperFrames skills installed for {agents}",
+  "pbInstallFailed": "Skill install failed: {message}",
+  "palettePlaceholder": "Type a command…",
+  "paletteNoMatches": "No matching commands",
+  "attRemove": "Remove {name}",
+  "computerReadLabel": "Agents can read {count} window(s)",
+  "computerControlLabel": "Agents can control {count} window(s)",
+  "noOutputRecorded": "No output recorded.",
+  "verdictLabel": "verdict",
+  "promptLabel": "prompt",
+  "reasonLabel": "reason",
+  "filesSelectFolder": "Select a folder to browse its files.",
+  "filesUp": "Up one level",
+  "filesEmptyDir": "Empty directory",
+  "filesSelectPreview": "Select a file to preview.",
+  "filesCannotPreview": "Cannot preview: {message}",
+  "changesSelectFolder": "Select a folder to see its git changes.",
+  "changesNoChanges": "No changes",
+  "changesCommitPlaceholder": "Commit message",
+  "changesCommitAll": "Commit all",
+  "changesSelectDiff": "Select a changed file to view its diff.",
+  "changesStage": "Stage",
+  "changesConfirmDiscard": "Confirm discard",
+  "changesDiscard": "Discard",
+  "changesCannotDiff": "Cannot diff: {message}",
+  "changesNoDiff": "No diff (the file may be untracked).",
+  "changesStageCount": "Stage {count}",
+  "changesDiscardCount": "Discard {count}",
+  "changesDiscardConfirmCount": "Confirm discard {count}?",
+  "changesStagedCount": "staged {count} file(s)",
+  "changesDiscardedCount": "discarded {count} file(s)",
+  "changesStageFailed": "stage failed: {message}",
+  "changesDiscardFailed": "discard failed: {message}",
+  "@changesStageCount": {
+    "description": "The Changes panel, the bulk stage button.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@changesDiscardCount": {
+    "description": "The Changes panel, the bulk discard button.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@changesDiscardConfirmCount": {
+    "description": "The Changes panel, the bulk discard confirmation.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@changesStagedCount": {
+    "description": "The Changes panel, the staged outcome.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@changesDiscardedCount": {
+    "description": "The Changes panel, the discarded outcome.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@changesStageFailed": {
+    "description": "The Changes panel, a failed stage.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "not a git repository"
+      }
+    }
+  },
+  "@changesDiscardFailed": {
+    "description": "The Changes panel, a failed discard.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "not a git repository"
+      }
+    }
+  },
+  "terminalNoFolder": "Select a folder to open a terminal in it.",
+  "terminalToggleLabel": "Toggle terminal panel",
+  "terminalStart": "Start terminal",
+  "terminalStartHint": "Opens a shell in {root}.",
+  "terminalExited": "Terminal exited.",
+  "terminalPlaceholder": "command…",
+  "terminalSend": "Send",
+  "terminalRefresh": "Refresh",
+  "terminalKill": "Kill",
+  "terminalError": "terminal error: {message}",
+  "terminalNoTabs": "No terminal tabs",
+  "terminalNewTab": "New terminal tab",
+  "terminalOpenFolderFirst": "Open a folder first",
+  "terminalCloseTab": "Close",
+  "terminalCloseTabNamed": "Close terminal tab: {title}",
+  "terminalCloseOthers": "Close Others",
+  "terminalCloseAll": "Close All",
+  "terminalRenameTab": "Rename",
+  "terminalRenamePlaceholder": "Terminal title",
+  "terminalSaveName": "Save terminal tab name",
+  "terminalCancelRename": "Cancel rename",
+  "importSummary": "Found {importable} importable sessions across {folders} folders.",
+  "importNoSessions": "No importable sessions found. Claude Code sessions on this machine are scanned automatically.",
+  "importStatusNew": "New",
+  "importStatusImported": "Imported",
+  "importStatusDeleted": "Deleted",
+  "importSelectAll": "Select all",
+  "importSelected": "Import selected",
+  "importImportAll": "Import all in folder",
+  "importResultTitle": "Import result",
+  "importSummaryCounts": "imported {imported} · updated {updated} · restored {restored} · skipped {skipped}",
+  "importFailed": "Import failed: {message}",
+  "importMsgCount": "{count} msgs",
+  "importSelectedCount": "{count} selected",
+  "importInFolder": "in {path}",
+  "pbProjectType": "Project type",
+  "pbShadcn": "Shadcn project",
+  "pbHyperframes": "HyperFrames project",
+  "pbProjectName": "Project name",
+  "pbTemplate": "Template",
+  "pbPresetCode": "Preset code",
+  "pbPackageManager": "Package manager",
+  "pbTargetDir": "Target directory",
+  "pbChooseDir": "Choose…",
+  "pbCreate": "Create project",
+  "pbInstalled": "installed",
+  "pbNotInstalled": "not installed",
+  "pbExample": "Example",
+  "pbResolution": "Resolution",
+  "pbCreated": "Project created at {path}",
+  "pbDetectSkills": "Detect HyperFrames skills",
+  "pbInstallSkills": "Install skills",
+  "pbSkillsHint": "HyperFrames agent skills for the selected agents.",
+  "pbNameRequired": "Project name is required.",
+  "commandsTitle": "Folder commands",
+  "commandsNoFolder": "Select a folder to manage its commands.",
+  "commandsEmpty": "No commands yet. Add one below or bootstrap from package.json.",
+  "commandsNew": "New command",
+  "commandsName": "Name",
+  "commandsCommand": "Command",
+  "commandsCreate": "Create",
+  "commandsSave": "Save",
+  "commandsEdit": "Edit",
+  "commandsDelete": "Delete",
+  "commandsRun": "Run",
+  "commandsCancel": "Cancel",
+  "commandsBootstrap": "Bootstrap from package.json",
+  "commandsBootstrapped": "Imported {count} scripts from package.json.",
+  "commandsNameRequired": "Name is required.",
+  "commandsCommandRequired": "Command is required.",
+  "@gitBranchChip": {
+    "description": "The composer branch chip, the checked-out branch name.",
+    "placeholders": {
+      "branch": {
+        "type": "String",
+        "example": "main"
+      }
+    }
+  },
+  "@gitLocalBranches": {
+    "description": "The branches page, the local-branch count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "@gitOtherWorktrees": {
+    "description": "The branches page, the other-worktree count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@gitRemoteBranches": {
+    "description": "The branches page, the remote-branch count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "6"
+      }
+    }
+  },
+  "@terminalStartHint": {
+    "description": "The terminal panel, the hint shown before a shell starts.",
+    "placeholders": {
+      "root": {
+        "type": "String",
+        "example": "/home/user/project"
+      }
+    }
+  },
+  "@terminalError": {
+    "description": "The terminal panel, a failed snapshot fetch.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection refused"
+      }
+    }
+  },
+  "@terminalCloseTabNamed": {
+    "description": "The terminal tab bar, the close button for one tab.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Terminal 2"
+      }
+    }
+  },
+  "@importSummary": {
+    "description": "The import-sessions panel, the scan summary.",
+    "placeholders": {
+      "importable": {
+        "type": "int",
+        "example": "12"
+      },
+      "folders": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@importInFolder": {
+    "description": "The import-sessions panel, a folder's path subtitle.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "/home/user/project"
+      }
+    }
+  },
+  "@pbCreated": {
+    "description": "The project-boot panel, the created project path.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "/home/user/project/app"
+      }
+    }
+  },
+  "@commandsBootstrapped": {
+    "description": "The commands panel, the number of scripts imported from package.json.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitRemoteRemoveConfirm": {
+    "description": "The remotes page, the remove confirmation prompt.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "origin"
+      }
+    }
+  },
+  "@gitSelectionCount": {
+    "description": "The commit page, how many changed files are checked.",
+    "placeholders": {
+      "selected": {
+        "type": "int",
+        "example": "2"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "@gitTrackedChanges": {
+    "description": "The commit page, the tracked-change group count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitUntrackedFiles": {
+    "description": "The commit page, the untracked-file group count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@gitSelectFile": {
+    "description": "The commit page, a file's select checkbox.",
+    "placeholders": {
+      "file": {
+        "type": "String",
+        "example": "src/app.go"
+      }
+    }
+  },
+  "@gitUnselectFile": {
+    "description": "The commit page, a checked file's checkbox.",
+    "placeholders": {
+      "file": {
+        "type": "String",
+        "example": "src/app.go"
+      }
+    }
+  },
+  "@gitCommitButton": {
+    "description": "The commit page, the Commit button with its file count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitCommitAndPushButton": {
+    "description": "The commit page, the Commit and Push button with its file count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitCommitFailed": {
+    "description": "The commit page, a failed commit.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "nothing to commit"
+      }
+    }
+  },
+  "@gitCommitPushFailed": {
+    "description": "The commit page, a commit that succeeded but whose push failed.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection refused"
+      }
+    }
+  },
+  "@gitCommittedAndPushed": {
+    "description": "The commit page, the commit-and-push result.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitCommittedFiles": {
+    "description": "The commit page, the commit result.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitPushWithCount": {
+    "description": "The push page, the Push button with its unpushed-commit count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "@gitPushFailed": {
+    "description": "The push page, a failed push.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "rejected (non-fast-forward)"
+      }
+    }
+  },
+  "@gitPushedCommits": {
+    "description": "The push page, the push result.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "@gitPushedUpstream": {
+    "description": "The push page, the first push that also set upstream.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "@cloneCreated": {
+    "description": "The clone page, the directory the repository was cloned into.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "/home/user/project"
+      }
+    }
+  },
+  "@usageStreakValue": {
+    "description": "The usage dashboard, the current and longest streaks.",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "4"
+      },
+      "longest": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "@usageStatus": {
+    "description": "The usage dashboard, the sync status line.",
+    "placeholders": {
+      "fact": {
+        "type": "int",
+        "example": "128"
+      },
+      "synced": {
+        "type": "int",
+        "example": "9"
+      },
+      "total": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "@usageHeatmapPeak": {
+    "description": "The usage dashboard, the heatmap hint naming the busiest hour.",
+    "placeholders": {
+      "hour": {
+        "type": "String",
+        "example": "09"
+      }
+    }
+  },
+  "@usageHeatmapCell": {
+    "description": "The usage dashboard, a heatmap cell's tooltip.",
+    "placeholders": {
+      "weekday": {
+        "type": "String",
+        "example": "Mon"
+      },
+      "hour": {
+        "type": "String",
+        "example": "09"
+      },
+      "value": {
+        "type": "String",
+        "example": "1.2k"
+      }
+    }
+  },
+  "@mpDeletePrompt": {
+    "description": "The model-providers page, the delete confirmation prompt.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Acme"
+      }
+    }
+  },
+  "@wfRemovePrompt": {
+    "description": "The workspace-folders panel, the remove confirmation prompt.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@wfWillAppearAs": {
+    "description": "The workspace-folders preview, the name the link will use.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@wfRenamedForDuplicate": {
+    "description": "The workspace-folders preview, the name was deduplicated.",
+    "placeholders": {
+      "base": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@wfRenamedForExistingEntry": {
+    "description": "The workspace-folders preview, the name was renamed around an existing entry.",
+    "placeholders": {
+      "base": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@wfLinkCount": {
+    "description": "The workspace-folders preview, the confirm action's folder count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "@wfRejectAlreadyLinkedAs": {
+    "description": "The workspace-folders preview, an already-linked target and its name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@importSummaryCounts": {
+    "description": "The import-sessions panel, the outcome counts.",
+    "placeholders": {
+      "imported": {
+        "type": "int",
+        "example": "3"
+      },
+      "updated": {
+        "type": "int",
+        "example": "1"
+      },
+      "restored": {
+        "type": "int",
+        "example": "0"
+      },
+      "skipped": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@importFailed": {
+    "description": "The import-sessions panel, a failed import.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@importMsgCount": {
+    "description": "The import-sessions panel, a session's message count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "42"
+      }
+    }
+  },
+  "@importSelectedCount": {
+    "description": "The import-sessions panel, how many sessions are checked.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@wfUploaded": {
+    "description": "The workspace-folders panel, the uploaded file path.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "docs/a.md"
+      }
+    }
+  },
+  "@auxCommitTitle": {
+    "description": "The commit detail header, the commit id.",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "example": "a1b2c3d"
+      }
+    }
+  },
+  "@filesCannotPreview": {
+    "description": "The file preview, the read error.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "permission denied"
+      }
+    }
+  },
+  "@changesCannotDiff": {
+    "description": "The diff view, the git error.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "not a git repository"
+      }
+    }
+  },
+  "@toastCancelFailed": {
+    "description": "The conversation workspace, a failed turn cancel.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastCreateFailed": {
+    "description": "The workspace, a failed conversation creation.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastPermissionFailed": {
+    "description": "The conversation workspace, a failed permission response.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "request expired"
+      }
+    }
+  },
+  "@toastPermissionSent": {
+    "description": "The conversation workspace, the answered permission option.",
+    "placeholders": {
+      "option": {
+        "type": "String",
+        "example": "allow_once"
+      }
+    }
+  },
+  "@toastRenameFailed": {
+    "description": "The conversation header, a failed rename.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastPinFailed": {
+    "description": "The conversation header, a failed pin toggle.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastDeleteFailed": {
+    "description": "The workspace, a failed conversation delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastOpenFailed": {
+    "description": "The workspace, a failed add-folder.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "path outside workspace"
+      }
+    }
+  },
+  "@toastNewChatFailed": {
+    "description": "The workspace, a failed no-folder chat.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "agent not installed"
+      }
+    }
+  },
+  "@toastUploadFailed": {
+    "description": "The composer, a failed attachment upload.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "too large"
+      }
+    }
+  },
+  "@toastPromptFailed": {
+    "description": "The composer, a failed prompt send.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "agent not installed"
+      }
+    }
+  },
+  "@toolEditIndex": {
+    "description": "The tool card body, the ordinal of one edit in a multi-edit call.",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@setPageNotPorted": {
+    "description": "The settings placeholder page, the upstream path it mirrors.",
+    "placeholders": {
+      "page": {
+        "type": "String",
+        "example": "shortcuts"
+      }
+    }
+  },
+  "@setAgentsCount": {
+    "description": "The settings agents page, the catalog size.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  "@setUpdateAvailable": {
+    "description": "The settings agents page, the latest release version.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.2.3"
+      }
+    }
+  },
+  "@setAgentCheckFailed": {
+    "description": "The settings agents page, a failed version probe.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "npm not found"
+      }
+    }
+  },
+  "@setAgentChecked": {
+    "description": "The settings agents page, the toast after a successful version probe.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Claude Code"
+      }
+    }
+  },
+  "@setCustomAgentSaved": {
+    "description": "The settings agents page, the toast after saving a custom agent.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Team Agent"
+      }
+    }
+  },
+  "@setCustomAgentDeleteFailed": {
+    "description": "The settings agents page, a failed custom-agent removal.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "not found"
+      }
+    }
+  },
+  "@setCustomAgentDeletePrompt": {
+    "description": "The settings agents page, the inline delete confirmation.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Team Agent"
+      }
+    }
+  },
+  "@setCustomAgentProblem": {
+    "description": "The settings agents page, why a custom agent cannot launch.",
+    "placeholders": {
+      "problem": {
+        "type": "String",
+        "example": "launcher not found"
+      }
+    }
+  },
+  "@setMCPServersCount": {
+    "description": "The settings MCP page, the scanned server count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@setSkillsCount": {
+    "description": "The settings skills page, the shown count and scope.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      },
+      "scope": {
+        "type": "String",
+        "example": "global"
+      }
+    }
+  },
+  "@setAppearanceFailed": {
+    "description": "The settings appearance page, a failed mode save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@setBrowserFailed": {
+    "description": "The settings browser page, a failed tools save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@setDeleteNamed": {
+    "description": "The settings quick-messages page, the row delete button label.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Review checklist"
+      }
+    }
+  },
+  "@setSaveFailed": {
+    "description": "The settings quick-messages page, a failed save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@setDeleteFailed": {
+    "description": "The settings quick-messages page, a failed delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@vcGitVersion": {
+    "description": "The version-control settings page, the detected git version.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "2.45.1"
+      }
+    }
+  },
+  "@vcScopes": {
+    "description": "The version-control settings page, the account's token scopes.",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "repo, read:org"
+      }
+    }
+  },
+  "@vcTestFailed": {
+    "description": "The version-control settings page, a failed token test.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@vcTokenWorksAs": {
+    "description": "The version-control settings page, a successful token test's username.",
+    "placeholders": {
+      "who": {
+        "type": "String",
+        "example": "octocat"
+      }
+    }
+  },
+  "@vcSaveFailed": {
+    "description": "The version-control settings page, a failed token save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@vcSaveFailedGit": {
+    "description": "The version-control settings page, a failed custom-path save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "not a valid git executable"
+      }
+    }
+  },
+  "@vcAccountSavedListFailed": {
+    "description": "The version-control settings page, the account saved but the list write failed.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@vcRemoveFailed": {
+    "description": "The version-control settings page, a failed account removal.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auTriggerCron": {
+    "description": "The automations panel, the schedule trigger line.",
+    "placeholders": {
+      "cron": {
+        "type": "String",
+        "example": "0 9 * * *"
+      },
+      "tz": {
+        "type": "String",
+        "example": "UTC"
+      }
+    }
+  },
+  "@auAgentLine": {
+    "description": "The automations panel, the agent fact line.",
+    "placeholders": {
+      "agent": {
+        "type": "String",
+        "example": "claude_code"
+      }
+    }
+  },
+  "@auIsolationLine": {
+    "description": "The automations panel, the isolation fact line.",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "worktree_per_run"
+      }
+    }
+  },
+  "@auSaveFailed": {
+    "description": "The automations panel, a failed save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auUpdateFailed": {
+    "description": "The automations panel, a failed enable/disable.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auRunFailed": {
+    "description": "The automations panel, a failed run start.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auCancelFailed": {
+    "description": "The automations panel, a failed run cancel.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auDeleteFailed": {
+    "description": "The automations panel, a failed delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvBoardTitle": {
+    "description": "The canvas panel, the open board's header title.",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "example": "b1"
+      }
+    }
+  },
+  "@cvSaveFailed": {
+    "description": "The canvas panel, a failed board save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvSelectedCount": {
+    "description": "The canvas board, how many nodes are selected.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@cvNodesDeleted": {
+    "description": "The canvas board, how many nodes a batch delete removed.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@cvNoteCreated": {
+    "description": "The canvas board, a note was added.",
+    "placeholders": {}
+  },
+  "@cvCreateFailed": {
+    "description": "The canvas board, a failed node create.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvMoveFailed": {
+    "description": "The canvas board, a failed node move.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvDeleteFailed": {
+    "description": "The canvas panel, a failed delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvCounts": {
+    "description": "The canvas panel, a board's node and terminal counts.",
+    "placeholders": {
+      "nodes": {
+        "type": "int",
+        "example": "3"
+      },
+      "terminals": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "@cvEdited": {
+    "description": "The canvas panel, a board's last-edited relative time.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "2h"
+      }
+    }
+  },
+  "@fgUnrecognizedBody": {
+    "description": "The Repositories panel, the unsupported-host notice body.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "git.example.com"
+      }
+    }
+  },
+  "@fgSignedIn": {
+    "description": "The Repositories panel, the signed-in identity line.",
+    "placeholders": {
+      "who": {
+        "type": "String",
+        "example": "octocat"
+      }
+    }
+  },
+  "@fgBy": {
+    "description": "The Repositories panel, an issue's author in its meta line.",
+    "placeholders": {
+      "author": {
+        "type": "String",
+        "example": "octocat"
+      }
+    }
+  },
+  "@fgComments": {
+    "description": "The Repositories panel, an issue's comment count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@fgConnectTitle": {
+    "description": "The Repositories panel, the connect-an-account title.",
+    "placeholders": {
+      "provider": {
+        "type": "String",
+        "example": "GitHub"
+      }
+    }
+  },
+  "@fgConnectBody": {
+    "description": "The Repositories panel, the connect-an-account explanation.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "github.com"
+      },
+      "provider": {
+        "type": "String",
+        "example": "GitHub"
+      }
+    }
+  },
+  "@fgUpdateFailed": {
+    "description": "The Repositories panel, a failed state change.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@fgCreateFailed": {
+    "description": "The Repositories panel, a failed issue creation.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@ppSubAgent": {
+    "description": "The pet panel, a sub-session's parent line.",
+    "placeholders": {
+      "parent": {
+        "type": "String",
+        "example": "Research"
+      }
+    }
+  },
+  "@tkBranchLine": {
+    "description": "The to-dos board, the branch fact line.",
+    "placeholders": {
+      "branch": {
+        "type": "String",
+        "example": "task/2"
+      },
+      "base": {
+        "type": "String",
+        "example": "main"
+      }
+    }
+  },
+  "@tkChangesLine": {
+    "description": "The to-dos board, the changed-files fact line.",
+    "placeholders": {
+      "files": {
+        "type": "int",
+        "example": "3"
+      },
+      "additions": {
+        "type": "int",
+        "example": "20"
+      },
+      "deletions": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "@tkVerdictLine": {
+    "description": "The to-dos board, the verdict fact line.",
+    "placeholders": {
+      "verdict": {
+        "type": "String",
+        "example": "clean"
+      }
+    }
+  },
+  "@tkSummaryLine": {
+    "description": "The to-dos board, the result summary line.",
+    "placeholders": {
+      "summary": {
+        "type": "String",
+        "example": "fixed the flake"
+      }
+    }
+  },
+  "@tkErrorLine": {
+    "description": "The to-dos board, the failure line.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "agent crashed"
+      }
+    }
+  },
+  "@tkEventLine": {
+    "description": "The to-dos board, one activity event.",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "created"
+      },
+      "actor": {
+        "type": "String",
+        "example": "user"
+      },
+      "when": {
+        "type": "String",
+        "example": "10:05"
+      }
+    }
+  },
+  "@tkFilesMeta": {
+    "description": "The to-dos board, a card's changed-files meta.",
+    "placeholders": {
+      "files": {
+        "type": "int",
+        "example": "3"
+      },
+      "additions": {
+        "type": "int",
+        "example": "20"
+      },
+      "deletions": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "@tkSaveFailed": {
+    "description": "The to-dos board, a failed save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@tkTransitionFailed": {
+    "description": "The to-dos board, a failed lifecycle command.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@tkArchiveFailed": {
+    "description": "The to-dos board, a failed archive toggle.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@tkDeleteFailed": {
+    "description": "The to-dos board, a failed delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@tkStartAllFailed": {
+    "description": "The to-dos board, a failed start-all.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@svConnected": {
+    "description": "The servers page, the switched-to connection name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Office box"
+      }
+    }
+  },
+  "@pbSkillsInstalled": {
+    "description": "The project-boot panel, the agents the skills were installed for.",
+    "placeholders": {
+      "agents": {
+        "type": "String",
+        "example": "claude_code, opencode"
+      }
+    }
+  },
+  "@pbInstallFailed": {
+    "description": "The project-boot panel, a failed skill install.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@attRemove": {
+    "description": "The composer attachment tray, the remove button label.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "photo.png"
+      }
+    }
+  },
+  "@computerReadLabel": {
+    "description": "The computer-use strip, the readable window count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@computerControlLabel": {
+    "description": "The computer-use strip, the controllable window count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@setCollabDefaultsMode": {
+    "description": "The collaboration settings, an agent override's mode.",
+    "placeholders": {
+      "mode": {
+        "type": "String",
+        "example": "read_only"
+      }
+    }
+  },
+  "@setCollabLoadFailed": {
+    "description": "The collaboration settings, a failed group load.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@setShortcutsConflict": {
+    "description": "The shortcuts settings, a chord already taken by another action.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Toggle Left Sidebar"
+      }
+    }
+  },
+  "@setShortcutsUnassignNamed": {
+    "description": "The shortcuts settings, the button that clears one action's binding.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Toggle Left Sidebar"
+      }
+    }
+  },
+  "@setShortcutsSaveFailed": {
+    "description": "The shortcuts settings, a failed persistence write.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "permission denied"
+      }
+    }
+  },
+  "@setSkillPacksOpenFailed": {
+    "description": "The skill packs hub, a failed folder open.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@psDeleteConfirm": {
+    "description": "The sprite page, the delete confirmation.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Boba"
+      }
+    }
+  },
+  "@psDeleted": {
+    "description": "The sprite page, the toast after deleting a pet.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Boba"
+      }
+    }
+  },
+  "@psAdded": {
+    "description": "The sprite page, the toast after adding a pet.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Boba"
+      }
+    }
+  },
+  "@psAddFailed": {
+    "description": "The sprite page, the toast when a pet could not be added.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "spritesheet too small"
+      }
+    }
+  },
+  "@psImported": {
+    "description": "The sprite page, the toast after importing Codex pets.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@psLoadFailed": {
+    "description": "The sprite window, the message when the sheet cannot be loaded.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "pet not found: boba"
+      }
+    }
+  },
+  "@psBadgeRunning": {
+    "description": "The sprite badge, the running session count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@psBadgeWaiting": {
+    "description": "The sprite badge, the sessions blocked on the user.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "@psBadgeError": {
+    "description": "The sprite badge, the errored session count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "@psSpriteLabel": {
+    "description": "The sprite window, the accessible name of the sprite image.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Boba"
+      }
+    }
+  }
 }

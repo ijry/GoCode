@@ -4,10 +4,12 @@ package handlers
 // scan_importable_sessions_core + build_scan_result). Read-only: enumerate the
 // agents' local sessions, group them by the cwd they ran in, and reconcile each
 // against the upstream DB (by external_id + agent_type) so the import picker can
-// mark every session New / Imported / Deleted. This build enumerates Claude
-// Code sessions; other agents' parsers are not yet ported, so they contribute
-// nothing (an honest empty, not a failure). The two import (write) endpoints
-// build on this and follow.
+// mark every session New / Imported / Deleted. It enumerates the agents that
+// expose a summary lister — Claude Code, Codex, OpenCode, Gemini, pi and
+// every agent that has one — all fourteen today; the rest have readers
+// (their history renders once imported) but no lister yet, so they contribute
+// nothing (an honest empty, not a failure). Importing only writes a conversation
+// row (agent_type + external_id); the history comes from the reader on demand.
 
 import (
 	"database/sql"
@@ -16,9 +18,9 @@ import (
 	"sort"
 	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/parsers"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/parsers"
+	"gocode/src-go/web"
 )
 
 // RegisterSessionImport wires scan_importable_sessions.
@@ -167,6 +169,32 @@ func collectLocalSummaries() []parsers.ConversationSummary {
 		}
 		out = append(out, s)
 	}
+	// Codex rollouts: thousands on a busy machine, so the lister reads heads only.
+	out = append(out, parsers.ListCodexConversations()...)
+	// OpenCode keeps the same facts in its session table — one query, no parsing.
+	out = append(out, parsers.ListOpenCodeConversations()...)
+	// Gemini: the cwd lives in each project dir's `.project_root` sidecar.
+	out = append(out, parsers.ListGeminiConversations()...)
+	// pi and OpenClaw share the `type:"session"` header, cwd included.
+	out = append(out, parsers.ListPiConversations()...)
+	out = append(out, parsers.ListOpenClawConversations()...)
+	// Grok's sidecar already holds cwd, title, model and branch.
+	out = append(out, parsers.ListGrokConversations()...)
+	// Hermes keeps the same facts in its sessions table.
+	out = append(out, parsers.ListHermesConversations()...)
+	// Qoder stores Claude's format, so it reuses the Claude walker.
+	out = append(out, parsers.ListQoderConversations()...)
+	// Kimi Code indexes its sessions with the working directory.
+	out = append(out, parsers.ListKimiConversations()...)
+	// cline writes a manifest per session; CodeBuddy reuses Claude's layout.
+	out = append(out, parsers.ListClineConversations()...)
+	out = append(out, parsers.ListCodeBuddyConversations()...)
+	// Cursor: a blob store per conversation (meta JSON + optional sidecar).
+	out = append(out, parsers.ListCursorConversations()...)
+	// Antigravity: one SQLite step table per conversation, cwd in the sidecar.
+	out = append(out, parsers.ListAntigravityConversations()...)
+	// DeepSeek Harness: a zstd event log per session; the header carries the cwd.
+	out = append(out, parsers.ListDeepseekConversations()...)
 	return out
 }
 

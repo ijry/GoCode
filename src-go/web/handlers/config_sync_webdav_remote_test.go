@@ -11,7 +11,7 @@ import (
 
 func TestConfigSyncRemoteRoundTrip(t *testing.T) {
 	setHome(t)
-	t.Setenv("YOYOCODE_HOME", t.TempDir())
+	t.Setenv("GOCODE_HOME", t.TempDir())
 	srv := newTestServer(t)
 
 	// in-memory WebDAV: MKCOL→201, PUT→store, GET→body|404, PROPFIND→207
@@ -52,7 +52,7 @@ func TestConfigSyncRemoteRoundTrip(t *testing.T) {
 
 	// store settings (persists the password under its own key)
 	if code, _ := call(t, srv, "config_sync_update_settings", map[string]any{
-		"settings": map[string]any{"enabled": true, "serverUrl": dav.URL, "username": "alice", "password": "secret", "remoteDir": "yoyocode", "profile": "default", "intervalMinutes": 5},
+		"settings": map[string]any{"enabled": true, "serverUrl": dav.URL, "username": "alice", "password": "secret", "remoteDir": "gocode", "profile": "default", "intervalMinutes": 5},
 	}); code != 200 {
 		t.Fatalf("update_settings failed")
 	}
@@ -102,7 +102,7 @@ func TestConfigSyncRemoteRoundTrip(t *testing.T) {
 
 	// peek against an empty remote (different profile) → null
 	if code5, _ := call(t, srv, "config_sync_update_settings", map[string]any{
-		"settings": map[string]any{"enabled": true, "serverUrl": dav.URL, "username": "alice", "password": "secret", "remoteDir": "yoyocode", "profile": "other", "intervalMinutes": 5},
+		"settings": map[string]any{"enabled": true, "serverUrl": dav.URL, "username": "alice", "password": "secret", "remoteDir": "gocode", "profile": "other", "intervalMinutes": 5},
 	}); code5 != 200 {
 		t.Fatalf("update_settings(profile=other) failed")
 	}

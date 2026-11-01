@@ -5,8 +5,8 @@ package handlers
 import (
 	"encoding/json"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const layoutKey = "system_language_settings"

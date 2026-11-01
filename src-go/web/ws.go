@@ -8,11 +8,17 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"yoyocode/src-go/acp"
+	"gocode/src-go/acp"
 )
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
+	// Echo `codeg-events` back when the client offers it. A spec-compliant
+	// client that sent subprotocols fails the connection when the server
+	// selects none (Node's ws: "Server sent no subprotocol"), and the token
+	// subprotocol already travels in this same header — so negotiate the
+	// event protocol rather than leaving the handshake half-answered.
+	Subprotocols: []string{WSEventProtocol},
 }
 
 // Sessions is what the router needs from app state to serve the attach

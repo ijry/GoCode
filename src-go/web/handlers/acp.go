@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/app_state"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/app_state"
+	"gocode/src-go/web"
 )
 
 // RegisterACP wires the acp_* command family.
@@ -99,11 +100,21 @@ func RegisterACP(reg *Registry) {
 		connID := strVal(c.Body["connectionId"], c.Body["connection_id"])
 		return st.ACP.Touch(connID), nil
 	})
-	// acp_stop_async_task: the Go engine tracks no async (background) agent
-	// tasks, so there is never one to stop → false ("adapter declined"), the
-	// same 200-with-false the upstream returns when the adapter refuses.
+	// acp_stop_async_task asks the adapter to stop a background task through
+	// its `_session/async_task/stop` extension. A false result means the
+	// adapter declined (or does not implement the extension) — the same
+	// 200-with-false the upstream returns in that case.
 	reg.web.Register("acp_stop_async_task", func(c *web.Context) (any, error) {
-		return false, nil
+		st := c.State.(*appstate.AppState)
+		connID := strVal(c.Body["connectionId"], c.Body["connection_id"])
+		if connID == "" {
+			return nil, web.ErrInvalidInput("connectionId required")
+		}
+		taskID := strVal(c.Body["asyncTaskId"], c.Body["async_task_id"])
+		if taskID == "" {
+			return nil, web.ErrInvalidInput("asyncTaskId required")
+		}
+		return st.ACP.StopAsyncTask(connID, taskID), nil
 	})
 	// acp_answer_plan_approval: plan-mode approval is a per-agent protocol
 	// feature (e.g. Grok plan mode) the Go engine does not yet surface, so no
@@ -191,8 +202,96 @@ func RegisterACP(reg *Registry) {
 		}
 		return state.Snapshot(), nil
 	})
+	// acp_answer_question resolves a parked ask_user_question (the companion's
+	// tool call is waiting on it — see acp/ask_user.go).
 	reg.web.Register("acp_answer_question", func(c *web.Context) (any, error) {
-		return map[string]any{"ok": true}, nil
+		st := c.State.(*appstate.AppState)
+		connID := strVal(c.Body["connectionId"], c.Body["connection_id"])
+		requestID := strVal(c.Body["requestId"], c.Body["request_id"])
+		if connID == "" || requestID == "" {
+			return nil, web.ErrInvalidInput("connectionId and requestId required")
+		}
+		answer := strVal(c.Body["answer"], c.Body["text"])
+		if answer == "" {
+			// Some clients send the answers as a list, one per question.
+			if list, ok := c.Body["answers"].([]any); ok && len(list) > 0 {
+				answer = asString(list[0])
+			}
+		}
+		if answer == "" {
+			return nil, web.ErrInvalidInput("answer required")
+		}
+		return map[string]any{"ok": st.ACP.AnswerQuestion(connID, requestID, answer)}, nil
+	})
+
+	// acp_drop_queued_prompt removes one send waiting behind the running turn
+	// (a local route: upstream's queue is client-side, so it has no equivalent).
+	reg.web.Register("acp_drop_queued_prompt", func(c *web.Context) (any, error) {
+		st := c.State.(*appstate.AppState)
+		connID := strVal(c.Body["connectionId"], c.Body["connection_id"])
+		if connID == "" {
+			return nil, web.ErrInvalidInput("connectionId required")
+		}
+		index := int(intVal(c.Body["index"], c.Body["position"]))
+		return map[string]any{"ok": st.ACP.DropQueuedPrompt(connID, index)}, nil
+	})
+
+	// companion_ask_user_question parks the companion's ask_user_question tool
+	// call until the user answers (a local route: upstream keeps this bridge
+	// inside codeg-mcp, which this build owns as cmd/gocode-mcp).
+	reg.web.Register("companion_ask_user_question", func(c *web.Context) (any, error) {
+		st := c.State.(*appstate.AppState)
+		connID := strVal(c.Body["sessionId"], c.Body["session_id"], c.Body["connectionId"], c.Body["connection_id"])
+		if connID == "" {
+			return nil, web.ErrInvalidInput("sessionId required")
+		}
+		question := strVal(c.Body["question"], c.Body["prompt"])
+		if question == "" {
+			return nil, web.ErrInvalidInput("question required")
+		}
+		q := map[string]any{"id": "q1", "question": question}
+		if opts, ok := c.Body["options"].([]any); ok && len(opts) > 0 {
+			q["options"] = opts
+		}
+		if multi, ok := c.Body["allowMultiple"].(bool); ok {
+			q["allow_multiple"] = multi
+		}
+		questions, _ := json.Marshal([]any{q})
+		answer, err := st.ACP.AskUser(connID, questions)
+		if err != nil {
+			if errors.Is(err, acp.ErrNoLiveSession) {
+				return nil, web.ErrNotFound(err.Error())
+			}
+			return nil, web.ErrTaskExecution(err.Error())
+		}
+		return map[string]any{"answer": answer}, nil
+	})
+
+	// companion_check_user_feedback delivers the turn's pending live-feedback
+	// notes to the agent and marks them read (the companion's
+	// `check_user_feedback` tool calls this; the pull channel — see
+	// acp/feedback.go). A local route: upstream keeps it inside codeg-mcp.
+	reg.web.Register("companion_check_user_feedback", func(c *web.Context) (any, error) {
+		st := c.State.(*appstate.AppState)
+		connID := strVal(c.Body["sessionId"], c.Body["session_id"], c.Body["connectionId"], c.Body["connection_id"])
+		if connID == "" {
+			return nil, web.ErrInvalidInput("sessionId required")
+		}
+		notes := st.ACP.CheckUserFeedback(connID)
+		out := make([]map[string]any, len(notes))
+		for i, n := range notes {
+			item := map[string]any{
+				"id":         n.ID,
+				"text":       n.Text,
+				"created_at": n.CreatedAt,
+				"status":     n.Status,
+			}
+			if n.DeliveredAt != "" {
+				item["delivered_at"] = n.DeliveredAt
+			}
+			out[i] = item
+		}
+		return map[string]any{"notes": out}, nil
 	})
 }
 

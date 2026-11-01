@@ -78,7 +78,7 @@ func (s *Shell) viewToolBody(c *ui.Context, tc *toolCard, key string, t *ui.Them
 			if e.OldString == "" && e.NewString == "" {
 				continue
 			}
-			ui.Text(c, "edit "+itoa("", i+1)).FontSize(11).TextColor(t.TextMuted)
+			ui.Text(c, cat(c).ToolEditIndex(i+1)).FontSize(11).TextColor(t.TextMuted)
 			s.viewToolDiff(c, itoa(key+"-e", i), e.OldString, e.NewString, in.FilePath)
 			rendered = true
 		}
@@ -108,7 +108,7 @@ func (s *Shell) viewToolBody(c *ui.Context, tc *toolCard, key string, t *ui.Them
 		}
 	}
 	// Fallback: the existing muted one-line detail (or a friendly empty state).
-	ui.Text(c, firstNonEmpty(tc.output, tc.kind, "No output recorded.")).
+	ui.Text(c, firstNonEmpty(tc.output, tc.kind, cat(c).NoOutputRecorded())).
 		FontSize(12).TextColor(t.TextMuted).Wrap()
 }
 

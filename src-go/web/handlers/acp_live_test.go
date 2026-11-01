@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"yoyocode/src-go/acp"
+	"gocode/src-go/acp"
 )
 
 // fakeAgentSpawner returns a SetSpawner function that wires an in-memory ACP

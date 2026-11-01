@@ -8,9 +8,11 @@ package handlers
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/app_state"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const (
@@ -81,32 +83,39 @@ func RegisterSettingsMisc(reg *Registry) {
 		Emit(c, evtFeedback, out)
 		return out, nil
 	})
-	// submit_session_feedback delivers live steering to an in-flight agent turn
-	// through the ACP feedback tool. That tool is not wired in the Go server, so
-	// (like upstream's NoActiveTurn / FeedbackDisabled path) this returns a
-	// recoverable invalid_input — the signal the frontend uses to fall back to
-	// sending the note as an ordinary prompt. connectionId + text are still
-	// validated so a malformed call is rejected distinctly.
+	// submit_session_feedback records a live-feedback note for the running turn.
+	// The agent reads it the next time it calls the companion's
+	// `check_user_feedback` tool (the pull channel). When there is no live
+	// session there is nothing to steer, so — like upstream's NoActiveTurn
+	// path — it returns a recoverable invalid_input, the signal the frontend
+	// uses to fall back to sending the note as an ordinary prompt.
 	reg.Register("submit_session_feedback", func(c *web.Context) (any, error) {
-		if _, err := GetStringOrErr(c, "connectionId", "connection_id"); err != nil {
-			return nil, err
+		st := c.State.(*appstate.AppState)
+		connID := strVal(c.Body["connectionId"], c.Body["connection_id"])
+		if connID == "" {
+			return nil, web.ErrInvalidInput("connectionId required")
 		}
-		if _, err := GetStringOrErr(c, "text"); err != nil {
-			return nil, err
+		text := strings.TrimSpace(strVal(c.Body["text"], c.Body["message"]))
+		if text == "" {
+			return nil, web.ErrInvalidInput("text required")
 		}
-		return nil, web.ErrInvalidInput("no active turn is accepting feedback; send it as a prompt instead")
+		item, err := st.ACP.SubmitFeedback(connID, text)
+		if err != nil {
+			return nil, web.ErrInvalidInput("no active turn is accepting feedback; send it as a prompt instead")
+		}
+		return item, nil
 	})
 
-	// ── session_info (default OFF) ──
+	// ── session_info (default ON: the tool is read-only) ──
 	reg.Register("get_session_info_settings", func(c *web.Context) (any, error) {
-		return map[string]any{"enabled": boolMeta(stateDB(c), keySessionInfoEnabled, false)}, nil
+		return map[string]any{"enabled": boolMeta(stateDB(c), keySessionInfoEnabled, true)}, nil
 	})
 	reg.Register("set_session_info_settings", func(c *web.Context) (any, error) {
 		d, err := requireDB(c)
 		if err != nil {
 			return nil, err
 		}
-		enabled := settingsBool(c, false)
+		enabled := settingsBool(c, true)
 		upsertValue(d, keySessionInfoEnabled, strconv.FormatBool(enabled), nowRFC3339())
 		out := map[string]any{"enabled": enabled}
 		Emit(c, evtSessionInfo, out)

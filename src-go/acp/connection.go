@@ -7,9 +7,11 @@ package acp
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"sort"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -19,6 +21,13 @@ type liveSession struct {
 	session *AgentSession
 	state   *SessionState
 	cancel  context.CancelFunc
+	// Prompt turns are serialized: an ACP session handles one prompt at a time,
+	// so a send that lands mid-turn is queued here and started when the turn
+	// ends. Without this a second send would overwrite cancel and interleave
+	// two turns on one session.
+	promptMu  sync.Mutex
+	prompting bool
+	queue     [][]any
 }
 
 // SetSessionRegistry wires the shared registry the WS attach protocol reads.
@@ -45,8 +54,8 @@ func (m *Manager) SetResolver(fn func(agentType, cwd string, env map[string]stri
 // handshakeTimeout bounds initialize + session/new; a hung agent must not wedge
 // the connect call forever. Raised to 120s over upstream's 60s because a cold
 // start of a large binary agent (opencode measured ~32s here) sits too close to
-// the old ceiling. Override with YOYOCODE_ACP_HANDSHAKE_TIMEOUT_MS.
-var handshakeTimeout = envDurationMs("YOYOCODE_ACP_HANDSHAKE_TIMEOUT_MS", 120*time.Second)
+// the old ceiling. Override with GOCODE_ACP_HANDSHAKE_TIMEOUT_MS.
+var handshakeTimeout = envDurationMs("GOCODE_ACP_HANDSHAKE_TIMEOUT_MS", 120*time.Second)
 
 func envDurationMs(name string, def time.Duration) time.Duration {
 	if raw := os.Getenv(name); raw != "" {
@@ -114,20 +123,49 @@ func (m *Manager) ConnectLive(agentType, folderPath string, conversationID int64
 		_ = proc.Close()
 		return nil, &SpawnError{AgentType: agentType, Err: err, Stderr: proc.StderrTail()}
 	}
-	// Offer the yoyocode-mcp workbench companion to the agent. When the
+	// Offer the gocode-mcp workbench companion to the agent. When the
 	// backend is configured and the companion binary is present, it spawns
 	// with the session context injected as env vars; otherwise we connect
 	// without it (the agent stays fully functional minus the workbench tools).
 	servers := []any{}
 	if spec := m.companionSpec(agentType, id); spec != nil {
 		servers = append(servers, spec)
+		// The companion provides `check_user_feedback`, the pull channel for
+		// live-feedback notes. Advertise it so the composer offers the entry.
+		state.FeedbackToolAvailable = true
 	}
-	if _, err := sess.NewSession(ctx, cwd, servers); err != nil {
-		cancel()
-		_ = proc.Close()
-		return nil, &SpawnError{AgentType: agentType, Err: err, Stderr: proc.StderrTail()}
+	// Resume the conversation's agent session when we know its id and the agent
+	// supports session/load — that keeps the agent's context across app restarts
+	// instead of starting a blank session. A load failure falls back to a new
+	// session rather than failing the connect.
+	resumeID := opts.SessionID
+	if resumeID == "" && conversationID > 0 {
+		resumeID = m.conversationSessionID(conversationID)
+	}
+	loaded := false
+	if resumeID != "" && sess.SupportsLoadSession() {
+		if _, err := sess.LoadSession(ctx, resumeID, cwd, servers); err == nil {
+			loaded = true
+		}
+	}
+	if !loaded {
+		if _, err := sess.NewSession(ctx, cwd, servers); err != nil {
+			cancel()
+			_ = proc.Close()
+			return nil, &SpawnError{AgentType: agentType, Err: err, Stderr: proc.StderrTail()}
+		}
 	}
 	cancel()
+
+	// Remember which agent session backs this conversation. The history
+	// endpoint reads the agent's on-disk transcript by this id, so without it a
+	// reopened conversation has no history at all. First session wins: later
+	// reconnects start a new agent session, and keeping the original id keeps
+	// the conversation's transcript stable (ACP session/load resume is not
+	// ported yet, so a reconnect cannot continue the same session).
+	if conversationID > 0 {
+		m.rememberSessionID(conversationID, sess.SessionID())
+	}
 
 	state.SetStatus(StatusConnected)
 	// Apply the launch preferences where upstream does: after the session is
@@ -200,15 +238,124 @@ func (m *Manager) PromptLive(connID string, blocks []any) error {
 	if ls == nil {
 		return &ConnectionUnknownError{ID: connID}
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	m.mu.Lock()
-	ls.cancel = cancel
-	m.mu.Unlock()
-	go func() {
-		defer cancel()
-		_, _ = ls.session.Prompt(ctx, blocks)
-	}()
+	ls.promptMu.Lock()
+	if ls.prompting {
+		// A turn is in flight: queue this prompt and let the running turn start
+		// it when it ends.
+		ls.queue = append(ls.queue, blocks)
+		queued := ls.queueTextsLocked()
+		ls.promptMu.Unlock()
+		ls.state.SetQueuedPrompts(queued)
+		return nil
+	}
+	ls.prompting = true
+	ls.promptMu.Unlock()
+	go ls.runPrompts(blocks)
 	return nil
+}
+
+// conversationSessionID returns the agent session id stored on a conversation
+// row (conversation.external_id), or "" when there is none.
+func (m *Manager) conversationSessionID(convID int64) string {
+	m.mu.RLock()
+	d := m.db
+	m.mu.RUnlock()
+	if d == nil || d.Conn == nil {
+		return ""
+	}
+	var ext sql.NullString
+	if err := d.Conn.QueryRow(
+		`SELECT external_id FROM conversation WHERE id = ? AND deleted_at IS NULL`, convID).Scan(&ext); err != nil {
+		return ""
+	}
+	if !ext.Valid {
+		return ""
+	}
+	return ext.String
+}
+
+// rememberSessionID stores the agent session id on the conversation row when it
+// has none yet (see ConnectLive). Best-effort: a failure here costs history, not
+// the session.
+func (m *Manager) rememberSessionID(convID int64, sessionID string) {
+	if sessionID == "" {
+		return
+	}
+	m.mu.RLock()
+	d := m.db
+	m.mu.RUnlock()
+	if d == nil || d.Conn == nil {
+		return
+	}
+	_, _ = d.Conn.Exec(
+		`UPDATE conversation SET external_id = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL AND (external_id IS NULL OR external_id = '')`,
+		sessionID, time.Now().UTC().Format(time.RFC3339), convID)
+}
+
+// queueTextsLocked renders the queued prompts' text, oldest first. Callers hold
+// promptMu.
+func (ls *liveSession) queueTextsLocked() []string {
+	out := make([]string, 0, len(ls.queue))
+	for _, blocks := range ls.queue {
+		text := ""
+		for _, raw := range blocks {
+			b, _ := raw.(map[string]any)
+			if t, _ := b["text"].(string); t != "" {
+				text = t
+				break
+			}
+		}
+		out = append(out, text)
+	}
+	return out
+}
+
+// DropQueuedPrompt removes one waiting send (0-based, oldest first). It reports
+// whether a prompt was there to drop.
+func (m *Manager) DropQueuedPrompt(connID string, index int) bool {
+	m.mu.Lock()
+	ls := m.live[connID]
+	m.mu.Unlock()
+	if ls == nil {
+		return false
+	}
+	ls.promptMu.Lock()
+	if index < 0 || index >= len(ls.queue) {
+		ls.promptMu.Unlock()
+		return false
+	}
+	ls.queue = append(ls.queue[:index], ls.queue[index+1:]...)
+	queued := ls.queueTextsLocked()
+	ls.promptMu.Unlock()
+	ls.state.SetQueuedPrompts(queued)
+	return true
+}
+
+// runPrompts drains the session's prompt queue: it runs one turn at a time,
+// then starts the next queued prompt, until the queue empties.
+func (ls *liveSession) runPrompts(blocks []any) {
+	for {
+		ctx, cancel := context.WithCancel(context.Background())
+		ls.promptMu.Lock()
+		ls.cancel = cancel
+		ls.promptMu.Unlock()
+		_, _ = ls.session.Prompt(ctx, blocks)
+		cancel()
+
+		ls.promptMu.Lock()
+		if len(ls.queue) == 0 {
+			ls.prompting = false
+			ls.cancel = nil
+			ls.promptMu.Unlock()
+			ls.state.SetQueuedPrompts(nil)
+			return
+		}
+		blocks = ls.queue[0]
+		ls.queue = ls.queue[1:]
+		queued := ls.queueTextsLocked()
+		ls.promptMu.Unlock()
+		ls.state.SetQueuedPrompts(queued)
+	}
 }
 
 // acpControlTimeout bounds a control round-trip (set mode / set config option)
@@ -262,9 +409,16 @@ func (m *Manager) CancelLive(connID string) bool {
 	if ls == nil {
 		return false
 	}
+	// A stop ends the turn AND the queued sends behind it: the user asked for
+	// this conversation to go quiet, not to start the next prompt immediately.
+	ls.promptMu.Lock()
+	ls.queue = nil
+	cancel := ls.cancel
+	ls.promptMu.Unlock()
+	ls.state.SetQueuedPrompts(nil)
 	_ = ls.proc.Peer.Notify("session/cancel", map[string]any{"sessionId": ls.session.SessionID()})
-	if ls.cancel != nil {
-		ls.cancel()
+	if cancel != nil {
+		cancel()
 	}
 	return true
 }
@@ -290,6 +444,8 @@ func (m *Manager) GoalControlLive(connID, action string) bool {
 
 // DisconnectLive tears down a live session (child + registry entry).
 func (m *Manager) DisconnectLive(connID string) {
+	// A parked ask_user_question must not outlive its session.
+	m.dropQuestions(connID)
 	m.mu.Lock()
 	ls := m.live[connID]
 	delete(m.live, connID)

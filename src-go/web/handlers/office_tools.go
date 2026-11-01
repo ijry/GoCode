@@ -15,7 +15,7 @@ import (
 	"runtime"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func officecliNotInstalled() map[string]any {

@@ -3,9 +3,9 @@ package handlers
 import (
 	"strconv"
 
-	"yoyocode/src-go/app_state"
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/app_state"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // RegisterWebServer wires web-service config handlers.

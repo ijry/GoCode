@@ -28,8 +28,8 @@ import (
 	"sync"
 	"time"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // piTrustRequiringConfigResources mirrors pi's own

@@ -12,8 +12,8 @@ package handlers
 import (
 	"strconv"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const openedTabsVersionKey = "opened_tabs_version"

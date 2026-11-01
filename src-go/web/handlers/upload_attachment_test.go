@@ -12,7 +12,7 @@ import (
 func TestUploadAttachment(t *testing.T) {
 	setHome(t)
 	home := t.TempDir()
-	t.Setenv("YOYOCODE_HOME", home) // uploads land under <home>/uploads
+	t.Setenv("GOCODE_HOME", home) // uploads land under <home>/uploads
 	srv := newTestServer(t)
 
 	post := func(fields map[string]string, fileName string, body []byte) (int, map[string]any) {

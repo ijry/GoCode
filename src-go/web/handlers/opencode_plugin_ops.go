@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // pluginOpLock serializes install/uninstall, mirroring upstream PLUGIN_OP_LOCK.

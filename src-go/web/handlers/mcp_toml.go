@@ -13,7 +13,7 @@ import (
 
 	toml "github.com/pelletier/go-toml/v2"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // ─── paths ──────────────────────────────────────────────────────────────────

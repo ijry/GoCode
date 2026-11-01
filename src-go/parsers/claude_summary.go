@@ -35,7 +35,19 @@ type ConversationSummary struct {
 
 // ListClaudeConversations enumerates Claude Code transcripts, newest first.
 func ListClaudeConversations() []ConversationSummary {
-	base := filepath.Join(claudeConfigDir(), "projects")
+	return listClaudeStyleConversations(filepath.Join(claudeConfigDir(), "projects"), "claude_code")
+}
+
+// ListQoderConversations enumerates Qoder transcripts. Qoder stores its sessions
+// in Claude's own format, so the Claude walker serves it verbatim — only the
+// projects directory and the agent type differ.
+func ListQoderConversations() []ConversationSummary {
+	return listClaudeStyleConversations(qoderProjectsDir(), "qoder")
+}
+
+// listClaudeStyleConversations walks `<projectsDir>/*/*.jsonl`, the layout Claude
+// Code and Qoder share.
+func listClaudeStyleConversations(base, agentType string) []ConversationSummary {
 	out := []ConversationSummary{}
 	ents, err := os.ReadDir(base)
 	if err != nil {
@@ -60,6 +72,7 @@ func ListClaudeConversations() []ConversationSummary {
 					s.FolderPath = decodeClaudeFolderPath(e.Name())
 					s.FolderName = folderNameFromPath(s.FolderPath)
 				}
+				s.AgentType = agentType
 				out = append(out, s)
 			}
 		}

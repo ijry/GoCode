@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 func codexPetsDir() string {
@@ -144,7 +144,7 @@ func RegisterPetCodex(reg *Registry) {
 			targetID := id
 			if already {
 				if !overwrite {
-					skipped = append(skipped, map[string]any{"sourceId": id, "reason": "Pet with this id already exists in YoYoCode."})
+					skipped = append(skipped, map[string]any{"sourceId": id, "reason": "Pet with this id already exists in GoCode."})
 					continue
 				}
 				targetID = uniqueImportedID(id)

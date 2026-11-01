@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/db"
+	"gocode/src-go/db"
 )
 
 // ForkResultInfo mirrors upstream ForkResultInfo.

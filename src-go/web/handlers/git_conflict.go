@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // gitRunBytes is gitRun but preserves raw stdout bytes (NUL etc), needed for

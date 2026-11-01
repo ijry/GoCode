@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"yoyocode/src-go/app_state"
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/app_state"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // stateDB pulls the database from the handler context state.

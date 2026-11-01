@@ -1,7 +1,7 @@
 package app
 
 // codegmcp.go ports upstream src/lib/codeg-mcp-tool.ts: it recognizes the six
-// yoyocode-mcp workbench companion tools inside a tool call and distills the one
+// gocode-mcp workbench companion tools inside a tool call and distills the one
 // argument (and verdict / prompt / reason) worth stating, plus the peeled result
 // text — so CodegMcpToolCard-equivalent rendering can show a one-liner instead
 // of a raw argument dump.
@@ -22,10 +22,10 @@ var codegMcpWorkbenchTools = map[string]bool{
 }
 
 // normalizeMcpToolName collapses host spellings onto the canonical tool name:
-// mcp__yoyocode-mcp__task_progress / yoyocode-mcp/task_progress → task_progress.
+// mcp__gocode-mcp__task_progress / gocode-mcp/task_progress → task_progress.
 func normalizeMcpToolName(name string) string {
 	name = strings.TrimSpace(name)
-	for _, p := range []string{"mcp__yoyocode-mcp__", "mcp__codeg-mcp__", "yoyocode-mcp/", "codeg-mcp/", "yoyocode-mcp__", "codeg-mcp__"} {
+	for _, p := range []string{"mcp__gocode-mcp__", "mcp__codeg-mcp__", "gocode-mcp/", "codeg-mcp/", "gocode-mcp__", "codeg-mcp__"} {
 		if strings.HasPrefix(name, p) {
 			return name[len(p):]
 		}

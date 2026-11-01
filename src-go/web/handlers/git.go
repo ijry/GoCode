@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // gitRun executes git in dir and returns (stdout, stderr, success).

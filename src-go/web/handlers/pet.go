@@ -19,7 +19,7 @@ import (
 	"sort"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 const (
@@ -31,13 +31,13 @@ const (
 )
 
 func petsRoot() string {
-	if v := strings.TrimSpace(os.Getenv("YOYOCODE_HOME")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("GOCODE_HOME")); v != "" {
 		return filepath.Join(v, "pets")
 	}
-	if v := strings.TrimSpace(os.Getenv("YOYOCODE_DATA_DIR")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("GOCODE_DATA_DIR")); v != "" {
 		return filepath.Join(v, "pets")
 	}
-	return filepath.Join(skillHomeDir(), ".yoyocode", "pets")
+	return filepath.Join(skillHomeDir(), ".gocode", "pets")
 }
 
 func petDir(id string) string { return filepath.Join(petsRoot(), id) }

@@ -83,7 +83,7 @@ func TestBackupUploadMissingFileField(t *testing.T) {
 }
 
 func TestBackupUploadOverCap(t *testing.T) {
-	t.Setenv("YOYOCODE_BACKUP_UPLOAD_MAX_BYTES", "8")
+	t.Setenv("GOCODE_BACKUP_UPLOAD_MAX_BYTES", "8")
 	srv := newTestServer(t)
 	var buf bytes.Buffer
 	w := multipart.NewWriter(&buf)

@@ -21,7 +21,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // hermesProviderMeta is a managed Hermes provider: the config.yaml

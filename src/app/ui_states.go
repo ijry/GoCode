@@ -12,7 +12,7 @@ import "github.com/egoist/mygo/ui"
 // "Loading…".
 func loadingState(c *ui.Context, label string) {
 	if label == "" {
-		label = "Loading…"
+		label = cat(c).LoadingLabel()
 	}
 	ui.Text(c, label).FontSize(12).TextColor(c.Theme().TextMuted)
 }
@@ -47,7 +47,7 @@ func (s *Shell) errorState(c *ui.Context, key string, onRetry func()) {
 		if h := s.errHintFor(key); h != "" {
 			ui.Text(c, h).FontSize(11).TextColor(t.TextMuted).Wrap()
 		}
-		if ui.Button(c.Key("err-retry-"+key), "Retry").Clicked() {
+		if ui.Button(c.Key("err-retry-"+key), cat(c).ActionRetry()).Clicked() {
 			if onRetry != nil {
 				onRetry()
 			} else {

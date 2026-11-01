@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 const configSyncProtocolVersion = 1

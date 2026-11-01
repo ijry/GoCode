@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -176,4 +177,295 @@ func TestCanvasDeleteBoard(t *testing.T) {
 		t.Fatalf("board delete not reflected; texts = %v", tt.Texts())
 	}
 	dumpFrame(t, tt, "canvas-deleted")
+}
+
+// TestCanvasNodeDragAndZoom drives the spatial surface: dragging a card
+// persists its new spot through canvas_move_nodes, and the header controls
+// zoom and reset the view.
+func TestCanvasNodeDragAndZoom(t *testing.T) {
+	s, b, ids := canvasShellForTest(t, "Drag board")
+	boardID := ids[0]
+	if _, err := b.raw("canvas_create_node", map[string]any{"input": map[string]any{
+		"kind": "note", "board_id": numOrString(boardID), "title": "Draggable",
+		"content": "move me", "x": 40, "y": 60, "width": 200, "height": 120,
+	}}); err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	nodesRaw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+	if err != nil {
+		t.Fatalf("canvas_list_nodes: %v", err)
+	}
+	s.cache["canvas-nodes:"+boardID] = nodesRaw
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Drag board"); err != nil {
+		t.Fatalf("open board: %v", err)
+	}
+	tt.Frame()
+
+	// Zoom controls: the header shows the surface zoom.
+	if !tt.HasText("100%") {
+		t.Fatalf("zoom label missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("+"); err != nil {
+		t.Fatalf("zoom in: %v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("120%") {
+		t.Fatalf("zoom in did not apply; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Reset view"); err != nil {
+		t.Fatalf("reset view: %v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("100%") {
+		t.Fatalf("reset did not restore 100%%; texts = %v", tt.Texts())
+	}
+
+	// Drag the card 60 right and 40 down; the move persists to the backend.
+	rect, ok := tt.Find("Draggable")
+	if !ok {
+		t.Fatalf("card not found; texts = %v", tt.Texts())
+	}
+	cx, cy := rect.X+rect.W/2, rect.Y+rect.H/2
+	tt.Press(cx, cy)
+	tt.Frame()
+	tt.Move(cx+30, cy+20)
+	tt.Frame()
+	tt.Move(cx+60, cy+40)
+	tt.Frame()
+	tt.Release(cx+60, cy+40)
+	tt.Frame()
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		raw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+		if err != nil {
+			t.Fatalf("list nodes: %v", err)
+		}
+		var snap map[string]any
+		_ = json.Unmarshal(raw, &snap)
+		nodes, _ := snap["nodes"].([]any)
+		if len(nodes) == 1 {
+			n, _ := nodes[0].(map[string]any)
+			x, _ := n["x"].(float64)
+			y, _ := n["y"].(float64)
+			if x == 100 && y == 100 {
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("drag did not persist: x=%v y=%v", x, y)
+			}
+		} else if time.Now().After(deadline) {
+			t.Fatalf("nodes changed shape: %v", snap)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// TestCanvasPanAndNewNote pans the surface by dragging empty space and adds a
+// note card from the header.
+func TestCanvasPanAndNewNote(t *testing.T) {
+	s, b, ids := canvasShellForTest(t, "Pan board")
+	boardID := ids[0]
+	if _, err := b.raw("canvas_create_node", map[string]any{"input": map[string]any{
+		"kind": "note", "board_id": numOrString(boardID), "title": "Anchor",
+		"x": 40, "y": 60, "width": 200, "height": 120,
+	}}); err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	nodesRaw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+	if err != nil {
+		t.Fatalf("canvas_list_nodes: %v", err)
+	}
+	s.cache["canvas-nodes:"+boardID] = nodesRaw
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Pan board"); err != nil {
+		t.Fatalf("open board: %v", err)
+	}
+	tt.Frame()
+	before, ok := tt.Find("Anchor")
+	if !ok {
+		t.Fatalf("card not found; texts = %v", tt.Texts())
+	}
+
+	dumpFrame(t, tt, "canvas-board-spatial")
+	// Background drag pans in pan mode (in select mode it marquees).
+	if err := tt.Click("Pan"); err != nil {
+		t.Fatalf("switch to pan mode: %v", err)
+	}
+	tt.Frame()
+	// Drag the empty background: the whole surface pans, so the card follows.
+	tt.Press(before.X-20, before.Y+200)
+	tt.Frame()
+	tt.Move(before.X+30, before.Y+240)
+	tt.Frame()
+	tt.Release(before.X+30, before.Y+240)
+	tt.Frame()
+	after, ok := tt.Find("Anchor")
+	if !ok {
+		t.Fatalf("card lost after pan; texts = %v", tt.Texts())
+	}
+	if dx, dy := after.X-before.X, after.Y-before.Y; dx != 50 || dy != 40 {
+		t.Fatalf("pan moved the card by (%v,%v), want (50,40)", dx, dy)
+	}
+
+	// New note lands on the board.
+	if err := tt.Click("New note"); err != nil {
+		t.Fatalf("new note: %v", err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		raw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+		if err != nil {
+			t.Fatalf("list nodes: %v", err)
+		}
+		var snap map[string]any
+		_ = json.Unmarshal(raw, &snap)
+		if nodes, _ := snap["nodes"].([]any); len(nodes) == 2 {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("note not created: %v", snap)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// TestCanvasMarqueeSelectMoveAndDelete covers the multi-select path: a marquee
+// over two of three cards selects them, dragging one moves both (one
+// canvas_move_nodes call with two entries), and Delete selected removes both.
+func TestCanvasMarqueeSelectMoveAndDelete(t *testing.T) {
+	s, b, ids := canvasShellForTest(t, "Multi board")
+	boardID := ids[0]
+	seeds := []struct {
+		title string
+		x, y  float64
+	}{
+		{"Alpha", 40, 40},
+		{"Beta", 320, 40},
+		{"Gamma", 40, 400},
+	}
+	for _, seed := range seeds {
+		if _, err := b.raw("canvas_create_node", map[string]any{"input": map[string]any{
+			"kind": "note", "board_id": numOrString(boardID), "title": seed.title,
+			"x": seed.x, "y": seed.y, "width": 200, "height": 100,
+		}}); err != nil {
+			t.Fatalf("create %s: %v", seed.title, err)
+		}
+	}
+	nodesRaw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+	if err != nil {
+		t.Fatalf("list nodes: %v", err)
+	}
+	s.cache["canvas-nodes:"+boardID] = nodesRaw
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Multi board"); err != nil {
+		t.Fatalf("open board: %v", err)
+	}
+	tt.Frame()
+
+	alpha, ok := tt.Find("Alpha")
+	if !ok {
+		t.Fatalf("Alpha missing; texts = %v", tt.Texts())
+	}
+	beta, ok := tt.Find("Beta")
+	if !ok {
+		t.Fatalf("Beta missing; texts = %v", tt.Texts())
+	}
+	// Marquee from above-left of Alpha to below-right of Beta, missing Gamma.
+	tt.Press(alpha.X-10, alpha.Y-10)
+	tt.Frame()
+	tt.Move(beta.X+210, alpha.Y+140)
+	tt.Frame()
+	tt.Release(beta.X+210, alpha.Y+140)
+	tt.Frame()
+	if !tt.HasText("2 selected") {
+		t.Fatalf("marquee selected %v; texts = %v", tt.Texts(), tt.Texts())
+	}
+	dumpFrame(t, tt, "canvas-board-selection")
+
+	// Drag Alpha: both selected cards move together.
+	tt.Press(alpha.X+60, alpha.Y+40)
+	tt.Frame()
+	tt.Move(alpha.X+110, alpha.Y+80)
+	tt.Frame()
+	tt.Release(alpha.X+110, alpha.Y+80)
+	tt.Frame()
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		snap := canvasNodesOf(t, b, boardID)
+		byTitle := map[string][2]float64{}
+		for _, n := range snap {
+			x, _ := n["x"].(float64)
+			y, _ := n["y"].(float64)
+			byTitle[fmt.Sprintf("%v", n["title"])] = [2]float64{x, y}
+		}
+		if byTitle["Alpha"] == [2]float64{90, 80} && byTitle["Beta"] == [2]float64{370, 80} {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("group drag did not persist: %v", byTitle)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	// Gamma stayed put.
+	if snap := canvasNodesOf(t, b, boardID); len(snap) != 3 {
+		t.Fatalf("expected 3 nodes, got %d", len(snap))
+	}
+	if g := canvasNodeByTitle(t, b, boardID, "Gamma"); g[0] != 40 || g[1] != 400 {
+		t.Fatalf("Gamma moved to %v, want (40,400)", g)
+	}
+
+	// Delete selected removes Alpha and Beta in one call.
+	if err := tt.Click("Delete selected"); err != nil {
+		t.Fatalf("delete selected: %v", err)
+	}
+	tt.Frame()
+	deadline = time.Now().Add(3 * time.Second)
+	for {
+		if snap := canvasNodesOf(t, b, boardID); len(snap) == 1 {
+			if title := fmt.Sprintf("%v", snap[0]["title"]); title != "Gamma" {
+				t.Fatalf("wrong node survived: %v", title)
+			}
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("batch delete did not apply")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// canvasNodesOf lists a board's nodes from the backend.
+func canvasNodesOf(t *testing.T, b *Backend, boardID string) []map[string]any {
+	t.Helper()
+	raw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+	if err != nil {
+		t.Fatalf("list nodes: %v", err)
+	}
+	var snap map[string]any
+	_ = json.Unmarshal(raw, &snap)
+	out := []map[string]any{}
+	for _, rawNode := range asListVal(snap["nodes"]) {
+		out = append(out, rawNode)
+	}
+	return out
+}
+
+// canvasNodeByTitle returns a node's (x,y) by title.
+func canvasNodeByTitle(t *testing.T, b *Backend, boardID, title string) [2]float64 {
+	t.Helper()
+	for _, n := range canvasNodesOf(t, b, boardID) {
+		if fmt.Sprintf("%v", n["title"]) == title {
+			x, _ := n["x"].(float64)
+			y, _ := n["y"].(float64)
+			return [2]float64{x, y}
+		}
+	}
+	t.Fatalf("node %q not found", title)
+	return [2]float64{}
 }

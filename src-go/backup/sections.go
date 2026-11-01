@@ -2,10 +2,10 @@ package backup
 
 import "strings"
 
-// The single table of YoYoCode-owned data sections a backup packs. Mirrors
+// The single table of GoCode-owned data sections a backup packs. Mirrors
 // upstream sections.rs: an ALLOWLIST, so a future unexpected directory under the
 // data home is never swept in. Live-path resolution is done by the CALLER (the
-// handler knows the port's YOYOCODE_HOME / DataDir layout); the engine only
+// handler knows the port's GOCODE_HOME / DataDir layout); the engine only
 // iterates this table.
 
 // SectionKind is a directory tree or a single file.
@@ -90,11 +90,11 @@ func NormalizeSectionIDs(declared []string) []string {
 }
 
 // IsExcludedSectionEntry excludes internal scaffolding from any packed section:
-// upload staging (any `.tmp/` component) and any `.yoyocode`-prefixed name
+// upload staging (any `.tmp/` component) and any `.gocode`-prefixed name
 // (restore staging / safety snapshots). Rebranded from upstream's `.codeg`.
 func IsExcludedSectionEntry(rel string) bool {
 	for _, comp := range strings.Split(strings.ReplaceAll(rel, "\\", "/"), "/") {
-		if comp == ".tmp" || strings.HasPrefix(comp, ".yoyocode") {
+		if comp == ".tmp" || strings.HasPrefix(comp, ".gocode") {
 			return true
 		}
 	}

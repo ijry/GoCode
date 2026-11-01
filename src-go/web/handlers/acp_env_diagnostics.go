@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"yoyocode/src-go/acp"
-	"yoyocode/src-go/web"
+	"gocode/src-go/acp"
+	"gocode/src-go/web"
 )
 
 const (
@@ -370,7 +370,7 @@ func collectAgentDiag(c *web.Context, agentType, npmPrefixG string) agentDiag {
 			a.systemPrefixBin = cand
 		}
 	}
-	userPrefix := filepath.Join(homeDirOrDefault(), ".yoyocode", "npm-global", "bin", binName)
+	userPrefix := filepath.Join(homeDirOrDefault(), ".gocode", "npm-global", "bin", binName)
 	if fileExists(userPrefix) {
 		a.userPrefixBin = userPrefix
 	}
@@ -434,7 +434,7 @@ func diagTerminalProbe(cmd string, appPath []string) terminalProbe {
 
 // appVersionString returns the app version (best-effort).
 func appVersionString() string {
-	if v := strings.TrimSpace(os.Getenv("YOYOCODE_APP_VERSION")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("GOCODE_APP_VERSION")); v != "" {
 		return v
 	}
 	return "0.0.0-dev"
@@ -503,13 +503,13 @@ func computeVerdict(inp *diagInputs) map[string]any {
 		}
 		if agent.adapter != nil && agent.dbVersion == "" && agent.detectedVersion == "" {
 			if agent.adapter.nativePath != "" {
-				return diagVerdict("info", "adapter_missing_native_present", "Your own vendor CLI is installed, but YoYoCode launches a separate ACP adapter, which is not.")
+				return diagVerdict("info", "adapter_missing_native_present", "Your own vendor CLI is installed, but GoCode launches a separate ACP adapter, which is not.")
 			}
-			return diagVerdict("info", "adapter_missing", "YoYoCode launches a separate ACP adapter for this agent, which is not installed.")
+			return diagVerdict("info", "adapter_missing", "GoCode launches a separate ACP adapter for this agent, which is not installed.")
 		}
 		if agent.dbVersion != "" || agent.detectedVersion != "" {
 			if agent.userPrefixBin != "" {
-				return diagVerdict("fail", "user_prefix_not_on_path", "Installed into the EACCES fallback prefix (~/.yoyocode/npm-global), which is not on the app's PATH.")
+				return diagVerdict("fail", "user_prefix_not_on_path", "Installed into the EACCES fallback prefix (~/.gocode/npm-global), which is not on the app's PATH.")
 			}
 			if agent.homebrewBin != "" {
 				return diagVerdict("fail", "homebrew_bin_not_on_path", "Installed under Homebrew's bin, which is not on the app's PATH (Apple Silicon keg split).")
@@ -638,7 +638,7 @@ func buildReport(inp *diagInputs, generatedAt, agentType string) map[string]any 
 				userStatus = "warn"
 				userHint = "EACCES fallback dir — reached by the connect gate only if it's on PATH"
 			}
-			checks = append(checks, diagCheck("~/.yoyocode/npm-global/bin/<cmd>", strOrDef(a.userPrefixBin, "absent"), userStatus, userHint))
+			checks = append(checks, diagCheck("~/.gocode/npm-global/bin/<cmd>", strOrDef(a.userPrefixBin, "absent"), userStatus, userHint))
 			if runtime.GOOS == "darwin" {
 				hbStatus := "info"
 				if a.homebrewBin != "" {
@@ -655,7 +655,7 @@ func buildReport(inp *diagInputs, generatedAt, agentType string) map[string]any 
 			} else if ad.nativePath != "" {
 				nativeVal = ad.nativePath
 			}
-			checks = append(checks, diagCheck(ad.nativeCmd+" (your own CLI)", nativeVal, "info", "YoYoCode never launches this — it launches the ACP adapter above, a separate package that shares the same config dir"))
+			checks = append(checks, diagCheck(ad.nativeCmd+" (your own CLI)", nativeVal, "info", "GoCode never launches this — it launches the ACP adapter above, a separate package that shares the same config dir"))
 			checks = append(checks, diagCheck("shared config dir", ad.sharedConfigDir, "info", "read by BOTH your CLI and the adapter — no second login"))
 		}
 		checks = append(checks, diagCheck("DB installed_version", strOrDef(a.dbVersion, "none"), "info", ""))
@@ -746,7 +746,7 @@ func glyphFor(status string) string {
 // renderPlainText mirrors render_plain_text.
 func renderPlainText(inp *diagInputs, verdict map[string]any, sections []map[string]any, generatedAt, agentType string) string {
 	var b strings.Builder
-	b.WriteString("===== YoYoCode environment diagnostics =====\n")
+	b.WriteString("===== GoCode environment diagnostics =====\n")
 	b.WriteString("generated: " + generatedAt + "\n")
 	if agentType != "" {
 		b.WriteString("agent: " + agentType + "\n")

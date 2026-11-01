@@ -24,19 +24,22 @@ func (s *Shell) viewFileTree(c *ui.Context) {
 	if root != "" {
 		ui.Row(c.Key("files-head")).PaddingX(8).PaddingY(6).AlignItems(ui.Center).Children(func() {
 			ui.Spacer(c)
-			iconButton(c, "files-refresh", iconRefresh, "Refresh", func() {
+			iconButton(c, "files-links", iconFolder, cat(c).WfTitle(), func() {
+				s.workbench = "workspace-folders"
+			})
+			iconButton(c, "files-refresh", iconRefresh, cat(c).ActionRefresh(), func() {
 				s.invalidate("ft:" + s.fileCurAbs(root))
 			})
 		})
 	}
 	if s.selectedFolder == "" || root == "" {
-		ui.Text(c, "Select a folder to browse its files.").FontSize(12).TextColor(t.TextMuted).Padding(10).Wrap()
+		ui.Text(c, cat(c).FilesSelectFolder()).FontSize(12).TextColor(t.TextMuted).Padding(10).Wrap()
 		return
 	}
 	curAbs := s.fileCurAbs(root)
 	ui.Row(c.Key("files-crumb")).PaddingX(8).PaddingY(6).Gap(6).AlignItems(ui.Center).Children(func() {
 		if s.fileDir != "" {
-			iconButton(c, "files-up", iconBack, "Up one level", func() { s.fileUp() })
+			iconButton(c, "files-up", iconBack, cat(c).FilesUp(), func() { s.fileUp() })
 		}
 		crumb := "/"
 		if s.fileDir != "" {
@@ -62,7 +65,7 @@ func (s *Shell) fileListLevel(c *ui.Context, root, curAbs string) {
 		return
 	}
 	if len(nodes) == 0 {
-		ui.Text(c, "Empty directory").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, cat(c).FilesEmptyDir()).FontSize(12).TextColor(t.TextMuted)
 		return
 	}
 	for _, n := range nodes {
@@ -103,17 +106,17 @@ func (s *Shell) fileListLevel(c *ui.Context, root, curAbs string) {
 func (s *Shell) viewFilePreview(c *ui.Context, root string) {
 	t := c.Theme()
 	if s.fileSel == "" {
-		ui.Text(c, "Select a file to preview.").FontSize(12).TextColor(t.TextMuted)
+		ui.Text(c, cat(c).FilesSelectPreview()).FontSize(12).TextColor(t.TextMuted)
 		return
 	}
 	ui.Row(c.Key("file-preview-head")).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, s.fileSel).FontSize(12).Bold().MaxLines(1).Grow(1)
-		iconButton(c, "file-preview-close", iconX, "Close", func() { s.fileSel = "" })
+		iconButton(c, "file-preview-close", iconX, cat(c).ActionClose(), func() { s.fileSel = "" })
 	})
 	key := "filepreview:" + s.fileSel
 	raw := s.ensure(key, "read_file_preview", map[string]any{"rootPath": root, "path": s.fileSel})
 	if e := s.errFor(key); e != "" {
-		ui.Text(c, "Cannot preview: "+e).FontSize(12).TextColor(t.Danger).Wrap()
+		ui.Text(c, cat(c).FilesCannotPreview(e)).FontSize(12).TextColor(t.Danger).Wrap()
 		return
 	}
 	if raw == nil {

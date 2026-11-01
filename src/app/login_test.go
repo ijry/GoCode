@@ -17,7 +17,7 @@ func TestLoginGateRendersWhenTokenless(t *testing.T) {
 	b.Token = "" // a tokenless boot → the login gate
 	s := New(b)
 	tt := ui.NewTester(s.View, 900, 600)
-	for _, want := range []string{"YoYoCode", "Connect"} {
+	for _, want := range []string{"GoCode", "Connect"} {
 		if !tt.HasText(want) {
 			t.Errorf("login gate missing %q; texts = %v", want, tt.Texts())
 		}

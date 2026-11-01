@@ -12,10 +12,12 @@ import (
 	"encoding/json"
 	"image/png"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"gocode/locales"
 )
 
 // conversationShellForTest builds a Shell with the conversation detail already
@@ -31,6 +33,10 @@ func conversationShellForTest(t *testing.T) *Shell {
 	s.selectedFolder = "1"
 	s.selectedConv = "1"
 	s.connByConv["1"] = "c1"
+	// The empty-state tip is picked at random per shell (UnixNano % len(tips)),
+	// so pin it: a rotating tip makes every substring assertion ("Send" is
+	// inside "Sending while a turn is running queues the message.") flaky.
+	s.welcomeTip = 0
 
 	s.cache["appearance-mode"] = json.RawMessage(`{"mode":"light"}`)
 	s.cache["folders"] = json.RawMessage(`[{"id":1,"name":"demo","path":"/tmp/demo"}]`)
@@ -137,4 +143,242 @@ func TestToolCardExpands(t *testing.T) {
 		t.Fatalf("expanded card should show its detail line; texts = %v", tt.Texts())
 	}
 	dumpFrame(t, tt, "conversation-tool-open")
+}
+
+// TestZZRenderTerminalPanel renders the bottom terminal panel, both expanded (a
+// live snapshot + line input) and collapsed (header only), so the layout can be
+// eyeballed against upstream's bottom terminal bar.
+func TestZZRenderTerminalPanel(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s := terminalShellForTest(t, "t1")
+	s.cache["term:t1"] = json.RawMessage(`{"alive":true,"data":"$ ls\nsrc  go.mod  README.md\n$ echo hello\nhello\n$ ","seq":7}`)
+	addTerminalTabForTest(s, "t2", "Terminal 2", "$ git status\nOn branch main\n")
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Terminal") {
+		t.Fatalf("panel header missing; texts = %v", tt.Texts())
+	}
+	if !tt.HasText("New terminal tab") {
+		t.Fatalf("tab strip missing its new-tab affordance; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "terminal-panel")
+	// Collapsed variant: header stays, body hides.
+	s.termOpen = false
+	tt.Frame()
+	dumpFrame(t, tt, "terminal-panel-collapsed")
+}
+
+// TestZZRenderImportSessions renders the import picker with a seeded scan result
+// (a folder + a new session) so the list and selection affordances can be eyeballed.
+func TestZZRenderImportSessions(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s := importShellForTest(t, importScanFixture)
+	s.importSel[importSelKey("claude-code", "abc")] = true
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Import sessions") {
+		t.Fatalf("import frame missing header; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "import-sessions")
+}
+
+// TestZZRenderProjectBoot renders the project-boot window (shadcn form + skills).
+func TestZZRenderProjectBoot(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s := projectBootShellForTest(t)
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Project boot") {
+		t.Fatalf("project-boot frame missing header; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "project-boot")
+	// HyperFrames variant.
+	if err := tt.Click("HyperFrames project"); err != nil {
+		t.Fatalf("click HyperFrames: %v", err)
+	}
+	tt.Frame()
+	dumpFrame(t, tt, "project-boot-hyperframes")
+}
+
+// TestZZRenderChromeZh renders the workspace chrome in Chinese (aux tabs +
+// changes panel) to eyeball the localization.
+func TestZZRenderChromeZh(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s, _ := gitTestRepo(t, "")
+	s.auxTab = "changes"
+	tt := ui.NewTester(s.View, 1240, 820)
+	tt.SetLocale("zh-Hans")
+	tt.Frame()
+	dumpFrame(t, tt, "workspace-zh")
+}
+
+// TestZZRenderWorkspaceFolders renders the Workspace folders panel with two
+// seeded links (one ok, one broken) and a dry-run plan awaiting confirmation,
+// so the status colours, repair affordance, and preview hints can be eyeballed.
+func TestZZRenderWorkspaceFolders(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s, _, _, _ := wfShellForTest(t)
+	s.cache[wfCacheKey(s.selectedFolder)] = json.RawMessage(`[{"id":1,"name":"shared","targetPath":"/home/u/shared","status":"ok"},{"id":2,"name":"vendor","targetPath":"/mnt/vendor","status":"broken"}]`)
+	s.wfPlan = &wfLinkPlan{
+		targetPath: "/home/u/src/proj", baseName: "proj", name: "proj-2",
+		renamed: true, collides: true,
+	}
+	s.wfName = "proj-2"
+	s.wfUploadPath = "/home/u/notes.md"
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Workspace folders") {
+		t.Fatalf("workspace-folders frame missing header; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "workspace-folders")
+}
+
+// TestZZRenderBrowserPanel renders the Browser panel in its degraded (bridge-off)
+// state.
+func TestZZRenderBrowserPanel(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s := browserShellForTest(t)
+	s.browserURL = "http://localhost:3000"
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Browser") {
+		t.Fatalf("browser panel missing header; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "browser-panel")
+}
+
+// TestZZRenderModelProviders renders Settings → Model providers with two seeded rows.
+func TestZZRenderModelProviders(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s, b := mpShellForTest(t)
+	for _, p := range []map[string]any{
+		{"name": "Acme", "apiUrl": "https://api.acme.test", "apiKey": "sk-1234567890abcdef", "agentType": "claude_code", "model": "acme-large"},
+		{"name": "Beta", "apiUrl": "https://api.beta.test", "apiKey": "sk-zyxwvutsrqponmlk", "agentType": "codex"},
+	} {
+		if _, err := b.raw("create_model_provider", p); err != nil {
+			t.Fatalf("seed provider: %v", err)
+		}
+	}
+	raw, _ := b.raw("list_model_providers", map[string]any{})
+	s.cache[mpCacheKey] = raw
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Model providers") {
+		t.Fatalf("providers frame missing header; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "model-providers")
+}
+
+// TestZZRenderTokenUsage renders the token-usage dashboard from a populated report.
+func TestZZRenderTokenUsage(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s := usageShellForTest(t, usageReportFixture)
+	s.cache["usage-facets"] = json.RawMessage(usageFacetsRichFixture)
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Token usage") {
+		t.Fatalf("usage frame missing header; texts = %v", tt.Texts())
+	}
+	// Show the multi-select checklist open over the dashboard.
+	if err := tt.Click("Folder"); err != nil {
+		t.Fatalf("open Folder filter: %v", err)
+	}
+	tt.Frame()
+	dumpFrame(t, tt, "token-usage")
+}
+
+// TestZZRenderGitRemotes renders the Remotes page with two seeded remotes.
+func TestZZRenderGitRemotes(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s, repo := gitTestRepo(t, gitRouteRemotes)
+	for _, r := range [][2]string{{"origin", "https://github.com/acme/app.git"}, {"upstream", "https://github.com/up/app.git"}} {
+		if out, err := exec.Command("git", "-C", repo, "remote", "add", r[0], r[1]).CombinedOutput(); err != nil {
+			t.Fatalf("git remote add: %v (%s)", err, out)
+		}
+	}
+	s.invalidate(gitRemotesKey(repo))
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Remotes") {
+		t.Fatalf("remotes frame missing header; texts = %v", tt.Texts())
+	}
+	waitUntil(t, tt, func() bool { return tt.HasText("https://github.com/acme/app.git") })
+	dumpFrame(t, tt, "git-remotes")
+}
+
+// TestZZRenderClone renders the clone form with a filled URL/target.
+func TestZZRenderClone(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	b := newBackendForTest(t)
+	s := New(b)
+	s.stream = newStreamForTest()
+	s.workbench = "clone"
+	s.cache["appearance-mode"] = []byte(`{"mode":"light"}`)
+	s.cloneURL = "https://github.com/acme/app.git"
+	s.cloneTarget = "/home/u/projects/app"
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Clone repository") {
+		t.Fatalf("clone frame missing header; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "clone")
+}
+
+// TestZZRenderCommands renders the folder-command runner with two seeded commands
+// so the list rows and Run/Edit/Delete affordances can be eyeballed.
+func TestZZRenderCommands(t *testing.T) {
+	if os.Getenv("MYGO_UI_PNG") == "" {
+		t.Skip("set MYGO_UI_PNG to render")
+	}
+	s := commandsShellForTest(t, t.TempDir())
+	s.cache[folderCommandKey("1")] = json.RawMessage(`[{"id":1,"folder_id":1,"name":"dev","command":"pnpm dev","sort_order":0},{"id":2,"folder_id":1,"name":"build","command":"pnpm build","sort_order":1}]`)
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !tt.HasText("Folder commands") {
+		t.Fatalf("commands frame missing header; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "commands")
+}
+
+// TestConversationLocalizes renders the conversation detail in Chinese and
+// asserts the chrome (header actions, tool status badge, composer footer and
+// the working hint) follows the window language — the strings that stayed
+// English while every other panel spoke both languages.
+func TestConversationLocalizes(t *testing.T) {
+	s := conversationShellForTest(t)
+	tt := ui.NewTester(s.View, 1240, 820)
+	tt.SetLocale("zh-Hans")
+	tt.Frame()
+	for _, want := range []string{
+		"重命名",         // header action
+		"置顶",          // header action
+		"删除",          // header action
+		"已完成",         // tool status badge (Fold up from toolStatusLabel)
+		"agent 正在处理…", // composer hint (status prompting)
+		"停止",          // composer footer
+		"发送",          // composer footer
+	} {
+		if !tt.HasText(want) {
+			t.Errorf("zh conversation missing %q; texts = %v", want, tt.Texts())
+		}
+	}
+	dumpFrame(t, tt, "conversation-zh")
+
+	// The tool status label itself moves with the locale.
+	if got := toolStatusLabel(locales.In("zh-Hans"), "success"); got != "已完成" {
+		t.Errorf("toolStatusLabel(zh, success) = %q", got)
+	}
+	if got := toolStatusLabel(locales.In("zh-Hans"), "failed"); got != "失败" {
+		t.Errorf("toolStatusLabel(zh, failed) = %q", got)
+	}
 }

@@ -17,7 +17,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // deepSeekSectionKey is the settings-document section the adapter registers

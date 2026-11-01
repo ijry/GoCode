@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // ─── install option model + selection ───────────────────────────────────────

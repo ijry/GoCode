@@ -3,8 +3,8 @@ package handlers
 import (
 	"sort"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // createConversation inserts a conversation for an agent session.

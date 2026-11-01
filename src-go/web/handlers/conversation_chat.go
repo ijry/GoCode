@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 // RegisterConversationChat wires the no-folder "chat mode" endpoints:

@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 // RegisterScience wires the science skill-pack endpoints.

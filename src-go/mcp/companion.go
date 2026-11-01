@@ -1,10 +1,10 @@
 package mcp
 
-// Companion is the yoyocode-mcp workbench MCP server — the Go counterpart of
+// Companion is the gocode-mcp workbench MCP server — the Go counterpart of
 // upstream `codeg-mcp` (src-tauri/src/bin/codeg_mcp.rs) + the frontend
 // codeg-mcp-tool.ts tool list. It speaks MCP over stdio (JSON-RPC 2.0) and
 // exposes the six workbench companion tools a coding agent calls to report back
-// into YoYoCode (or author automations / tasks):
+// into GoCode (or author automations / tasks):
 //
 //	get_session_info       → the current session/folder/agent context
 //	task_progress          → note a progress message (ack)
@@ -14,7 +14,7 @@ package mcp
 //	resume_delegation      → deferred (delegation not yet ported; honest error)
 //
 // The two authoring tools proxy over the loopback /api contract to the running
-// YoYoCode backend. resume_delegation needs the delegation runtime, which this
+// GoCode backend. resume_delegation needs the delegation runtime, which this
 // port has not ported, so it reports "not supported" rather than faking it.
 
 import (
@@ -30,7 +30,7 @@ import (
 
 // ServerName / protocol version reported at initialize.
 const (
-	ServerName      = "yoyocode-mcp"
+	ServerName      = "gocode-mcp"
 	ProtocolVersion = "2024-11-05"
 )
 
@@ -98,7 +98,7 @@ func (c *Companion) HandleLine(line []byte) []byte {
 }
 
 // Serve reads newline-delimited JSON-RPC from r and writes responses to w until
-// r is exhausted. This is the stdio loop cmd/yoyocode-mcp runs.
+// r is exhausted. This is the stdio loop cmd/gocode-mcp runs.
 func (c *Companion) Serve(r io.Reader, w io.Writer) error {
 	dec := bufio.NewReader(r)
 	for {
@@ -144,6 +144,15 @@ func (c *Companion) toolsList() []map[string]any {
 			"inputSchema": schema(map[string]any{
 				"title":  map[string]any{"type": "string"},
 				"prompt": map[string]any{"type": "string"}}, "title")},
+		{"name": "ask_user_question", "description": "Ask the user a question and wait for their answer. Use when a decision genuinely needs the user (the call blocks until they answer).",
+			"inputSchema": schema(map[string]any{
+				"question": map[string]any{"type": "string"},
+				"options": map[string]any{"type": "array", "items": map[string]any{
+					"type":       "object",
+					"properties": map[string]any{"label": map[string]any{"type": "string"}},
+				}}}, "question")},
+		{"name": "check_user_feedback", "description": "Fetch any live-feedback notes the user sent for this turn. Call this to see whether the user has steered you; returns the waiting notes (empty when none).",
+			"inputSchema": schema(map[string]any{})},
 		{"name": "resume_delegation", "description": "Revive a delegated sub-agent (deferred in this build).",
 			"inputSchema": schema(map[string]any{
 				"task_id": map[string]any{"type": "string"},
@@ -175,6 +184,10 @@ func (c *Companion) toolsCall(id json.RawMessage, params json.RawMessage) []byte
 		return c.createAutomation(id, args)
 	case "create_work_task":
 		return c.createWorkTask(id, args)
+	case "ask_user_question":
+		return c.askUserQuestion(id, args)
+	case "check_user_feedback":
+		return c.checkUserFeedback(id)
 	case "resume_delegation":
 		return c.toolResult(id, "", true, "resume_delegation is not supported yet: the delegation runtime is not part of this build.")
 	default:
@@ -225,10 +238,55 @@ func (c *Companion) createWorkTask(id json.RawMessage, args map[string]any) []by
 	return c.toolResult(id, renderResult(resp), false, "")
 }
 
+// askUserQuestion parks a question in the app and waits for the user's answer.
+// The call blocks server-side until the user answers, so it uses a client with
+// no timeout (callApp's default has none).
+func (c *Companion) askUserQuestion(id json.RawMessage, args map[string]any) []byte {
+	body := map[string]any{
+		"sessionId": c.SessionID,
+		"question":  strOf(args["question"]),
+	}
+	if opts, ok := args["options"].([]any); ok && len(opts) > 0 {
+		body["options"] = opts
+	}
+	resp, err := c.callApp("companion_ask_user_question", body)
+	if err != nil {
+		return c.toolResult(id, "", true, "ask_user_question failed: "+err.Error())
+	}
+	answer := strOf(resp["answer"])
+	if answer == "" {
+		answer = "(the user did not answer)"
+	}
+	return c.toolResult(id, answer, false, "")
+}
+
+// checkUserFeedback returns the live-feedback notes the user sent for this
+// turn, one per line, and marks them read server-side.
+func (c *Companion) checkUserFeedback(id json.RawMessage) []byte {
+	resp, err := c.callApp("companion_check_user_feedback", map[string]any{"sessionId": c.SessionID})
+	if err != nil {
+		return c.toolResult(id, "", true, "check_user_feedback failed: "+err.Error())
+	}
+	notes, _ := resp["notes"].([]any)
+	if len(notes) == 0 {
+		return c.toolResult(id, "(no new feedback from the user)", false, "")
+	}
+	var b strings.Builder
+	for i, n := range notes {
+		m, _ := n.(map[string]any)
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString("- ")
+		b.WriteString(strOf(m["text"]))
+	}
+	return c.toolResult(id, b.String(), false, "")
+}
+
 // callApp POSTs to the loopback app backend and returns its decoded JSON.
 func (c *Companion) callApp(route string, body any) (map[string]any, error) {
 	if c.APIBase == "" {
-		return nil, fmt.Errorf("no YoYoCode backend configured (set YOYOCODE_API)")
+		return nil, fmt.Errorf("no GoCode backend configured (set GOCODE_API)")
 	}
 	buf, _ := json.Marshal(body)
 	req, err := http.NewRequest(http.MethodPost, c.APIBase+"/api/"+route, bytes.NewReader(buf))
@@ -310,11 +368,11 @@ func inToolSet(name string) bool {
 }
 
 // normalizeToolName collapses host spellings onto the canonical tool name:
-// mcp__yoyocode-mcp__task_progress / yoyocode-mcp/task_progress → task_progress.
+// mcp__gocode-mcp__task_progress / gocode-mcp/task_progress → task_progress.
 // Mirrors tool-call-normalization upstream.
 func normalizeToolName(name string) string {
 	name = strings.TrimSpace(name)
-	for _, prefix := range []string{"mcp__yoyocode-mcp__", "mcp__codeg-mcp__", "yoyocode-mcp/", "yoyocode-mcp__", "codeg-mcp/", "codeg-mcp__"} {
+	for _, prefix := range []string{"mcp__gocode-mcp__", "mcp__codeg-mcp__", "gocode-mcp/", "gocode-mcp__", "codeg-mcp/", "codeg-mcp__"} {
 		if strings.HasPrefix(name, prefix) {
 			return name[len(prefix):]
 		}

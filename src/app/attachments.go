@@ -115,7 +115,7 @@ func (s *Shell) viewAttachmentChip(c *ui.Context, key string, a attachmentItem, 
 		})
 		if onRemove != nil {
 			x := ui.Row(c).Width(20).Height(20).AlignItems(ui.Center).Justify(ui.Center).
-				Label("Remove " + a.Name)
+				Label(cat(c).AttRemove(a.Name)).Tooltip(cat(c).AttRemove(a.Name))
 			x.Children(func() {
 				ui.Icon(c, iconX).Width(13).Height(13).TextColor(t.TextMuted)
 			})

@@ -68,7 +68,7 @@ func TestKimiConfigApiKeyWritesManagedBlock(t *testing.T) {
 
 	root := readKimiToml(t, dir)
 	providers := root["providers"].(map[string]any)
-	managed := providers["yoyocode"].(map[string]any)
+	managed := providers["gocode"].(map[string]any)
 	if managed["type"] != "openai" || managed["api_key"] != "sk-1" || managed["base_url"] != "https://api.x/v1" {
 		t.Fatalf("managed provider = %v", managed)
 	}
@@ -77,7 +77,7 @@ func TestKimiConfigApiKeyWritesManagedBlock(t *testing.T) {
 		t.Fatalf("user provider dropped: %v", providers)
 	}
 	models := root["models"].(map[string]any)
-	mm := models["yoyocode-managed"].(map[string]any)
+	mm := models["gocode-managed"].(map[string]any)
 	if mm["model"] != "gpt-4o" {
 		t.Fatalf("managed model = %v", mm)
 	}
@@ -85,12 +85,12 @@ func TestKimiConfigApiKeyWritesManagedBlock(t *testing.T) {
 	if ctx, _ := mm["max_context_size"].(int64); ctx != 262144 {
 		t.Fatalf("max_context_size = %v (%T)", mm["max_context_size"], mm["max_context_size"])
 	}
-	if root["default_model"] != "yoyocode-managed" {
+	if root["default_model"] != "gocode-managed" {
 		t.Fatalf("default_model = %v", root["default_model"])
 	}
 
 	cred := readKimiCredential(t, dir)
-	if cred["access_token"] != "yoyocode-local-gate" || cred["_yoyocode_synthetic"] != true {
+	if cred["access_token"] != "gocode-local-gate" || cred["_gocode_synthetic"] != true {
 		t.Fatalf("credential = %v", cred)
 	}
 }
@@ -106,7 +106,7 @@ func TestKimiConfigReasoningMetadata(t *testing.T) {
 	if code != 200 {
 		t.Fatalf("status %d: %v", code, out)
 	}
-	mm := readKimiToml(t, dir)["models"].(map[string]any)["yoyocode-managed"].(map[string]any)
+	mm := readKimiToml(t, dir)["models"].(map[string]any)["gocode-managed"].(map[string]any)
 	caps := mm["capabilities"].([]any)
 	if len(caps) != 4 || caps[0] != "thinking" || caps[1] != "image_in" || caps[2] != "video_in" || caps[3] != "tool_use" {
 		t.Fatalf("capabilities = %v", caps)
@@ -126,7 +126,7 @@ func TestKimiConfigReasoningMetadata(t *testing.T) {
 	}); code != 200 {
 		t.Fatalf("status %d", code)
 	}
-	caps = readKimiToml(t, dir)["models"].(map[string]any)["yoyocode-managed"].(map[string]any)["capabilities"].([]any)
+	caps = readKimiToml(t, dir)["models"].(map[string]any)["gocode-managed"].(map[string]any)["capabilities"].([]any)
 	if caps[0] != "always_thinking" {
 		t.Fatalf("capabilities = %v", caps)
 	}
@@ -142,7 +142,7 @@ func TestKimiConfigVertexUsesEnvSubTable(t *testing.T) {
 	if code != 200 {
 		t.Fatalf("status %d: %v", code, out)
 	}
-	managed := readKimiToml(t, dir)["providers"].(map[string]any)["yoyocode"].(map[string]any)
+	managed := readKimiToml(t, dir)["providers"].(map[string]any)["gocode"].(map[string]any)
 	if _, ok := managed["api_key"]; ok {
 		t.Fatalf("vertex must not write api_key: %v", managed)
 	}
@@ -162,7 +162,7 @@ func TestKimiConfigEnvAuthUsesKeyVar(t *testing.T) {
 	if code != 200 {
 		t.Fatalf("status %d: %v", code, out)
 	}
-	managed := readKimiToml(t, dir)["providers"].(map[string]any)["yoyocode"].(map[string]any)
+	managed := readKimiToml(t, dir)["providers"].(map[string]any)["gocode"].(map[string]any)
 	if _, ok := managed["api_key"]; ok {
 		t.Fatalf("env auth must not write inline api_key: %v", managed)
 	}
@@ -187,7 +187,7 @@ func TestKimiConfigLoginClearsAndKeepsRealToken(t *testing.T) {
 		t.Fatalf("login: %d %v", code, out)
 	}
 	root := readKimiToml(t, dir)
-	if _, ok := root["providers"].(map[string]any)["yoyocode"]; ok {
+	if _, ok := root["providers"].(map[string]any)["gocode"]; ok {
 		t.Fatalf("managed provider not cleared: %v", root["providers"])
 	}
 	if _, ok := root["models"]; ok {
@@ -246,7 +246,7 @@ func TestKimiConfigRawMode(t *testing.T) {
 	if string(b) != raw {
 		t.Fatalf("raw config not verbatim:\n%q", string(b))
 	}
-	if got := readKimiCredential(t, dir)["access_token"]; got != "yoyocode-local-gate" {
+	if got := readKimiCredential(t, dir)["access_token"]; got != "gocode-local-gate" {
 		t.Fatalf("raw mode should seed the gate token, got %v", got)
 	}
 

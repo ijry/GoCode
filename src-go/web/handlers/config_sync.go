@@ -21,8 +21,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"yoyocode/src-go/db"
-	"yoyocode/src-go/web"
+	"gocode/src-go/db"
+	"gocode/src-go/web"
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 	configSyncPasswordKey   = "config_sync_password"
 	configSyncPassphraseKey = "config_sync_passphrase"
 
-	configSyncDefaultRemoteDir = "yoyocode"
+	configSyncDefaultRemoteDir = "gocode"
 	configSyncDefaultProfile   = "default"
 	configSyncDefaultInterval  = 5
 	configSyncMaxInterval      = 1440

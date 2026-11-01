@@ -21,11 +21,23 @@ func TestMiscSettings(t *testing.T) {
 		}
 	}
 
-	// feedback + session_info default OFF.
-	for _, cmd := range []string{"get_feedback_settings", "get_session_info_settings"} {
-		_, def := call(t, srv, cmd, map[string]any{})
+	// feedback defaults OFF; session_info defaults ON (read-only tool).
+	{
+		_, def := call(t, srv, "get_feedback_settings", map[string]any{})
 		if def["enabled"] != false {
-			t.Fatalf("%s default should be false: %v", cmd, def)
+			t.Fatalf("feedback default should be false: %v", def)
+		}
+		_, def = call(t, srv, "get_session_info_settings", map[string]any{})
+		if def["enabled"] != true {
+			t.Fatalf("session_info default should be true: %v", def)
+		}
+		_, set := call(t, srv, "set_session_info_settings", map[string]any{"settings": map[string]any{"enabled": false}})
+		if set["enabled"] != false {
+			t.Fatalf("set session_info: %v", set)
+		}
+		_, got := call(t, srv, "get_session_info_settings", map[string]any{})
+		if got["enabled"] != false {
+			t.Fatalf("persisted session_info: %v", got)
 		}
 	}
 

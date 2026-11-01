@@ -1,8 +1,7 @@
 {
   "@@locale": "zh-Hans",
-  "appTitle": "YoYoCode",
+  "appTitle": "GoCode",
   "appTagline": "你的智能体，你的工作台——继续聊天，或打开一个文件夹开始。",
-
   "statusConnecting": "连接中",
   "statusConnected": "已连接",
   "sectionWorkspace": "工作台",
@@ -10,10 +9,10 @@
   "sectionPet": "伙伴",
   "routeImportSessions": "导入会话",
   "routeProjectBoot": "项目引导",
-
-  "navGeneral": "通用",
+  "routeCommands": "命令",
   "navAppearance": "外观",
   "navAgents": "智能体",
+  "agentCustomBadge": "自定义：{id}",
   "navVersionControl": "版本控制",
   "navMCP": "MCP",
   "navQuickMessages": "快捷消息",
@@ -31,21 +30,18 @@
   "navBrowser": "浏览器",
   "navLogs": "日志",
   "navSystem": "系统",
-
-  "loginTitle": "YoYoCode",
+  "loginTitle": "GoCode",
   "loginHint": "输入该服务器的访问令牌以连接。",
   "loginTokenPlaceholder": "访问令牌",
   "loginConnect": "连接",
   "loginInvalid": "令牌无效",
   "loginConnFailed": "连接失败",
   "loginTokenHint": "令牌可在该服务器的「设置 → Web 服务」中查看。",
-
   "generalTitle": "通用",
   "generalInterfaceLanguage": "界面语言",
   "languageSection": "语言",
   "languageHelp": "整个窗口——自身文案、MyGo 的控件与对话框——都会跟随你在这里选择的语言。",
   "languageFollowSystem": "跟随系统语言",
-
   "actionRefresh": "刷新",
   "actionNewChat": "新会话",
   "actionSend": "发送",
@@ -57,14 +53,17 @@
   "actionRemove": "移除",
   "actionKeep": "保留",
   "actionRename": "重命名",
+  "actionFork": "分叉",
+  "toastForked": "会话已分叉",
+  "toastForkFailed": "分叉失败：{message}",
   "actionPin": "置顶",
   "actionUnpin": "取消置顶",
-
   "navAutomations": "自动化",
   "navTodos": "待办",
   "navRepositories": "代码仓库",
   "navCanvas": "画布",
-
+  "navUsage": "用量",
+  "navModelProviders": "模型提供方",
   "sidebarSearchPlaceholder": "搜索会话",
   "sidebarClearSearch": "清除搜索",
   "sidebarOpenFolder": "打开文件夹…",
@@ -79,7 +78,6 @@
   "sidebarNoFolders": "没有打开的文件夹",
   "untitled": "（未命名）",
   "routeNotBuilt": "此面板尚未构建。",
-
   "activeSessions": "活动会话",
   "themeLight": "浅色",
   "themeDark": "深色",
@@ -88,11 +86,9 @@
   "paletteWorkbench": "工作台",
   "paletteGoto": "前往",
   "paletteTheme": "主题",
-
   "sidebarChatsCount": "{count, plural, =0 {没有会话} other {# 个会话}}",
-
   "serversTitle": "服务器",
-  "serversHelp": "把本窗口连接到其他 YoYoCode 服务器。切换后整个工作台都会换过来——文件夹、会话和面板都来自你选定的服务器。",
+  "serversHelp": "把本窗口连接到其他 GoCode 服务器。切换后整个工作台都会换过来——文件夹、会话和面板都来自你选定的服务器。",
   "serversActiveBadge": "已连接",
   "serversLocalName": "本地工作区",
   "serversLocalNote": "本机内置后端。",
@@ -113,19 +109,85 @@
   "serversTokenPlaceholder": "来自该服务器的「设置 → Web 服务」",
   "serversSwitchFailed": "无法连接到 {name}：{reason}",
   "serversTokenRejected": "{name} 拒绝了已保存的令牌。请编辑连接并粘贴新的令牌。",
-
+  "@serversSwitchFailed": {
+    "description": "The Servers page, when a server did not answer the health check.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Studio box"
+      },
+      "reason": {
+        "type": "String",
+        "example": "dial tcp: connection refused"
+      }
+    }
+  },
+  "@serversTokenRejected": {
+    "description": "The Servers page, when a server answered 401 to the saved token.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Studio box"
+      }
+    }
+  },
   "autoNextRun": "下次运行：{when}",
   "autoLastRun": "上次运行：{when}",
   "autoNever": "从未",
   "tasksUpdated": "更新于：{when}",
-
+  "@autoNextRun": {
+    "description": "The automation detail, the schedule fact of the next run.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "10/16/26, 09:30"
+      }
+    }
+  },
+  "@autoLastRun": {
+    "description": "The automation detail, the schedule fact of the last run.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "10/16/26, 09:30"
+      }
+    }
+  },
+  "@toastForkFailed": {
+    "description": "The chat header, a failed fork.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "a turn is already in progress"
+      }
+    }
+  },
+  "@convLoadEarlierFailed": {
+    "description": "The chat, a failed earlier-history page load.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@tasksUpdated": {
+    "description": "The to-do detail, when the task last changed.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "10/16/26, 09:30"
+      }
+    }
+  },
+  "convLoadEarlier": "加载更早的消息",
+  "convLoadEarlierFailed": "加载更早消息失败：{message}",
   "convTabNew": "新建会话",
   "convTabTerminal": "终端",
   "convTabClose": "关闭标签页",
   "convTabCloseOthers": "关闭其他标签页",
   "convTabCloseAll": "关闭全部标签页",
   "convTabNone": "没有打开的会话",
-
   "gitOpsMenu": "Git 操作",
   "gitBack": "返回工作区",
   "gitSelectFolder": "请选择一个文件夹以在其上执行 git 操作。",
@@ -175,21 +237,63 @@
   "gitContinue": "继续",
   "gitMergeAborted": "合并已中止",
   "gitMergeCompleted": "合并已完成",
-
+  "gitSelectionCount": "已选 {selected} / {total} 个文件",
+  "gitSelectAllFiles": "全选文件",
+  "gitUnselectAllFiles": "取消全选文件",
+  "gitTrackedChanges": "已跟踪改动（{count}）",
+  "gitUntrackedFiles": "未跟踪文件（{count}）",
+  "gitSelectTracked": "选择已跟踪改动",
+  "gitUnselectTracked": "取消选择已跟踪改动",
+  "gitSelectUntracked": "选择未跟踪文件",
+  "gitUnselectUntracked": "取消选择未跟踪文件",
+  "gitSelectFile": "选择 {file}",
+  "gitUnselectFile": "取消选择 {file}",
+  "gitClickFileToDiff": "点击文件名查看差异",
+  "gitHeadLabel": "HEAD",
+  "gitWorkingTreeLabel": "工作区",
+  "gitDiffBinary": "二进制文件 — 无文本差异",
+  "gitCommitButton": "提交（{count}）",
+  "gitCommitAndPushButton": "提交并推送（{count}）",
+  "gitCommitAndPushLabel": "提交并推送",
+  "gitCommitUnmerged": "请先解决未合并的文件再提交。",
+  "gitOpenMerge": "打开合并页",
+  "gitCommitFailed": "提交失败：{message}",
+  "gitCommitPushFailed": "已提交，但推送失败：{message}",
+  "gitCommittedAndPushed": "已提交并推送 {count} 个文件",
+  "gitCommittedFiles": "已提交 {count} 个文件",
+  "gitNoUnpushedCommits": "没有未推送的提交",
+  "gitNewBranchNoCommits": "新分支 — 推送后将创建远程跟踪分支",
+  "gitSelectFileToViewDiff": "选择文件以查看差异",
+  "gitBefore": "之前",
+  "gitAfter": "之后",
+  "gitNoFileChangeDetails": "没有可用的文件改动详情。",
+  "gitPushWithCount": "推送（{count}）",
+  "gitPushing": "正在推送…",
+  "gitPushFailed": "推送失败：{message}",
+  "gitPushedCommits": "已推送 {count} 个提交",
+  "gitPushedUpstream": "已设置上游 — 推送了 {count} 个提交",
   "@gitChangedFiles": {
     "description": "The commit page, the changed-file count.",
-    "placeholders": { "count": { "type": "int", "example": "3" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
   "@gitConflictedFiles": {
     "description": "The merge page, the conflicted-file count.",
-    "placeholders": { "count": { "type": "int", "example": "2" } }
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
   },
-
   "gitCommitActionLabel": "提交改动",
   "gitStashActionLabel": "创建暂存",
   "gitPushActionLabel": "推送分支",
   "gitMergeActionLabel": "合并分支",
-
   "gitBranchesTitle": "分支",
   "gitBranchChip": "分支：{branch}",
   "gitNewBranch": "新建分支",
@@ -202,11 +306,2242 @@
   "gitSwitchAction": "切换",
   "gitForceDelete": "强制删除",
   "gitWorktreesLabel": "工作树",
+  "gitOtherWorktrees": "其他工作树（{count}）",
+  "gitNoOtherWorktrees": "暂无其他工作树",
+  "gitNewWorktree": "新建工作树",
+  "gitWorktreeBranchPlaceholder": "工作树分支名",
+  "gitWorktreePathPlaceholder": "工作树目录路径",
+  "gitWorktreeCreateAction": "新建工作树",
+  "gitWorktreeCreateLabel": "新建工作树",
+  "gitWorktreeRemoveAction": "移除工作树",
+  "gitWorktreeRemoveBranchAction": "移除并删除分支",
+  "gitWorktreeForceAction": "强制移除",
+  "gitWorktreeForceBranchAction": "强制移除并删除分支",
+  "gitWorktreeForceNeeded": "工作树有未提交的改动——请确认强制移除。",
+  "gitWorktreeCreated": "工作树已创建",
+  "gitWorktreeRemoved": "工作树已移除",
+  "gitWorktreeSwitched": "已切换到工作树",
+  "gitMainWorktreeBadge": "主工作树",
+  "gitRebaseAction": "变基",
+  "gitRebaseActionLabel": "变基到此分支",
+  "gitRebased": "变基完成",
+  "gitRemoteBranches": "远程分支（{count}）",
+  "gitRemoteBranchesLabel": "远程分支",
+  "gitCheckoutRemoteAction": "检出",
   "gitRemotesLabel": "远程仓库",
   "gitSwitched": "分支已切换",
   "gitBranchCreated": "分支已新建",
   "gitBranchDeleted": "分支已删除",
-
-  "@gitBranchChip": {"description": "The composer branch chip, the checked-out branch name.", "placeholders": {"branch": {"type": "String", "example": "main"}}},
-  "@gitLocalBranches": {"description": "The branches page, the local-branch count.", "placeholders": {"count": {"type": "int", "example": "4"}}}
+  "gitRemoteAdd": "添加远程",
+  "gitRemoteNamePlaceholder": "名称（如 origin）",
+  "gitRemoteURLPlaceholder": "https://…",
+  "gitRemoteAddAction": "添加",
+  "gitRemoteFetchAction": "拉取",
+  "gitRemoteSetURLAction": "修改 URL",
+  "gitRemoteRemoveAction": "移除",
+  "gitRemoteSave": "保存",
+  "gitRemoteCancel": "取消",
+  "gitRemoteRemoveConfirm": "移除远程 {name}？",
+  "gitRemoteConfirmRemove": "确认移除",
+  "gitRemoteRequired": "名称和 URL 必填。",
+  "gitRemoteAdded": "远程已添加",
+  "gitRemoteUpdated": "远程已更新",
+  "gitRemoteRemoved": "远程已移除",
+  "gitRemoteFetched": "已拉取",
+  "cloneTitle": "克隆仓库",
+  "cloneShort": "克隆仓库",
+  "cloneURL": "仓库 URL",
+  "cloneTarget": "目标目录",
+  "cloneChoose": "选择…",
+  "cloneAction": "克隆",
+  "cloneCreated": "已克隆到 {path}",
+  "cloneOpenFolder": "打开文件夹",
+  "cloneRequired": "仓库 URL 和目标目录必填。",
+  "usageTitle": "Token 用量",
+  "usageSync": "同步",
+  "usageBucketDay": "日",
+  "usageBucketWeek": "周",
+  "usageBucketMonth": "月",
+  "usageTotal": "总 token",
+  "usageInput": "输入",
+  "usageOutput": "输出",
+  "usageCacheCreate": "缓存写入",
+  "usageCacheRead": "缓存读取",
+  "usageTurns": "轮次",
+  "usageConversations": "会话数",
+  "usageActiveDays": "活跃天数",
+  "usageStreak": "连续天数",
+  "usageStreakValue": "当前 {current} 天 · 最长 {longest} 天",
+  "usageSeries": "活跃度",
+  "usageByFolder": "按文件夹",
+  "usageByAgent": "按 agent",
+  "usageByModel": "按模型",
+  "usageTopConversations": "用量最高会话",
+  "usageHeatmap": "工作时段分布",
+  "usageEmpty": "还没有用量记录。点「同步」填充面板。",
+  "usageStatus": "{fact} 条轮次 · 已同步 {synced}/{total} 个会话",
+  "usageSynced": "同步完成",
+  "usageTruncated": "数据量较大——部分记录已截断。",
+  "usageRange": "范围",
+  "usageAll": "全部",
+  "usage7d": "7 天",
+  "usage30d": "30 天",
+  "usage90d": "90 天",
+  "usageComparePrev": "对比上一周期",
+  "usageVsPrevious": "对比上一周期",
+  "usageFolderFilter": "文件夹",
+  "usageAgentFilter": "Agent",
+  "usageModelFilter": "模型",
+  "usageResetFilters": "重置筛选",
+  "usageNoMatches": "无匹配项",
+  "usageHeatmapHint": "按本地星期与小时统计 token。",
+  "usageHeatmapPeak": "最密集在 {hour}:00 左右。",
+  "usageHeatmapCell": "{weekday} {hour}:00 — {value} tokens",
+  "usageLess": "少",
+  "usageMore": "多",
+  "usageWeekMon": "一",
+  "usageWeekTue": "二",
+  "usageWeekWed": "三",
+  "usageWeekThu": "四",
+  "usageWeekFri": "五",
+  "usageWeekSat": "六",
+  "usageWeekSun": "日",
+  "mpTitle": "模型提供方",
+  "mpAdd": "添加提供方",
+  "mpName": "名称",
+  "mpAPIURL": "API 地址",
+  "mpAPIKey": "API 密钥",
+  "mpAgentType": "Agent 类型",
+  "mpModel": "模型（可选）",
+  "mpCreate": "创建",
+  "mpSave": "保存",
+  "mpCancel": "取消",
+  "mpEdit": "编辑",
+  "mpDelete": "删除",
+  "mpConfirmDelete": "确认删除",
+  "mpEmpty": "还没有配置模型提供方。",
+  "mpKeyHint": "密钥只存本地，显示时脱敏。",
+  "mpNameURLRequired": "名称和 API 地址必填。",
+  "mpDeletePrompt": "删除提供方 {name}？",
+  "mpCreated": "提供方已添加",
+  "mpUpdated": "提供方已更新",
+  "mpDeleted": "提供方已删除",
+  "browserAddress": "地址",
+  "browserAddressPlaceholder": "http://localhost:3000",
+  "browserOpenExternal": "在浏览器中打开",
+  "browserOpenBridge": "通过桥接打开",
+  "browserBridge": "桥接",
+  "browserRunning": "运行中",
+  "browserStopped": "已停止",
+  "browserPorts": "端口：{list}",
+  "browserPublicHost": "公网地址：{host}",
+  "browserBridgeOffHint": "此构建未启用端口桥接，面板无法内嵌页面。请用「在浏览器中打开」在系统浏览器中查看。",
+  "browserOpenSettings": "打开设置 → 浏览器",
+  "browserOpened": "已在系统浏览器中打开",
+  "browserBridgeOpened": "桥接已打开",
+  "wfTitle": "工作区文件夹",
+  "wfAdd": "链接一个文件夹",
+  "wfTarget": "要链接的文件夹",
+  "wfName": "链接名（可选）",
+  "wfChoose": "选择…",
+  "wfAddAction": "添加链接",
+  "wfPreviewTitle": "准备链接",
+  "wfWillAppearAs": "将显示为 {name}",
+  "wfRenamedForDuplicate": "已重命名 — {base} 已被另一个链接占用",
+  "wfRenamedForExistingEntry": "已重命名 — 该文件夹中已存在 {base}",
+  "wfDiscard": "放弃",
+  "wfLinkCount": "链接 {count} 个文件夹",
+  "wfGitExclude": "让链接不出现在 git 状态中",
+  "wfRepair": "重建链接",
+  "wfRepaired": "链接已重建",
+  "wfRejectNotFound": "找不到该文件夹",
+  "wfRejectNotADirectory": "该路径不是文件夹",
+  "wfRejectSameAsRoot": "这是工作区文件夹本身",
+  "wfRejectAncestorOfRoot": "该文件夹包含了当前工作区",
+  "wfRejectInsideRoot": "已位于工作区内部",
+  "wfRejectAlreadyLinked": "已链接",
+  "wfRejectNameUnavailable": "该文件夹没有可用名称",
+  "wfRejectAlreadyLinkedAs": "已链接为 {name}",
+  "wfEmpty": "还没有链接的文件夹。",
+  "wfRename": "重命名",
+  "wfRemove": "移除",
+  "wfSave": "保存",
+  "wfCancel": "取消",
+  "wfConfirmRemove": "确认移除",
+  "wfRemovePrompt": "移除链接 {name}？",
+  "wfTargetRequired": "请选择一个要链接的文件夹。",
+  "wfLinked": "文件夹已链接",
+  "wfRenamed": "链接已重命名",
+  "wfRemoved": "链接已移除",
+  "wfStatusOk": "正常",
+  "wfStatusMissing": "缺失",
+  "wfStatusBroken": "损坏",
+  "wfStatusConflicted": "冲突",
+  "wfUpload": "上传文件",
+  "wfUploadPick": "选择文件…",
+  "wfUploadRel": "目标子路径（可选）",
+  "wfUploadAction": "上传",
+  "wfUploaded": "已上传 {path}",
+  "wfUploadNoFile": "请选择要上传的文件。",
+  "wfNoFolder": "选择一个文件夹以管理工作区文件夹。",
+  "auxTabSession": "会话",
+  "auxTabFiles": "文件",
+  "auxTabChanges": "改动",
+  "auxTabCommits": "提交",
+  "auxFolder": "文件夹",
+  "auxConversation": "会话",
+  "auxConnection": "连接",
+  "auxStatus": "状态",
+  "auxAgent": "Agent",
+  "auxSelectFolderCommits": "选择一个文件夹以查看其提交历史。",
+  "auxNoCommits": "暂无提交",
+  "auxCommitTitle": "提交 {id}",
+  "auxNoFileChanges": "没有文件改动",
+  "actionClose": "关闭",
+  "actionNew": "新建",
+  "loadingLabel": "加载中…",
+  "actionSave": "保存",
+  "actionStop": "停止",
+  "actionAttach": "添加附件",
+  "convTitlePlaceholder": "会话标题",
+  "noMessagesTitle": "还没有消息",
+  "noMessagesHint": "在下方发送提示以启动 agent。",
+  "streamingCursor": "流式光标",
+  "planTitle": "计划",
+  "composerQueued": "排队中",
+  "toastQueueRemoved": "已移除排队消息",
+  "asyncTaskStop": "停止",
+  "asyncTaskOpenOutput": "打开输出",
+  "asyncTaskStopped": "任务已停止",
+  "asyncTaskStopDeclined": "智能体拒绝停止该任务",
+  "feedbackTitle": "实时反馈",
+  "feedbackEntry": "反馈",
+  "feedbackPlaceholder": "告诉智能体要调整什么…",
+  "feedbackSend": "发送",
+  "feedbackCancel": "取消",
+  "feedbackPending": "等待中",
+  "feedbackDelivered": "已接收",
+  "feedbackExpired": "回合已结束，智能体还没读到这些",
+  "feedbackSendAsMessage": "作为消息发送",
+  "feedbackDismiss": "忽略",
+  "feedbackSubmitFailed": "发送反馈失败",
+  "welcomeTipMention": "在输入框输入 @ 可以引用文件。",
+  "welcomeTipQueue": "回合进行中发送会进入排队。",
+  "welcomeTipFork": "从会话头部 Fork 可分叉出新的会话。",
+  "welcomeTipTerminal": "底部终端面板与当前文件夹共享。",
+  "welcomeTipFeedback": "开启实时反馈即可在回合进行中引导智能体。",
+  "welcomeTipSearch": "在侧栏搜索会话。",
+  "welcomeTipTasks": "在待办看板上跟踪工作。",
+  "welcomeTipAux": "右侧面板显示会话、文件、改动与提交。",
+  "welcomeTipDrop": "把文件拖到输入框即可添加附件。",
+  "apiRetryAttempt": "第 {attempt}/{max} 次",
+  "apiRetryAttemptOnly": "第 {attempt} 次",
+  "apiRetryHttp": "HTTP {status}",
+  "apiRetryNextIn": "{seconds} 秒后重试",
+  "apiRetryFallbackError": "API 调用失败",
+  "composerMentionNoMatch": "没有匹配的文件",
+  "composerPlaceholder": "给 agent 发消息…",
+  "composerAgentWorking": "agent 正在处理…",
+  "composerConnecting": "正在连接 agent…",
+  "composerLastFailed": "上一轮失败",
+  "composerDisconnected": "已断开",
+  "composerStripFailed": "上一轮失败了。",
+  "composerStripDisconnected": "agent 连接已关闭。",
+  "selectorMode": "模式",
+  "selectorModel": "模型",
+  "toolFallback": "工具",
+  "toolStatusCompleted": "已完成",
+  "toolStatusFailed": "失败",
+  "toolStatusRejected": "已拒绝",
+  "toolStatusRunning": "进行中",
+  "toolStatusQueued": "排队中",
+  "toolStatusPending": "等待中",
+  "toolEditIndex": "第 {index} 处编辑",
+  "noteError": "agent 报告了一个错误。",
+  "permRequested": "请求权限",
+  "permAnswerSend": "回答",
+  "permAnswerPlaceholder": "输入你的回答",
+  "toastAnswerSent": "回答已发送",
+  "permQuestion": "agent 正在提问",
+  "permAnswerHint": "选择一个选项，或输入回答后发送。",
+  "toastCancelFailed": "取消失败：{message}",
+  "toastCancelRequested": "已请求取消",
+  "toastCreateFailed": "创建会话失败：{message}",
+  "toastCreated": "会话已创建",
+  "toastPermissionFailed": "权限响应失败：{message}",
+  "toastPermissionSent": "权限：{option}",
+  "toastRenameFailed": "重命名失败：{message}",
+  "toastRenamed": "已重命名",
+  "toastPinFailed": "置顶失败：{message}",
+  "toastPinned": "已置顶",
+  "toastUnpinned": "已取消置顶",
+  "toastDeleteFailed": "删除失败：{message}",
+  "toastDeleted": "已删除",
+  "toastOpenFailed": "打开失败：{message}",
+  "toastNewChatFailed": "新建聊天失败：{message}",
+  "toastConnecting": "连接中…",
+  "toastUploadFailed": "上传失败：{message}",
+  "toastPromptFailed": "发送失败：{message}",
+  "toastPromptSent": "已发送",
+  "dialogOpenFolder": "打开文件夹",
+  "actionCloseToast": "关闭提示",
+  "setNotBuilt": "尚未实现",
+  "setPageNotPorted": "本页对应上游 src/app/settings/{page}；后端尚未迁移。",
+  "setCollabHint": "Agent 之间如何协作，以及它们能在对话中使用 gocode 的哪些内置工具。",
+  "setCollabDelegationTitle": "多 Agent 协作",
+  "setCollabDelegationDesc": "允许运行中的 agent 将子任务委派给其他 agent。",
+  "setCollabTabGeneral": "通用",
+  "setCollabTabAgentDefaults": "Agent 默认值",
+  "setCollabEnable": "启用委派",
+  "setCollabEnableHint": "关闭后，delegate_to_agent 工具会从 agent 的 MCP 目录中隐藏。",
+  "setCollabDepth": "最大委派深度",
+  "setCollabDepthHint": "允许范围：1–8。限制委派链（根 → 子 → 孙…）的最大递归层数。",
+  "setCollabCache": "完成结果缓存（MB）",
+  "setCollabCacheHint": "已结束子 agent 结果的内存缓存预算；0 表示不限制。委派会话结束时清空。",
+  "setCollabDefaultsEmpty": "没有按 agent 设置的委派覆盖项。",
+  "setCollabDefaultsMode": "模式：{mode}",
+  "setCollabDefaultsInherit": "继承",
+  "setCollabRemoveOverride": "移除覆盖",
+  "setCollabLoadFailed": "加载失败：{message}",
+  "setUnsaved": "有未保存的更改",
+  "setToolsTitle": "对话内工具",
+  "setToolsDesc": "gocode 在对话中提供给 agent 的额外工具。每个工具在 agent 启动时注入，因此更改会在之后启动的 agent 上生效。",
+  "setToolFeedback": "实时反馈",
+  "setToolFeedbackHint": "在 agent 工作时向它发送备注和更正。",
+  "setToolQuestion": "向用户提问",
+  "setToolQuestionHint": "允许 agent 暂停，并在对话输入框上方弹出一道选择题。",
+  "setToolSessionInfo": "获取会话信息",
+  "setToolSessionInfoHint": "允许 agent 查询你引用的会话，读取其标题、状态、工作区和最近消息。",
+  "setToolBrowser": "读取并操作内置浏览器",
+  "setToolBrowserHint": "打开、读取并操作内置浏览器中的页面。默认关闭。",
+  "setToolBrowserEval": "在内置浏览器中运行代码",
+  "setToolBrowserEvalHint": "在你共享的页面上运行它自己的 JavaScript。需要开启上一项。",
+  "setToolComputer": "查看并使用桌面窗口",
+  "setToolComputerHint": "列出应用与窗口；读取你共享的窗口，在你允许的窗口中操作。",
+  "setToolAutomations": "创建自动化",
+  "setToolAutomationsHint": "将对话保存为按计划运行的自动化。默认关闭。",
+  "setToolWorkTasks": "创建待办任务",
+  "setToolWorkTasksHint": "从对话向待办看板添加卡片。默认关闭。",
+  "setShortcutsReset": "恢复默认",
+  "setShortcutsHint": "点击右侧按钮，然后按下组合键。可使用 Ctrl/Cmd、Alt 和 Shift。按 Esc 取消录制。",
+  "setShortcutsRecording": "请按快捷键…",
+  "setShortcutsConflict": "快捷键已被“{title}”占用",
+  "setShortcutsSaveFailed": "无法保存快捷键：{message}",
+  "setShortcutsResetDone": "已恢复默认快捷键",
+  "setShortcutsUpdated": "快捷键已更新",
+  "setShortcutsUnassigned": "未分配",
+  "setShortcutsUnassignNamed": "取消绑定「{title}」",
+  "setShortcutsCleared": "已取消快捷键绑定",
+  "setShortcutToggleSearch": "打开搜索",
+  "setShortcutToggleSearchHint": "显示或隐藏会话搜索面板",
+  "setShortcutToggleSidebar": "切换左侧边栏",
+  "setShortcutToggleSidebarHint": "显示或隐藏会话列表侧边栏",
+  "setShortcutToggleTerminal": "切换终端",
+  "setShortcutToggleTerminalHint": "显示或隐藏底部终端面板",
+  "setShortcutNewTerminalTab": "新建终端",
+  "setShortcutNewTerminalTabHint": "当鼠标或焦点在终端时新建终端标签",
+  "setShortcutCloseTerminalTab": "关闭当前终端",
+  "setShortcutCloseTerminalTabHint": "当鼠标或焦点在终端时关闭当前终端标签",
+  "setShortcutToggleAux": "切换右侧面板",
+  "setShortcutToggleAuxHint": "显示或隐藏辅助信息面板",
+  "setShortcutNewConversation": "新建对话",
+  "setShortcutNewConversationHint": "在当前文件夹中新建对话标签页",
+  "setShortcutOpenFolder": "打开文件夹",
+  "setShortcutOpenFolderHint": "打开文件夹选择器并在工作区中打开",
+  "setShortcutOpenSettings": "打开设置",
+  "setShortcutOpenSettingsHint": "打开设置窗口",
+  "setShortcutCloseTab": "关闭当前标签页",
+  "setShortcutCloseTabHint": "关闭当前对话或文件标签页",
+  "setShortcutReopenTab": "重新打开标签页",
+  "setShortcutReopenTabHint": "重新打开最近关闭的会话标签页",
+  "setShortcutNextTab": "下一个标签页",
+  "setShortcutNextTabHint": "切换到下一个对话或文件标签页",
+  "setShortcutPrevTab": "上一个标签页",
+  "setShortcutPrevTabHint": "切换到上一个对话或文件标签页",
+  "setShortcutSwitchTab1": "切换到标签页 1",
+  "setShortcutSwitchTab2": "切换到标签页 2",
+  "setShortcutSwitchTab3": "切换到标签页 3",
+  "setShortcutSwitchTab4": "切换到标签页 4",
+  "setShortcutSwitchTab5": "切换到标签页 5",
+  "setShortcutSwitchTab6": "切换到标签页 6",
+  "setShortcutSwitchTab7": "切换到标签页 7",
+  "setShortcutSwitchTab8": "切换到标签页 8",
+  "setShortcutSwitchTab9": "切换到标签页 9",
+  "setShortcutSwitchTabHint": "按编号跳转到对应的对话标签页",
+  "setShortcutSendMessage": "发送消息",
+  "setShortcutSendMessageHint": "在输入框中发送当前消息",
+  "setShortcutNewlineMessage": "消息换行",
+  "setShortcutNewlineMessageHint": "在输入框中插入换行符",
+  "setSkillPacksOpenFolder": "打开中央文件夹",
+  "setSkillPacksAbout": "由 gocode 集中管理并接入你的 AI agent 的精选技能包——编程专家、科学研究与 Office 文档工具。在下方按 agent 启用。",
+  "setSkillPackExperts": "专家",
+  "setSkillPackScience": "科研",
+  "setSkillPackOffice": "Office 工具",
+  "setSkillPackCustom": "自定义",
+  "setSkillPacksOpenFailed": "打开文件夹失败：{message}",
+  "setSystemDefault": "(跟随系统)",
+  "setStatus": "状态",
+  "setRunning": "运行中",
+  "setStopped": "已停止",
+  "setPort": "端口",
+  "setAddress": "地址",
+  "setAgentsCount": "内置目录中共有 {count} 个 agent",
+  "setAgentAvailable": "● 可用",
+  "setAgentNotInstalled": "○ 未安装",
+  "setCheck": "检查",
+  "setChecking": "检查中…",
+  "setUpdateAvailable": "有新版本：v{version}",
+  "setAgentsHint": "Agent 通过 ACP 启动。“可用”表示启动器已在本机解析成功；点击“检查”可探测已安装版本并查询是否有新版本。",
+  "setAgentCheckFailed": "版本检查失败：{message}",
+  "setAgentChecked": "已检查 {name}",
+  "setAgentNoLocalVersion": "未发现本地安装。",
+  "setCustomAgentsTitle": "自定义 agent",
+  "setCustomAgentsHint": "通过 npm（npx）或 PyPI（uvx）包注册内置目录之外的 ACP agent。",
+  "setAddCustomAgent": "添加自定义 agent",
+  "setNoCustomAgents": "暂无自定义 agent。",
+  "setCustomAgentId": "注册 ID",
+  "setCustomAgentIdHint": "作为 custom:<id> 使用的稳定 ID —— 字母、数字、点、短横线、下划线，最长 64 个字符。",
+  "setCustomAgentName": "名称",
+  "setCustomAgentDescription": "描述（可选）",
+  "setCustomAgentDistribution": "分发方式",
+  "setCustomAgentPackage": "包名",
+  "setCustomAgentPackageHint": "npx 填 npm 包名，uvx 填 Python 包名。",
+  "setCustomAgentVersion": "版本（可选）",
+  "setCustomAgentVersionHint": "锁定包版本；留空则使用最新版本。",
+  "setCustomAgentSkillsDir": "技能目录（可选）",
+  "setCustomAgentSkillsDirHint": "该 agent 技能所在的绝对路径或 ~/… 路径。",
+  "setCustomAgentIdRequired": "注册 ID 不能为空。",
+  "setCustomAgentIdInvalid": "只能使用字母、数字、点、短横线或下划线（不能以点开头，最长 64 个字符）。",
+  "setCustomAgentNameRequired": "名称不能为空。",
+  "setCustomAgentPackageRequired": "请为所选分发方式填写包名。",
+  "setCustomAgentVersionInvalid": "只能使用字母、数字、点、短横线或下划线（不能以点开头，最长 128 个字符）。",
+  "setCustomAgentSkillsAbs": "技能目录必须是绝对路径或以 ~/ 开头。",
+  "setCustomAgentSaved": "自定义 agent {name} 已保存",
+  "setCustomAgentDeleted": "自定义 agent 已删除",
+  "setCustomAgentDeleteFailed": "删除自定义 agent 失败：{message}",
+  "setCustomAgentDeletePrompt": "删除自定义 agent {name}？",
+  "setCustomAgentProblem": "无法启动：{problem}",
+  "setSaveCustomAgent": "保存 agent",
+  "setHomeDirectory": "主目录",
+  "setBackend": "后端",
+  "setBuild": "构建",
+  "setRescan": "重新扫描",
+  "setScanning": "扫描中…",
+  "setMCPServersCount": "{count} 个本地 MCP 服务器",
+  "setNoMCPServers": "未在 agent 配置中发现 MCP 服务器。",
+  "setLevel": "级别",
+  "setLogFiles": "日志文件",
+  "setNoLogFiles": "暂无日志文件。",
+  "setSkillsHint": "GoCode 在所选 agent 自有技能库中可见的技能。",
+  "setLoadingAgents": "(agent 加载中…)",
+  "setScope": "范围",
+  "setSkillsUnsupported": "该 agent 不支持在此管理技能。",
+  "setSkillsCount": "{scope} 范围内共 {count} 个技能",
+  "setNoSkillsScope": "该范围内没有技能。",
+  "setReadOnly": "只读",
+  "setCustomSkills": "自定义技能（中央库）",
+  "setCustomSkillsHint": "在 ~/.gocode/skills 中编写一次，然后在技能矩阵中按 agent 启用。",
+  "setNewSkillId": "new-skill-id",
+  "setNoCustomSkills": "暂无自定义技能。",
+  "setChatChannelsHint": "外发聊天集成（Lark / Telegram / WeChat）。",
+  "setNoChatChannels": "尚未配置聊天频道。",
+  "setUnnamed": "(未命名)",
+  "setEnabled": "● 已启用",
+  "setEnabledRow": "已启用",
+  "setDisabled": "○ 已停用",
+  "setAvailable": "可用",
+  "setNotAvailable": "此后端不支持",
+  "setPlatform": "平台",
+  "setUnknown": "未知",
+  "setComputerUseHint": "Computer use 仅由以 GOCODE_COMPUTER_USE=1 启动的桌面会话提供。",
+  "setExpertsHint": "内置专家技能包。在技能矩阵中按 agent 启用。",
+  "setNoExperts": "本版本没有内置专家包。请在 技能 → 自定义技能 中编写自己的。",
+  "setThemeMode": "主题模式",
+  "setAppearanceHint": "选择 GoCode 的外观。“跟随系统”会尽可能跟随操作系统。",
+  "setCurrent": "当前",
+  "setAppearanceFailed": "外观更新失败：{message}",
+  "setBrowserTools": "浏览器工具",
+  "setBrowserToolsHint": "让 agent 通过桥接驱动一个回环浏览器。",
+  "setAllowEval": "允许 eval",
+  "setBridge": "桥接",
+  "setPorts": "端口",
+  "setPublicHost": "公网地址",
+  "setOn": "开",
+  "setOff": "关",
+  "setToggle": "切换",
+  "setBrowserFailed": "浏览器设置：{message}",
+  "setOfficeToolsHint": "上游已将本页并入技能包（Office 标签页）；officecli 是内置的文档助手。",
+  "setInstalled": "已安装",
+  "setVersion": "版本",
+  "setScienceHint": "内置科学技能包，可按 agent 安装。",
+  "setNoSciencePacks": "本版本没有科学技能包。",
+  "setQuickMessagesHint": "可插入 composer 的复用片段——例如代码评审清单或缺陷报告模板。",
+  "setNewMessage": "新建消息",
+  "setNoQuickMessages": "暂无快捷消息",
+  "setNoQuickMessagesHint": "添加一条，它就会出现在 composer 的快捷消息选择器中。",
+  "setDeleteNamed": "删除 {name}",
+  "setDeleteThis": "删除这条消息？",
+  "setNewQuickMessage": "新建快捷消息",
+  "setEditQuickMessage": "编辑快捷消息",
+  "setTitle": "标题",
+  "setContent": "内容",
+  "setTitlePlaceholder": "评审清单",
+  "setContentPlaceholder": "要插入的文字…",
+  "setTitleRequired": "标题不能为空。",
+  "setContentRequired": "内容不能为空。",
+  "setSaved": "已保存。",
+  "setSaveFailed": "保存失败：{message}",
+  "setDeleted": "已删除。",
+  "setDeleteFailed": "删除失败：{message}",
+  "setMessageFallback": "消息",
+  "actionTest": "测试",
+  "vcHint": "本应用驱动的 git 可执行文件，以及 Repositories 读取 issue 与 PR 所用的 forge 账号。",
+  "setGitTitle": "Git",
+  "vcCustomGitPath": "自定义 git 路径",
+  "vcNotValidGit": "不是有效的 git 可执行文件",
+  "vcDetecting": "正在检测 git…",
+  "vcGitVersion": "git {version}",
+  "vcVersionUnknown": "(版本未知)",
+  "vcNoGit": "未找到 git。请安装 git，或在下方指定其可执行文件路径。",
+  "vcPathPlaceholder": "留空则使用 PATH 中的 git",
+  "vcCustomPathHint": "改动与提交都通过这个 git 执行。路径留空则使用 PATH 中的那个。",
+  "vcPathWorks": "路径可用。",
+  "vcForgeAccounts": "Forge 账号",
+  "vcAccountsHint": "有了 token，就能在 Repositories 面板中读取该服务器的 issue 与 PR。",
+  "vcNoAccounts": "暂无 forge 账号。",
+  "vcNoAccountsHint": "添加 GitHub、GitLab 或 Gitea token，即可为文件夹的远程仓库打开 Repositories 面板。",
+  "vcAccountFallback": "(账号)",
+  "vcScopes": "权限范围：{names}",
+  "vcNoToken": "尚未保存 token。",
+  "vcTokenSaved": "Token 已保存。",
+  "vcChecking": "检查中…",
+  "vcRotateToken": "轮换 token",
+  "vcRemovePrompt": "移除？",
+  "vcNewToken": "新的访问 token",
+  "vcSaveToken": "保存 token",
+  "vcAddAccountBtn": "添加账号",
+  "vcProvider": "提供方",
+  "vcHost": "主机",
+  "vcHostPlaceholder": "https://git.example.com",
+  "vcAccessToken": "访问 token",
+  "vcTokenHint": "该 token 需要对你在 Repositories 中打开的仓库有读取权限。",
+  "vcValidateAdd": "校验并添加",
+  "vcAddAccount": "添加 forge 账号",
+  "vcTokenWorks": "Token 可用。",
+  "vcTestFailed": "测试失败：{message}",
+  "vcTokenWorksAs": "Token 可用——已登录为 {who}。",
+  "vcForgeRejected": "forge 拒绝了该 token",
+  "vcSaveFailed": "保存失败：{message}",
+  "vcSaveFailedGit": "保存失败：{message}",
+  "vcAccountSavedListFailed": "账号已保存，但列表更新失败：{message}",
+  "vcAccountAdded": "账号已添加。",
+  "vcRemoveFailed": "移除失败：{message}",
+  "vcAccountRemoved": "账号已移除。",
+  "auNew": "新建自动化",
+  "auHint": "按计划或事件驱动的 agent 运行。",
+  "auNone": "暂无自动化。",
+  "auSelect": "选择一个自动化",
+  "auEmptyTitle": "暂无自动化",
+  "auEmptyHint": "让 agent 按 cron 定时运行，或按需运行。",
+  "auRunNow": "立即运行",
+  "auDisable": "停用",
+  "auEnable": "启用",
+  "auConfirm": "删除这个自动化？",
+  "auTriggerCron": "触发：每 {cron}（{tz}）",
+  "auTriggerManual": "触发：手动",
+  "auAgentLine": "Agent：{agent}",
+  "auIsolationLine": "隔离：{value}",
+  "auPromptLabel": "提示词",
+  "auRunHistory": "运行历史",
+  "auNoRuns": "暂无运行记录。",
+  "auEditTitle": "编辑自动化",
+  "auName": "名称",
+  "auNamePlaceholder": "每晚评审",
+  "auPrompt": "提示词",
+  "auPromptPlaceholder": "要让 agent 做什么？",
+  "auTriggerField": "触发方式",
+  "auCronField": "Cron（分 时 日 月 周）",
+  "auCronPlaceholder": "0 9 * * *",
+  "auTimezone": "时区",
+  "auIsolation": "隔离",
+  "auStatusRunning": "进行中",
+  "auStatusSucceeded": "成功",
+  "auStatusFailed": "失败",
+  "auStatusCancelled": "已取消",
+  "auStatusSkipped": "已跳过",
+  "auStatusIdle": "空闲",
+  "auSaveFailed": "保存失败：{message}",
+  "auSaved": "自动化已保存",
+  "auUpdateFailed": "更新失败：{message}",
+  "auEnabledToast": "自动化已启用",
+  "auDisabledToast": "自动化已停用",
+  "auRunFailed": "运行失败：{message}",
+  "auRunStarted": "已开始运行",
+  "auCancelFailed": "取消失败：{message}",
+  "auRunCancelled": "运行已取消",
+  "auDeleteFailed": "删除失败：{message}",
+  "auDeleted": "自动化已删除",
+  "cvNewBoard": "新建画板",
+  "cvHint": "由会话、笔记与终端组成的空间画板。",
+  "cvSearchPlaceholder": "搜索画板",
+  "cvNoMatches": "无匹配",
+  "cvEmptyTitle": "暂无画板",
+  "cvEmptyHint": "在空间画板上摆放会话、笔记与终端。",
+  "cvOpen": "打开",
+  "cvBack": "返回画板列表",
+  "cvBoardTitle": "画板 {id}",
+  "cvRenameTitle": "重命名画板",
+  "cvNamePlaceholder": "我的画板",
+  "cvDescription": "描述",
+  "cvDescPlaceholder": "这个画板的用途",
+  "cvColour": "颜色",
+  "cvUntitledBoard": "(未命名画板)",
+  "cvSaveFailed": "保存失败：{message}",
+  "cvSaved": "画板已保存",
+  "cvDeleteFailed": "删除失败：{message}",
+  "cvBoardDeleted": "画板已删除",
+  "cvEmptyBoardHint": "拖动卡片移动位置；拖动空白处平移。",
+  "cvSelectMode": "选择",
+  "cvPanMode": "平移",
+  "cvSelectedCount": "已选 {count} 个",
+  "cvDeleteSelected": "删除选中",
+  "cvNodesDeleted": "已删除 {count} 个节点",
+  "cvNewNote": "新建便签",
+  "cvNoteTitle": "便签",
+  "cvZoomReset": "重置视图",
+  "cvKindNote": "便签",
+  "cvKindGroup": "分组",
+  "cvKindAgent": "智能体",
+  "cvKindConversation": "会话",
+  "cvKindFolder": "文件夹",
+  "cvKindFile": "文件",
+  "cvKindTerminal": "终端",
+  "cvKindCustom": "自定义",
+  "cvNoteCreated": "便签已添加",
+  "cvCreateFailed": "创建失败：{message}",
+  "cvMoveFailed": "移动失败：{message}",
+  "cvNodeDeleted": "节点已删除",
+  "cvCounts": "{nodes} 个节点 · {terminals} 个终端",
+  "cvEdited": "编辑于 {when}",
+  "cvConfirmDelete": "删除这个画板及其节点？",
+  "cvNoNodes": "这个画板还没有节点。",
+  "fgHint": "所选文件夹的 forge 远程仓库上的 issue 与 PR。",
+  "fgSelectFolder": "选择一个文件夹",
+  "fgRemoteErr": "无法读取该文件夹的远程仓库",
+  "fgNoRemote": "没有 forge 远程仓库",
+  "fgNoRemoteBody": "该文件夹没有可识别的 origin 远程仓库。请先添加，例如 `git remote add origin https://github.com/you/repo.git`，然后刷新。",
+  "fgNoRepository": "(无仓库)",
+  "fgUnrecognized": "无法识别的 forge 主机",
+  "fgUnrecognizedBody": "该远程仓库的主机不是受支持的 forge：{host}",
+  "fgSignedIn": "已登录为 {who}",
+  "fgUnknown": "(未知)",
+  "fgTabIssues": "Issue",
+  "fgTabPRs": "Pull request",
+  "fgNewIssue": "新建 issue",
+  "fgLoadErr": "无法加载 issue",
+  "fgNoItems": "暂无条目",
+  "fgBy": "{author} 创建",
+  "fgComments": "{count} 条评论",
+  "fgReopen": "重新打开",
+  "fgTitlePlaceholder": "哪里坏了",
+  "fgBody": "正文",
+  "fgBodyPlaceholder": "发生了什么？",
+  "fgCreate": "创建",
+  "fgConnectTitle": "连接 {provider} 账号",
+  "fgConnectBody": "{host} 是 {provider} 远程仓库，但没有连接匹配的账号。",
+  "fgConnectHost": "该主机",
+  "fgConnectHint": "请在 设置 → 版本控制 中添加账号，然后刷新。",
+  "fgOpenSettings": "打开版本控制",
+  "fgUpdateFailed": "forge 更新失败：{message}",
+  "fgIssueClosed": "issue 已关闭",
+  "fgIssueReopened": "issue 已重新打开",
+  "fgCreateFailed": "创建 issue 失败：{message}",
+  "fgIssueCreated": "issue 已创建",
+  "ppActiveSessions": "活动会话",
+  "ppNoSessions": "暂无活动会话",
+  "ppNoSessionsHint": "agent 工作时，会话会显示在这里。",
+  "ppSubAgent": "子 agent · 属于 {parent}",
+  "ppStatusWaiting": "等待中",
+  "ppStatusError": "错误",
+  "ppStatusRunning": "进行中",
+  "tkColTodo": "待办",
+  "tkColInProgress": "进行中",
+  "tkColAttention": "需关注",
+  "tkColDone": "已完成",
+  "tkHint": "驱动后台 agent 工作的待办看板。",
+  "tkNew": "新建待办",
+  "tkStartAll": "全部开始",
+  "tkShowCanceled": "显示已取消",
+  "tkShowArchived": "显示已归档",
+  "tkEmptyTitle": "暂无待办",
+  "tkEmptyHint": "排队一个任务，让 agent 在自己的 worktree 里完成它。",
+  "tkArchived": "已归档",
+  "tkUnarchive": "取消归档",
+  "tkStart": "开始",
+  "tkComplete": "完成",
+  "tkMerge": "合并",
+  "tkRetry": "重试",
+  "tkArchive": "归档",
+  "tkRequeue": "重新排队",
+  "tkBack": "返回看板",
+  "tkConfirmDelete": "删除这个待办？",
+  "tkBranchLine": "分支：{branch}（基于 {base}）",
+  "tkChangesLine": "改动：{files} 个文件 +{additions} -{deletions}",
+  "tkVerdictLine": "结论：{verdict}",
+  "tkSummaryLine": "摘要：{summary}",
+  "tkErrorLine": "错误：{message}",
+  "tkActivity": "动态",
+  "tkNoActivity": "暂无动态。",
+  "tkEventLine": "{kind} · {actor} · {when}",
+  "tkEventKindFallback": "事件",
+  "tkEventActorFallback": "系统",
+  "tkFilesMeta": "{files} 个文件 +{additions} -{deletions}",
+  "tkMerging": "合并中…",
+  "tkNewTitle": "新建待办",
+  "tkEditTitle": "编辑待办",
+  "tkSelectFolderFirst": "先选择一个文件夹——待办在其中运行。",
+  "tkTitlePlaceholder": "修复这个不稳定的测试",
+  "tkStatusToDo": "待办",
+  "tkStatusQueued": "排队中",
+  "tkStatusPreparing": "准备中",
+  "tkStatusRunning": "进行中",
+  "tkStatusAwaitingInput": "等待输入",
+  "tkStatusReview": "待评审",
+  "tkStatusMerging": "合并中",
+  "tkStatusFailed": "失败",
+  "tkStatusDone": "已完成",
+  "tkStatusCanceled": "已取消",
+  "tkSaveFailed": "保存失败：{message}",
+  "tkSaved": "待办已保存",
+  "tkUpdated": "待办已更新",
+  "tkTransitionFailed": "待办更新失败：{message}",
+  "tkArchiveFailed": "归档失败：{message}",
+  "tkDeleteFailed": "删除失败：{message}",
+  "tkDeleted": "待办已删除",
+  "tkStartAllFailed": "全部开始失败：{message}",
+  "tkStartedAll": "已开始排队的待办",
+  "ppSprite": "桌面精灵",
+  "psTitle": "桌面精灵",
+  "psIntro": "一个跟着智能体状态浮在桌面上的精灵窗口。拖动可换位置，角标点开活动会话。",
+  "psActivePet": "当前精灵",
+  "psSize": "尺寸",
+  "psNoPets": "还没有安装精灵",
+  "psNoPetsHint": "添加一张 Codex 格式的精灵图（1536×1872，8 列），精灵就能动起来。",
+  "psAdd": "添加精灵…",
+  "psUse": "使用",
+  "psDelete": "删除",
+  "psDeleteConfirm": "删除「{name}」？其文件会从磁盘移除。",
+  "psDeleted": "已删除「{name}」",
+  "psAdded": "已添加「{name}」",
+  "psAddFailed": "添加精灵失败：{error}",
+  "psImportCodex": "从 Codex 导入",
+  "psImportNone": "没有可导入的 Codex 精灵。",
+  "psImported": "已导入 {count} 个精灵",
+  "psOpenWindow": "打开精灵窗口",
+  "psCloseWindow": "关闭精灵窗口",
+  "psNoActivePet": "先选一个精灵，再打开精灵窗口。",
+  "psLoadFailed": "加载精灵失败：{error}",
+  "psJump": "跳跃",
+  "psWave": "挥手",
+  "psBigger": "放大",
+  "psSmaller": "缩小",
+  "psResetSize": "恢复默认尺寸",
+  "psAlwaysOnTop": "窗口置顶",
+  "psOpenPage": "打开精灵页面",
+  "psBadgeRunning": "{count} 个正在运行",
+  "psBadgeWaiting": "{count} 个等你确认",
+  "psBadgeError": "{count} 个出错",
+  "psMenu": "精灵菜单",
+  "psSpriteLabel": "精灵「{name}」",
+  "svConnected": "已连接到 {name}",
+  "actionCopy": "复制",
+  "toastCopied": "已复制到剪贴板",
+  "actionExportHTML": "导出为 HTML",
+  "dialogExportHTML": "导出会话",
+  "exportUntitled": "会话",
+  "toastExported": "已保存 {file}",
+  "toastExportFailed": "导出失败：{message}",
+  "actionRetry": "重试",
+  "actionReconnect": "重新连接",
+  "actionCopyMarkdown": "复制为 Markdown",
+  "exportRoleUser": "用户",
+  "exportRoleAssistant": "助手",
+  "pbSkillsInstalled": "已为 {agents} 安装 HyperFrames 技能",
+  "pbInstallFailed": "技能安装失败：{message}",
+  "palettePlaceholder": "输入命令…",
+  "paletteNoMatches": "没有匹配的命令",
+  "attRemove": "移除 {name}",
+  "computerReadLabel": "agent 可读取 {count} 个窗口",
+  "computerControlLabel": "agent 可控制 {count} 个窗口",
+  "noOutputRecorded": "没有记录输出。",
+  "verdictLabel": "结论",
+  "promptLabel": "提示",
+  "reasonLabel": "原因",
+  "filesSelectFolder": "选择一个文件夹以浏览其文件。",
+  "filesUp": "上一级",
+  "filesEmptyDir": "空目录",
+  "filesSelectPreview": "选择一个文件以预览。",
+  "filesCannotPreview": "无法预览：{message}",
+  "changesSelectFolder": "选择一个文件夹以查看其 git 改动。",
+  "changesNoChanges": "没有改动",
+  "changesCommitPlaceholder": "提交信息",
+  "changesCommitAll": "全部提交",
+  "changesSelectDiff": "选择一个改动文件以查看差异。",
+  "changesStage": "暂存",
+  "changesConfirmDiscard": "确认丢弃",
+  "changesDiscard": "丢弃",
+  "changesCannotDiff": "无法生成差异：{message}",
+  "changesNoDiff": "没有差异（文件可能未被跟踪）。",
+  "changesStageCount": "暂存 {count} 个",
+  "changesDiscardCount": "丢弃 {count} 个",
+  "changesDiscardConfirmCount": "确认丢弃 {count} 个？",
+  "changesStagedCount": "已暂存 {count} 个文件",
+  "changesDiscardedCount": "已丢弃 {count} 个文件",
+  "changesStageFailed": "暂存失败：{message}",
+  "changesDiscardFailed": "丢弃失败：{message}",
+  "terminalNoFolder": "选择一个文件夹以在其中打开终端。",
+  "terminalToggleLabel": "切换终端面板",
+  "terminalStart": "启动终端",
+  "terminalStartHint": "在 {root} 中打开一个 shell。",
+  "terminalExited": "终端已退出。",
+  "terminalPlaceholder": "命令…",
+  "terminalSend": "发送",
+  "terminalRefresh": "刷新",
+  "terminalKill": "结束",
+  "terminalError": "终端错误：{message}",
+  "terminalNoTabs": "暂无终端标签",
+  "terminalNewTab": "新建终端标签",
+  "terminalOpenFolderFirst": "请先打开文件夹",
+  "terminalCloseTab": "关闭",
+  "terminalCloseTabNamed": "关闭终端标签：{title}",
+  "terminalCloseOthers": "关闭其他",
+  "terminalCloseAll": "关闭全部",
+  "terminalRenameTab": "重命名",
+  "terminalRenamePlaceholder": "终端标题",
+  "terminalSaveName": "保存终端标签名称",
+  "terminalCancelRename": "取消重命名",
+  "importSummary": "在 {folders} 个文件夹中找到 {importable} 个可导入会话。",
+  "importNoSessions": "未找到可导入的会话。本机上的 Claude Code 会话会被自动扫描。",
+  "importStatusNew": "新",
+  "importStatusImported": "已导入",
+  "importStatusDeleted": "已删除",
+  "importSelectAll": "全选",
+  "importSelected": "导入选中",
+  "importImportAll": "导入整个文件夹",
+  "importResultTitle": "导入结果",
+  "importSummaryCounts": "已导入 {imported} · 已更新 {updated} · 已恢复 {restored} · 已跳过 {skipped}",
+  "importFailed": "导入失败：{message}",
+  "importMsgCount": "{count} 条消息",
+  "importSelectedCount": "已选 {count} 个",
+  "importInFolder": "位于 {path}",
+  "pbProjectType": "项目类型",
+  "pbShadcn": "Shadcn 项目",
+  "pbHyperframes": "HyperFrames 项目",
+  "pbProjectName": "项目名称",
+  "pbTemplate": "模板",
+  "pbPresetCode": "预设码",
+  "pbPackageManager": "包管理器",
+  "pbTargetDir": "目标目录",
+  "pbChooseDir": "选择…",
+  "pbCreate": "创建项目",
+  "pbInstalled": "已安装",
+  "pbNotInstalled": "未安装",
+  "pbExample": "示例",
+  "pbResolution": "分辨率",
+  "pbCreated": "项目已创建于 {path}",
+  "pbDetectSkills": "检测 HyperFrames 技能",
+  "pbInstallSkills": "安装技能",
+  "pbSkillsHint": "为所选 agent 安装 HyperFrames 技能。",
+  "pbNameRequired": "项目名称必填。",
+  "commandsTitle": "文件夹命令",
+  "commandsNoFolder": "选择一个文件夹以管理其命令。",
+  "commandsEmpty": "还没有命令。可在下方新增，或从 package.json 导入。",
+  "commandsNew": "新增命令",
+  "commandsName": "名称",
+  "commandsCommand": "命令",
+  "commandsCreate": "创建",
+  "commandsSave": "保存",
+  "commandsEdit": "编辑",
+  "commandsDelete": "删除",
+  "commandsRun": "运行",
+  "commandsCancel": "取消",
+  "commandsBootstrap": "从 package.json 导入",
+  "commandsBootstrapped": "已从 package.json 导入 {count} 条脚本。",
+  "commandsNameRequired": "名称必填。",
+  "commandsCommandRequired": "命令必填。",
+  "@gitBranchChip": {
+    "description": "The composer branch chip, the checked-out branch name.",
+    "placeholders": {
+      "branch": {
+        "type": "String",
+        "example": "main"
+      }
+    }
+  },
+  "@gitLocalBranches": {
+    "description": "The branches page, the local-branch count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "@gitOtherWorktrees": {
+    "description": "The branches page, the other-worktree count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@gitRemoteBranches": {
+    "description": "The branches page, the remote-branch count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "6"
+      }
+    }
+  },
+  "@terminalStartHint": {
+    "description": "The terminal panel, the hint shown before a shell starts.",
+    "placeholders": {
+      "root": {
+        "type": "String",
+        "example": "/home/user/project"
+      }
+    }
+  },
+  "@terminalError": {
+    "description": "The terminal panel, a failed snapshot fetch.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection refused"
+      }
+    }
+  },
+  "@terminalCloseTabNamed": {
+    "description": "The terminal tab bar, the close button for one tab.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Terminal 2"
+      }
+    }
+  },
+  "@importSummary": {
+    "description": "The import-sessions panel, the scan summary.",
+    "placeholders": {
+      "importable": {
+        "type": "int",
+        "example": "12"
+      },
+      "folders": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@importInFolder": {
+    "description": "The import-sessions panel, a folder's path subtitle.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "/home/user/project"
+      }
+    }
+  },
+  "@pbCreated": {
+    "description": "The project-boot panel, the created project path.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "/home/user/project/app"
+      }
+    }
+  },
+  "@commandsBootstrapped": {
+    "description": "The commands panel, the number of scripts imported from package.json.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitRemoteRemoveConfirm": {
+    "description": "The remotes page, the remove confirmation prompt.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "origin"
+      }
+    }
+  },
+  "@gitSelectionCount": {
+    "description": "The commit page, how many changed files are checked.",
+    "placeholders": {
+      "selected": {
+        "type": "int",
+        "example": "2"
+      },
+      "total": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "@gitTrackedChanges": {
+    "description": "The commit page, the tracked-change group count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitUntrackedFiles": {
+    "description": "The commit page, the untracked-file group count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@gitSelectFile": {
+    "description": "The commit page, a file's select checkbox.",
+    "placeholders": {
+      "file": {
+        "type": "String",
+        "example": "src/app.go"
+      }
+    }
+  },
+  "@gitUnselectFile": {
+    "description": "The commit page, a checked file's checkbox.",
+    "placeholders": {
+      "file": {
+        "type": "String",
+        "example": "src/app.go"
+      }
+    }
+  },
+  "@gitCommitButton": {
+    "description": "The commit page, the Commit button with its file count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitCommitAndPushButton": {
+    "description": "The commit page, the Commit and Push button with its file count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitCommitFailed": {
+    "description": "The commit page, a failed commit.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "nothing to commit"
+      }
+    }
+  },
+  "@gitCommitPushFailed": {
+    "description": "The commit page, a commit that succeeded but whose push failed.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection refused"
+      }
+    }
+  },
+  "@gitCommittedAndPushed": {
+    "description": "The commit page, the commit-and-push result.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitCommittedFiles": {
+    "description": "The commit page, the commit result.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@gitPushWithCount": {
+    "description": "The push page, the Push button with its unpushed-commit count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "@gitPushFailed": {
+    "description": "The push page, a failed push.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "rejected (non-fast-forward)"
+      }
+    }
+  },
+  "@gitPushedCommits": {
+    "description": "The push page, the push result.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "@gitPushedUpstream": {
+    "description": "The push page, the first push that also set upstream.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "4"
+      }
+    }
+  },
+  "@cloneCreated": {
+    "description": "The clone page, the directory the repository was cloned into.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "/home/user/project"
+      }
+    }
+  },
+  "@usageStreakValue": {
+    "description": "The usage dashboard, the current and longest streaks.",
+    "placeholders": {
+      "current": {
+        "type": "int",
+        "example": "4"
+      },
+      "longest": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "@usageStatus": {
+    "description": "The usage dashboard, the sync status line.",
+    "placeholders": {
+      "fact": {
+        "type": "int",
+        "example": "128"
+      },
+      "synced": {
+        "type": "int",
+        "example": "9"
+      },
+      "total": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "@usageHeatmapPeak": {
+    "description": "The usage dashboard, the heatmap hint naming the busiest hour.",
+    "placeholders": {
+      "hour": {
+        "type": "String",
+        "example": "09"
+      }
+    }
+  },
+  "@usageHeatmapCell": {
+    "description": "The usage dashboard, a heatmap cell's tooltip.",
+    "placeholders": {
+      "weekday": {
+        "type": "String",
+        "example": "Mon"
+      },
+      "hour": {
+        "type": "String",
+        "example": "09"
+      },
+      "value": {
+        "type": "String",
+        "example": "1.2k"
+      }
+    }
+  },
+  "@mpDeletePrompt": {
+    "description": "The model-providers page, the delete confirmation prompt.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Acme"
+      }
+    }
+  },
+  "@wfRemovePrompt": {
+    "description": "The workspace-folders panel, the remove confirmation prompt.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@wfWillAppearAs": {
+    "description": "The workspace-folders preview, the name the link will use.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@wfRenamedForDuplicate": {
+    "description": "The workspace-folders preview, the name was deduplicated.",
+    "placeholders": {
+      "base": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@wfRenamedForExistingEntry": {
+    "description": "The workspace-folders preview, the name was renamed around an existing entry.",
+    "placeholders": {
+      "base": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@wfLinkCount": {
+    "description": "The workspace-folders preview, the confirm action's folder count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "@wfRejectAlreadyLinkedAs": {
+    "description": "The workspace-folders preview, an already-linked target and its name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "shared"
+      }
+    }
+  },
+  "@importSummaryCounts": {
+    "description": "The import-sessions panel, the outcome counts.",
+    "placeholders": {
+      "imported": {
+        "type": "int",
+        "example": "3"
+      },
+      "updated": {
+        "type": "int",
+        "example": "1"
+      },
+      "restored": {
+        "type": "int",
+        "example": "0"
+      },
+      "skipped": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@importFailed": {
+    "description": "The import-sessions panel, a failed import.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@importMsgCount": {
+    "description": "The import-sessions panel, a session's message count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "42"
+      }
+    }
+  },
+  "@importSelectedCount": {
+    "description": "The import-sessions panel, how many sessions are checked.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@wfUploaded": {
+    "description": "The workspace-folders panel, the uploaded file path.",
+    "placeholders": {
+      "path": {
+        "type": "String",
+        "example": "docs/a.md"
+      }
+    }
+  },
+  "@auxCommitTitle": {
+    "description": "The commit detail header, the commit id.",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "example": "a1b2c3d"
+      }
+    }
+  },
+  "@filesCannotPreview": {
+    "description": "The file preview, the read error.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "permission denied"
+      }
+    }
+  },
+  "@changesCannotDiff": {
+    "description": "The diff view, the git error.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "not a git repository"
+      }
+    }
+  },
+  "@toastCancelFailed": {
+    "description": "The conversation workspace, a failed turn cancel.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastCreateFailed": {
+    "description": "The workspace, a failed conversation creation.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastPermissionFailed": {
+    "description": "The conversation workspace, a failed permission response.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "request expired"
+      }
+    }
+  },
+  "@toastPermissionSent": {
+    "description": "The conversation workspace, the answered permission option.",
+    "placeholders": {
+      "option": {
+        "type": "String",
+        "example": "allow_once"
+      }
+    }
+  },
+  "@toastRenameFailed": {
+    "description": "The conversation header, a failed rename.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastPinFailed": {
+    "description": "The conversation header, a failed pin toggle.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastDeleteFailed": {
+    "description": "The workspace, a failed conversation delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@toastOpenFailed": {
+    "description": "The workspace, a failed add-folder.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "path outside workspace"
+      }
+    }
+  },
+  "@toastNewChatFailed": {
+    "description": "The workspace, a failed no-folder chat.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "agent not installed"
+      }
+    }
+  },
+  "@toastUploadFailed": {
+    "description": "The composer, a failed attachment upload.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "too large"
+      }
+    }
+  },
+  "@toastPromptFailed": {
+    "description": "The composer, a failed prompt send.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "agent not installed"
+      }
+    }
+  },
+  "@toolEditIndex": {
+    "description": "The tool card body, the ordinal of one edit in a multi-edit call.",
+    "placeholders": {
+      "index": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@setPageNotPorted": {
+    "description": "The settings placeholder page, the upstream path it mirrors.",
+    "placeholders": {
+      "page": {
+        "type": "String",
+        "example": "shortcuts"
+      }
+    }
+  },
+  "@setAgentsCount": {
+    "description": "The settings agents page, the catalog size.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "7"
+      }
+    }
+  },
+  "@setUpdateAvailable": {
+    "description": "The settings agents page, the latest release version.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.2.3"
+      }
+    }
+  },
+  "@setAgentCheckFailed": {
+    "description": "The settings agents page, a failed version probe.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "npm not found"
+      }
+    }
+  },
+  "@setAgentChecked": {
+    "description": "The settings agents page, the toast after a successful version probe.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Claude Code"
+      }
+    }
+  },
+  "@setCustomAgentSaved": {
+    "description": "The settings agents page, the toast after saving a custom agent.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Team Agent"
+      }
+    }
+  },
+  "@setCustomAgentDeleteFailed": {
+    "description": "The settings agents page, a failed custom-agent removal.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "not found"
+      }
+    }
+  },
+  "@setCustomAgentDeletePrompt": {
+    "description": "The settings agents page, the inline delete confirmation.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Team Agent"
+      }
+    }
+  },
+  "@setCustomAgentProblem": {
+    "description": "The settings agents page, why a custom agent cannot launch.",
+    "placeholders": {
+      "problem": {
+        "type": "String",
+        "example": "launcher not found"
+      }
+    }
+  },
+  "@setMCPServersCount": {
+    "description": "The settings MCP page, the scanned server count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@setSkillsCount": {
+    "description": "The settings skills page, the shown count and scope.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "5"
+      },
+      "scope": {
+        "type": "String",
+        "example": "global"
+      }
+    }
+  },
+  "@setAppearanceFailed": {
+    "description": "The settings appearance page, a failed mode save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@setBrowserFailed": {
+    "description": "The settings browser page, a failed tools save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@setDeleteNamed": {
+    "description": "The settings quick-messages page, the row delete button label.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Review checklist"
+      }
+    }
+  },
+  "@setSaveFailed": {
+    "description": "The settings quick-messages page, a failed save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@setDeleteFailed": {
+    "description": "The settings quick-messages page, a failed delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@vcGitVersion": {
+    "description": "The version-control settings page, the detected git version.",
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "2.45.1"
+      }
+    }
+  },
+  "@vcScopes": {
+    "description": "The version-control settings page, the account's token scopes.",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "repo, read:org"
+      }
+    }
+  },
+  "@vcTestFailed": {
+    "description": "The version-control settings page, a failed token test.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@vcTokenWorksAs": {
+    "description": "The version-control settings page, a successful token test's username.",
+    "placeholders": {
+      "who": {
+        "type": "String",
+        "example": "octocat"
+      }
+    }
+  },
+  "@vcSaveFailed": {
+    "description": "The version-control settings page, a failed token save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@vcSaveFailedGit": {
+    "description": "The version-control settings page, a failed custom-path save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "not a valid git executable"
+      }
+    }
+  },
+  "@vcAccountSavedListFailed": {
+    "description": "The version-control settings page, the account saved but the list write failed.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@vcRemoveFailed": {
+    "description": "The version-control settings page, a failed account removal.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auTriggerCron": {
+    "description": "The automations panel, the schedule trigger line.",
+    "placeholders": {
+      "cron": {
+        "type": "String",
+        "example": "0 9 * * *"
+      },
+      "tz": {
+        "type": "String",
+        "example": "UTC"
+      }
+    }
+  },
+  "@auAgentLine": {
+    "description": "The automations panel, the agent fact line.",
+    "placeholders": {
+      "agent": {
+        "type": "String",
+        "example": "claude_code"
+      }
+    }
+  },
+  "@auIsolationLine": {
+    "description": "The automations panel, the isolation fact line.",
+    "placeholders": {
+      "value": {
+        "type": "String",
+        "example": "worktree_per_run"
+      }
+    }
+  },
+  "@auSaveFailed": {
+    "description": "The automations panel, a failed save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auUpdateFailed": {
+    "description": "The automations panel, a failed enable/disable.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auRunFailed": {
+    "description": "The automations panel, a failed run start.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auCancelFailed": {
+    "description": "The automations panel, a failed run cancel.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@auDeleteFailed": {
+    "description": "The automations panel, a failed delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvBoardTitle": {
+    "description": "The canvas panel, the open board's header title.",
+    "placeholders": {
+      "id": {
+        "type": "String",
+        "example": "b1"
+      }
+    }
+  },
+  "@cvSaveFailed": {
+    "description": "The canvas panel, a failed board save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvSelectedCount": {
+    "description": "The canvas board, how many nodes are selected.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@cvNodesDeleted": {
+    "description": "The canvas board, how many nodes a batch delete removed.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@cvNoteCreated": {
+    "description": "The canvas board, a note was added.",
+    "placeholders": {}
+  },
+  "@cvCreateFailed": {
+    "description": "The canvas board, a failed node create.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvMoveFailed": {
+    "description": "The canvas board, a failed node move.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvDeleteFailed": {
+    "description": "The canvas panel, a failed delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@cvCounts": {
+    "description": "The canvas panel, a board's node and terminal counts.",
+    "placeholders": {
+      "nodes": {
+        "type": "int",
+        "example": "3"
+      },
+      "terminals": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "@cvEdited": {
+    "description": "The canvas panel, a board's last-edited relative time.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "example": "2h"
+      }
+    }
+  },
+  "@fgUnrecognizedBody": {
+    "description": "The Repositories panel, the unsupported-host notice body.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "git.example.com"
+      }
+    }
+  },
+  "@fgSignedIn": {
+    "description": "The Repositories panel, the signed-in identity line.",
+    "placeholders": {
+      "who": {
+        "type": "String",
+        "example": "octocat"
+      }
+    }
+  },
+  "@fgBy": {
+    "description": "The Repositories panel, an issue's author in its meta line.",
+    "placeholders": {
+      "author": {
+        "type": "String",
+        "example": "octocat"
+      }
+    }
+  },
+  "@fgComments": {
+    "description": "The Repositories panel, an issue's comment count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "@fgConnectTitle": {
+    "description": "The Repositories panel, the connect-an-account title.",
+    "placeholders": {
+      "provider": {
+        "type": "String",
+        "example": "GitHub"
+      }
+    }
+  },
+  "@fgConnectBody": {
+    "description": "The Repositories panel, the connect-an-account explanation.",
+    "placeholders": {
+      "host": {
+        "type": "String",
+        "example": "github.com"
+      },
+      "provider": {
+        "type": "String",
+        "example": "GitHub"
+      }
+    }
+  },
+  "@fgUpdateFailed": {
+    "description": "The Repositories panel, a failed state change.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@fgCreateFailed": {
+    "description": "The Repositories panel, a failed issue creation.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@ppSubAgent": {
+    "description": "The pet panel, a sub-session's parent line.",
+    "placeholders": {
+      "parent": {
+        "type": "String",
+        "example": "Research"
+      }
+    }
+  },
+  "@tkBranchLine": {
+    "description": "The to-dos board, the branch fact line.",
+    "placeholders": {
+      "branch": {
+        "type": "String",
+        "example": "task/2"
+      },
+      "base": {
+        "type": "String",
+        "example": "main"
+      }
+    }
+  },
+  "@tkChangesLine": {
+    "description": "The to-dos board, the changed-files fact line.",
+    "placeholders": {
+      "files": {
+        "type": "int",
+        "example": "3"
+      },
+      "additions": {
+        "type": "int",
+        "example": "20"
+      },
+      "deletions": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "@tkVerdictLine": {
+    "description": "The to-dos board, the verdict fact line.",
+    "placeholders": {
+      "verdict": {
+        "type": "String",
+        "example": "clean"
+      }
+    }
+  },
+  "@tkSummaryLine": {
+    "description": "The to-dos board, the result summary line.",
+    "placeholders": {
+      "summary": {
+        "type": "String",
+        "example": "fixed the flake"
+      }
+    }
+  },
+  "@tkErrorLine": {
+    "description": "The to-dos board, the failure line.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "agent crashed"
+      }
+    }
+  },
+  "@tkEventLine": {
+    "description": "The to-dos board, one activity event.",
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "created"
+      },
+      "actor": {
+        "type": "String",
+        "example": "user"
+      },
+      "when": {
+        "type": "String",
+        "example": "10:05"
+      }
+    }
+  },
+  "@tkFilesMeta": {
+    "description": "The to-dos board, a card's changed-files meta.",
+    "placeholders": {
+      "files": {
+        "type": "int",
+        "example": "3"
+      },
+      "additions": {
+        "type": "int",
+        "example": "20"
+      },
+      "deletions": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "@tkSaveFailed": {
+    "description": "The to-dos board, a failed save.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@tkTransitionFailed": {
+    "description": "The to-dos board, a failed lifecycle command.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@tkArchiveFailed": {
+    "description": "The to-dos board, a failed archive toggle.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@tkDeleteFailed": {
+    "description": "The to-dos board, a failed delete.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@tkStartAllFailed": {
+    "description": "The to-dos board, a failed start-all.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@svConnected": {
+    "description": "The servers page, the switched-to connection name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Office box"
+      }
+    }
+  },
+  "@pbSkillsInstalled": {
+    "description": "The project-boot panel, the agents the skills were installed for.",
+    "placeholders": {
+      "agents": {
+        "type": "String",
+        "example": "claude_code, opencode"
+      }
+    }
+  },
+  "@pbInstallFailed": {
+    "description": "The project-boot panel, a failed skill install.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@attRemove": {
+    "description": "The composer attachment tray, the remove button label.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "photo.png"
+      }
+    }
+  },
+  "@computerReadLabel": {
+    "description": "The computer-use strip, the readable window count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@computerControlLabel": {
+    "description": "The computer-use strip, the controllable window count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@setCollabDefaultsMode": {
+    "description": "The collaboration settings, an agent override's mode.",
+    "placeholders": {
+      "mode": {
+        "type": "String",
+        "example": "read_only"
+      }
+    }
+  },
+  "@setCollabLoadFailed": {
+    "description": "The collaboration settings, a failed group load.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@setShortcutsConflict": {
+    "description": "The shortcuts settings, a chord already taken by another action.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Toggle Left Sidebar"
+      }
+    }
+  },
+  "@setShortcutsUnassignNamed": {
+    "description": "The shortcuts settings, the button that clears one action's binding.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Toggle Left Sidebar"
+      }
+    }
+  },
+  "@setShortcutsSaveFailed": {
+    "description": "The shortcuts settings, a failed persistence write.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "permission denied"
+      }
+    }
+  },
+  "@setSkillPacksOpenFailed": {
+    "description": "The skill packs hub, a failed folder open.",
+    "placeholders": {
+      "message": {
+        "type": "String",
+        "example": "connection closed"
+      }
+    }
+  },
+  "@psDeleteConfirm": {
+    "description": "The sprite page, the delete confirmation.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Boba"
+      }
+    }
+  },
+  "@psDeleted": {
+    "description": "The sprite page, the toast after deleting a pet.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Boba"
+      }
+    }
+  },
+  "@psAdded": {
+    "description": "The sprite page, the toast after adding a pet.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Boba"
+      }
+    }
+  },
+  "@psAddFailed": {
+    "description": "The sprite page, the toast when a pet could not be added.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "spritesheet too small"
+      }
+    }
+  },
+  "@psImported": {
+    "description": "The sprite page, the toast after importing Codex pets.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@psLoadFailed": {
+    "description": "The sprite window, the message when the sheet cannot be loaded.",
+    "placeholders": {
+      "error": {
+        "type": "String",
+        "example": "pet not found: boba"
+      }
+    }
+  },
+  "@psBadgeRunning": {
+    "description": "The sprite badge, the running session count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "@psBadgeWaiting": {
+    "description": "The sprite badge, the sessions blocked on the user.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "@psBadgeError": {
+    "description": "The sprite badge, the errored session count.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "@psSpriteLabel": {
+    "description": "The sprite window, the accessible name of the sprite image.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Boba"
+      }
+    }
+  }
 }

@@ -9,8 +9,8 @@ import (
 func TestPetCodexImport(t *testing.T) {
 	setHome(t)
 	// Isolate upstream's pets root so the test neither reads nor pollutes the
-	// developer's real YOYOCODE_DATA_DIR (petsRoot checks YOYOCODE_HOME first).
-	t.Setenv("YOYOCODE_HOME", t.TempDir())
+	// developer's real GOCODE_DATA_DIR (petsRoot checks GOCODE_HOME first).
+	t.Setenv("GOCODE_HOME", t.TempDir())
 	codexHome := t.TempDir()
 	t.Setenv("CODEX_HOME", codexHome)
 	srv := newTestServer(t)
@@ -54,7 +54,7 @@ func TestPetCodexImport(t *testing.T) {
 		t.Fatalf("import result wrong: %v", res)
 	}
 	// it now exists in upstream's store (check via the API, not a hardcoded path,
-	// since the pets root follows YOYOCODE_DATA_DIR/YOYOCODE_HOME in tests).
+	// since the pets root follows GOCODE_DATA_DIR/GOCODE_HOME in tests).
 	if _, got := call(t, srv, "pet_get", map[string]any{"id": "foo"}); got["id"] != "foo" {
 		t.Fatalf("imported pet not visible via pet_get: %v", got)
 	}

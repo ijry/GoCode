@@ -10,7 +10,7 @@ func TestSkillInstallStatusMatrix(t *testing.T) {
 	home := setHome(t)
 	srv := newTestServer(t)
 	// seed one central-store skill
-	skillDir := filepath.Join(home, ".yoyocode", "skills", "my-skill")
+	skillDir := filepath.Join(home, ".gocode", "skills", "my-skill")
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestSkillInstallStatusMatrix(t *testing.T) {
 func TestSkillLinkApply(t *testing.T) {
 	home := setHome(t)
 	srv := newTestServer(t)
-	skillDir := filepath.Join(home, ".yoyocode", "skills", "linkable")
+	skillDir := filepath.Join(home, ".gocode", "skills", "linkable")
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)
 	}

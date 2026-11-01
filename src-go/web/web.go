@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"yoyocode/src-go/app_error"
+	"gocode/src-go/app_error"
 )
 
 // HandlerFunc is the signature every API command handler implements.

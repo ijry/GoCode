@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"yoyocode/src-go/web"
+	"gocode/src-go/web"
 )
 
 const downloadTicketTTL = 60 * time.Second

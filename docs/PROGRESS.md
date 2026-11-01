@@ -1,6 +1,8 @@
-# YoYoCode 复刻进度 (Progress)
+# GoCode 复刻进度 (Progress)
 
 > 勾选规则：完成**且可验证**（编译通过 + 有测试覆盖或手工验证）才打 `[x]`；进行中 `[~]`；未开始 `[ ]`。
+>
+> **新会话交接：先读「UI 深化待办（跨会话清单）」，从第一个 `[ ]` 接着做，完成即勾选。**
 >
 > - 全量 523 条路由逐条清单 → [ROUTE_INVENTORY.md](./ROUTE_INVENTORY.md)
 > - 总契约与架构映射 → [REPLICATION_PLAN.md](./REPLICATION_PLAN.md)
@@ -11,12 +13,140 @@
 
 ## 当前状态速览（滚动更新）
 
-- **后端路由：476 / 523 已实现**（ROUTE_INVENTORY 自动统计）。**P0 128/128 全数实现** —— mcode-app 无缝迁移的硬门槛已满足。
+- **后端路由：523 / 523 全部实现**（ROUTE_INVENTORY 自动统计）。**P0 128/128 全数实现**，无剩余路由。
 - 已闭环的完整子系统簇：conversations/chat、git（worktree add/remove、branch update/delete、clone）、work_task、automation、canvas、terminal、forge、folders/files（含工作区上传/下载/下载票据）、mcp 全家、settings 杂项、agent-skills / custom-agents / custom-skills（含从 agent 导入）/ experts / science、chat_channel、computer-use（诚实降级）、config_sync（本地设置/状态/导出/导入/回滚 + WebDAV test_connection/upload_now/peek_remote/download_apply 全 9 路由）、会话导入（scan / import_local / import_selected）、pet 本地数据层 + codex 导入、acp 版本探测/环境诊断/goal_control、officecli 技能 + render_html、ACP 注册表目录。
 - **UI（`src/app/`）**：工作区 IA（New chat + 导航行 + Pinned/Chats）、设置页树（General/Appearance/Agents/Version Control/System/MCP/Logs/Skills/Chat Channels/Computer Use/Experts 等实数据）、工作区空态欢迎面板、外观模式（light/dark 全局主题）、**会话详情区视觉**（消息气泡 / 工具调用卡片 / 输入坞，对齐上游 `ai-elements/message`、`ai-elements/tool`、`chat/message-input`；`src/app/conversation.go`，离屏渲染测试见 `render_test.go`）。
-- **按约定跳过**：模型供应商专属路由（cursor/qoder/kimi/pi/deepseek/antigravity/grok/codex catalog 等）。
-- **尚未实现（剩余，均为大子系统或外部依赖）**：backup 归档/恢复/安全快照全套（约 6300 行）、office-watch（文件监视 + HTTP 代理，约 1206 行）、acp_fork（会话克隆 + 重连）、部分 acp 厂商配置路由、非 claude 的 11 个会话 parser。
+- **UI 设置树**：21 个子页全部接实数据（含本轮 Collaboration / Shortcuts / Skill Packs）。
+- **按约定降级/跳过**：模型供应商只做存储 CRUD（不复刻连接逻辑）；内嵌浏览器无 webview（降级面板）；IDEA 式 split group 不做；computer-use 诚实降级。详见待办清单末尾「明确不计划」。
+- **桌面精灵**：Pet → Sprite 是独立浮动窗口（frameless + 透明 + 置顶 + 不进任务栏），帧动画 / 拖动行走 / 会话角标 / 原生右键菜单齐活，位置与尺寸持久化（`src/app/pet_sprite.go` + `pet_window.go`）。
+- **后续深化**：宏观结构已收官，剩余工作是「深化既有面板」，逐项见下方 **UI 深化待办（跨会话清单）**；UI 缺口细节在 [UI_GAPS.md](./UI_GAPS.md)。
 - **验证门槛**：每批 `gofmt` + `go build ./...` + `go vet ./...` + 相关 `go test` 全绿；exe 重建。
+
+---
+
+## UI 深化待办（跨会话清单）
+
+> 用法：新会话从这里接着做。完成一项就把 `[ ]` 改成 `[x]`，追加完成日期与验证方式
+> （测试名 / 快照文件名）。`[~]` 表示进行中。后端 523 条路由已全部实现，
+> 余下均为 UI 深化项。M1–M5 是历史施工清单，滞后处以本节和 ROUTE_INVENTORY 为准。
+
+### 已完成（2026-10-20，本轮）
+
+- [x] **Settings → Collaboration**（`src/app/settings_collaboration.go`）：General（enable / depth 1..8 /
+  cache）、Agent defaults（override 列表 + Remove override）双 tab；保存走 `delegation` 与六个
+  `*_setting` 工具组端点，`collabReseed` 回填。验证：`settings_collaboration_test.go` 2 个 + 真后端
+  保存/重读；快照 `settings-collaboration.png`。
+- [x] **Settings → Shortcuts**（`src/app/settings_shortcuts.go`）：24 个动作的原生录键按钮，冲突检测、
+  Esc 取消、`~/.gocode/shortcuts.json` 持久化、Reset defaults，动作直接驱动 chrome 与标签导航。
+  验证：`settings_shortcuts_test.go` 3 个；`TestMain` 用临时 `GOCODE_DATA_DIR` 隔离；快照
+  `settings-shortcuts.png`。
+- [x] **Settings → Skill Packs**（`src/app/settings_skill_packs.go`）：原生 `ui.Tabs` 四页
+  （Experts / Science / Office Tools / Custom）+ 共享 Refresh + Open central folder。
+  验证：`settings_skill_packs_test.go` 2 个；快照 `settings-skill-packs.png`。
+- [x] **i18n 收尾**：上述三页 en/zh-Hans 全量 key + 参数化 meta，`catalog_gen.go` 重新生成；
+  删除三枚失效 `setHint*`。验证：`go generate` 产物编译通过，中文 chrome 测试覆盖。
+- [x] **Terminal 多标签 + worktree 上下文**（`src/app/terminal.go`）：底部面板升级为上游式标签条
+  （切换 / 关闭 / 右键 Rename·Close Others·Close All / 新建 / 折叠），每个 tab 独立 PTY（tab id 即
+  `terminalId`，spawn 可带 `initialCommand`），并保留创建时的 folder + workingDir，worktree 终端
+  不随选择漂移；firehose 按 terminal id 失效对应快照。输出仍是文本回放（非 xterm，见 UI_GAPS）。
+  验证：`terminal_test.go` 10 个（含右键菜单、rename、Close Others/All、目录上下文、中文）；
+  `terminal-panel.png` 双 tab 快照。
+- [x] **Branch picker 补齐 worktree / rebase**（`src/app/git_ops.go`）：Branches 页新增
+  worktree 创建表单（branch + 目录，默认同级路径预填，`git_worktree_add` 后经
+  `open_worktree_folder` 注册并打开）、Other worktrees 区（Switch 经
+  `resolve_worktree_folder` 导航到该 checkout；Remove / Remove + delete branch 两步确认，
+  git 拒绝时升级 Force remove）、本地分支前缀树分组（单击折叠，worktree 持有的分支不再给普通
+  Delete）、每分支 Rebase（`git_rebase`）、远程分支列表与 Checkout（短名检出为 root 跟踪分支）。
+  验证：`git_branches_depth_test.go` 4 个（分组/折叠/rebase、创建→切换→移除、force 升级+
+  删除分支、远程检出）；快照 `git-branches-depth.png` / `git-worktrees.png`。
+- [x] **回归**：`scripts/test.sh` 全包通过；`codeblock_test.go` 的 Copy 点击改点代码块自身按钮
+  （避免命中消息级 Copy）。
+
+### 待开发（建议按序）
+
+- [x] **1. Git 工作台深化** —— 完成（2026-10-20），对齐上游 `commit-dialog.tsx` /
+  `push-workspace.tsx` 的核心工作台：
+  - Commit：分支 / 作者事实；tracked / untracked 分组（tracked 默认全选、untracked 默认折叠且不选）、
+    组复选框与全选 / 清空、目录树、选择计数；原生 `editor.DiffView` 的 HEAD ↔ 工作区并排预览
+    （二进制 / 空文件提示）；未合并冲突横幅 + Open Merge；提交信息 + `Commit (n)` /
+    `Commit and Push (n)`（带 folderId，推送结果回显）；刷新按钮。
+  - Push：`branch → remote/branch` 目标头（多 remote 可切换）；`git_log` 只列 `pushed === false`
+    的提交，可展开为文件夹树（status / +adds / -dels）；点文件用 `git_show_file` 取
+    `<hash>~1` ↔ `<hash>` 原生并排 diff；无 remote / 无未推送 / 新分支三种空态；`Push (n)`
+    的禁用规则与上游一致（loading / pushing / hasUpstream 且 0 未推送）。
+  - 缓存按 branch/remote 分键（`pushinfo:<root>:<branch>`、`pushlog:<root>:<branch>:<remote>`、
+    `commithead|commitwork:<root>:<file>`），提交 / 推送 / 换 remote / 刷新按前缀失效。
+  - 验证：`git_ops_test.go` 新增 3 个（untracked 选择并提交、未推送列表 + 展开 + diff + 推送、
+    Commit and Push），原 Git 测试保持通过；快照 `git-commit-selection.png` /
+    `git-push-commit.png` / `git-push-done.png`（`git-commit.png` / `git-push.png` 更新）。
+  - 仍省略：hunk 级 stage/unstage、文件右键 rollback/delete、图片 diff、force-with-lease、
+    推送进度流、提交信息历史 / 生成（见 `docs/UI_GAPS.md`）。
+- [x] **Shortcuts 动作表补齐**（`src/app/settings_shortcuts.go`，2026-10-20）：动作从 19 条扩到
+  24 条，按上游 `SHORTCUT_DEFINITIONS` 排序：新增 New Terminal / Close Current Terminal /
+  Reopen Closed Tab / Send Message / Newline in Message；默认弦、标题与说明对齐上游
+  `DEFAULT_SHORTCUTS` 与 i18n。实现上游 `SHARED_SHORTCUT_PAIRS`：⌘T / ⌘W 在终端区域
+  （面板打开且指针或输入行在面板内）归终端，否则归会话标签；两个动作共用一条弦时只注册一个
+  窗口动作并按区域分派（mygo 一条弦只投递给一个动作）。每行新增 × 取消绑定，空弦持久化为
+  `""` 且不再回退默认；录制接受无修饰键（send / newline）。Composer 换成原生 `TextArea`，
+  Enter / Shift+Enter 与自定义 send/newline 弦全部生效。省略：close_all_file_tabs（无文件
+  标签）、toggle_custom_style（无自定义样式子系统）、zoom_in/out/reset（原生窗口无全局缩放）。
+  验证：`settings_shortcuts_test.go` 8 个（录键/冲突/Esc/Reset、共享弦、终端与会话路由、
+  reopen 原位、composer 发送/换行、chrome、标签导航）；快照 `settings-shortcuts.png`。
+- [x] **2. Shortcuts 补齐** —— 完成（2026-10-20）：24 条动作、取消绑定、终端标签路由、
+  reopen 原位恢复、composer 发送/换行键；文件标签 / 自定义样式 / 窗口缩放按能力降级。
+  验证：`settings_shortcuts_test.go` 8 个；快照 `settings-shortcuts.png`。
+- [x] **3. Token Usage 深化** —— 完成（2026-10-20）：三个维度改为多选（原生 Popover +
+  Checkbox 清单、`folderIds`/`agentTypes`/`models` 数组、Reset filters）；热力图补星期栏 /
+  小时刻度 / 图例 / 峰值提示，每格挂原生 Tooltip（`Mon 09:00 — 500 tokens`）。
+  验证：`token_usage_test.go` 9 个（多选交互、请求体数组、悬停提示）；快照 `token-usage.png`。
+- [x] **4. Folder links 预检/修复** —— 完成（2026-10-20）：`Add link` 先走
+  `preview_folder_links` dry-run，可用计划进入「Ready to link」卡（可改名 + git-exclude 开关 +
+  Discard / Link 1 folder(s)），拒绝原因（inside_root / already_linked as <name> / name_unavailable
+  等）本地化展示；missing/broken 行出现 Recreate link → `repair_folder_link`。
+  验证：`workspace_folders_test.go` 8 个（含拒绝、已链接、重名改名、真实修复）；快照
+  `workspace-folders.png`（含待确认预览卡与 broken 行修复按钮）。
+- [x] **5. Settings → Agents 深化** —— 完成（2026-10-20）：拆出 `settings_agents.go`；内置目录加
+  单飞版本探测（`Checking…` → `vX.Y.Z` / `update available` / `No local installation found.` /
+  失败红字 + toast），页头帮助文案解释 ACP 与 available；`Custom agents` 区接
+  `acp_list/save/delete_custom_agent`，新增表单（registry id / name / description / npx|uvx /
+  package / version / skills dir）按后端规则做客户端校验（id 必填、≤64、不以 `.` 开头；
+  name/package 必填；version ≤128；skills dir 绝对或 `~/…`），删除走两步确认，
+  `launchable=false` 显示 problem。验证：`settings_agents_test.go` 4 个 + 快照
+  `settings-agents*.png`；全量 `scripts/test.sh` 绿。
+  最小切片：自定义 agent 只能新增/删除（无编辑），registry 一键添加未接。
+- [x] **6. Antigravity 登录 3 路由** —— 完成（2026-10-20）：`src-go/acp/antigravity_login.go`
+  照上游 `antigravity_login.rs` 移植免浏览器 OAuth：`start` 拉起一次性 agent 子进程、从输出行
+  抓取授权链接并生成 handle 槽位（单飞 + generation 守卫 + 5 分钟过期），`finish` 校验粘贴的
+  redirect/授权码后经本地 loopback 中转（不走代理、不跟随重定向），`cancel` 结束等待；经由
+  `SpawnConfig.OnOutput` / `Peer.SetLineObserver` 观察输出行，spawn 接缝可注入测试替身。
+  验证：`antigravity_login_test.go` 14 个 + `acp_antigravity_test.go` 1 个；后端 523/523。
+  最小切片：未接前端登录弹窗（上游 UI 入口本轮不动），仅打通命令层。
+- [x] **7. Pet 精灵窗口** —— 完成（2026-11-01）。上游 `src/app/pet` 的桌面精灵落成**独立 mygo 窗口**
+  （Frameless + Transparent + AlwaysOnTop + SkipTaskbar，先 Hidden 建窗、精灵图解码完再 Show）。
+  `src/app/pet_sprite.go` 照 `lib/pet/animation.ts` 移植：8 列 × 192×208 帧格、9 状态行映射、
+  逐帧时长表、idle 每 8–15s 随机 flourish、one-shot 循环预算；spritesheet（PNG/WebP/GIF/JPEG）
+  一次切成每状态的帧序列（`ui.Bitmap` + `Pixelated`）。
+  `src/app/pet_window.go` 是窗口本体：帧动画用 `c.Now()` + `c.After` 自驱动（不另开定时器）；
+  拖动走 `DragWindow`，`OnMove` 的位移驱动 running_left/right；右上角会话角标
+  （waiting > error > running，点击跳 Pet 页）；右下角 ⋯ 弹**原生 mygo 菜单**（跳跃 / 挥手 /
+  放大 / 缩小 / 重置 / 置顶 / 打开 Pet 页 / 关闭）。位置、尺寸、置顶经 `pet_save_window_state`
+  持久化，`enabled` 让下次启动恢复窗口；`pet://oneshot` / `pet://state` / `pet://active-changed`
+  由 firehose 钩子驱动（`stream.go` 的回调现在把通道载荷一并带出）。
+  Pet → Sprite 页（`src/app/pet.go`）变成真管理页：宠物列表 + 当前宠物徽标 + 两步删除 +
+  尺寸滑杆 + 打开/关闭窗口 + 添加（文件对话框 → base64 → `pet_add`）+ 从 Codex 导入。
+  验证：`pet_sprite_test.go` 9 个（帧格 / 行数 / 切片 / 动画时钟 / one-shot 预算）、
+  `pet_window_test.go` 9 个（精灵+角标渲染、悬停出菜单、状态优先级、flourish、事件载荷、slug）、
+  `pet_sprite_page_test.go` 6 个（列表 / 两步删除 / 空态 / 无宠物守卫 / 尺寸回填 / 后端往返）；
+  快照 `pet-window.png`、`pet-sprite-page.png`、`pet-sprite-empty.png`。
+  最小切片：marketplace 不抓（第三方素材，后端已诚实降级）；无全局光标 hover watcher，
+  所以「悬停挥手」不做，改用 ⋯ 菜单里的挥手；单击跳跃让位给拖动（`DragWindow` 会吞掉左键 click）。
+
+### 明确不计划（诚实降级，不算待办）
+
+- IDEA 式 split group（`groupLayout`）：与既有 tab strip 架构冲突，维持不实现。
+- 内嵌浏览器 webview：mygo 无 webview，保留降级面板（无前进/后退/刷新/端口桥接）。
+- 模型供应商连接逻辑：按约定只做存储 CRUD，不做 provider 拉模型/测连接。
+- computer-use 实机控制：保留能力探测 + 诚实降级。
 
 ---
 
@@ -45,7 +175,7 @@
   - [x] 单测全覆盖
 - [x] 会话快照 `LiveSessionSnapshot`（`src-go/acp/session_state.go`）
 - [x] 事件总线指标 `EventBusMetrics`（`src-go/acp/internal_bus.go`）
-- [x] 优雅关闭（`cmd/yoyocode-server/main.go`：latch → 广播 → 250ms → Close）
+- [x] 优雅关闭（`cmd/gocode-server/main.go`：latch → 广播 → 250ms → Close）
 - [x] 依赖解耦：`acp` 不再 import `web`（改为 `acp.EventSink` 接口），消除 import cycle
 
 ### M0 验收
@@ -77,17 +207,16 @@ go test ./...         → acp / app_error / web 全绿
 - [x] `git` 读 + 简单分支操作（shell out 到系统 git，输出逐字段对齐上游）：`get_git_branch` / `get_git_head` / `git_status` / `git_diff` / `git_diff_with_branch` / `git_show_diff` / `git_show_file` / `git_is_tracked` / `git_list_branches` / `git_list_all_branches` / `git_commit_branches` / `git_list_remotes` / `git_push_info` / `git_log`（含 pushed/has_upstream 推送状态推断）/ `git_new_branch` / `git_checkout` / `git_reset`
 - [x] `git` 写操作：`git_add_files` / `git_commit`（含 staged-deletion 跳过 + committed_files 计数）/ `git_init` / `git_rollback_file` / stash 全套（push/pop/apply/drop/clear/show/list）/ `git_fetch` / `git_fetch_remote` / `git_pull`（updated_files）/ `git_push`（pushed_commits + upstream_set，首推 -u）—— 远程操作带 askpass 凭据注入
 - [x] `work_task` 26 条 P0（CRUD/排序/归档/清理/事件 + 生命周期状态机 + 设置 + 模板，见 M3 B10）
-- [ ] `forge` 15 条 P0
-- [ ] `terminal` 5 条
+- [x] `forge` 17 条（含 P0）
+- [x] `terminal` 6 条（含 P0 5 条）
 - [x] `files` 文件编辑器命令：`create_file_tree_entry` / `rename_file_tree_entry` / `move_file_tree_entry` / `delete_file_tree_entry` / `read_file_for_edit` / `save_file_content`（etag 乐观并发）/ `read_workspace_file_base64`
 - [x] `quick_messages` 5 条：`list` / `create` / `update` / `delete` / `reorder`
 - [x] `conversation_tags` 8 条：list/create/update/delete/reorder + `update_conversation_tags` + branch tag（含重名/颜色校验的 i18n_key）
 - [x] `opened_tabs`：`list_opened_tabs` / `save_opened_tabs`（CAS 版本号 + 草稿不落库 + at-most-one active）
 - [x] `model_provider` 4 条：list/create/update/delete —— 仅做存储 CRUD（不复刻 provider 逻辑/连接刷新），返回含 `api_key_masked` 的完整 ModelProviderInfo
-- [ ] `pet`：`pet_list_active_sessions`
 - [x] 设置项：`question`(get/set) / `feedback`(get/set) / `session_info`(get/set) / `chat_authoring`(get/set) / `delegation`(get/set，depth 1..8 clamp) —— app_metadata 持久化 + firehose 广播
 - [x] `get_home_directory` / `probe_terminal_shell_path` / `pet_list_active_sessions`（空载）/ `list_child_conversations`；`detect_git` 已在 B3 完成
-- [ ] `github_accounts` 4 条
+- [x] `github_accounts` 2 条（get/update，清单实为 2 条）
 
 ---
 
@@ -101,42 +230,43 @@ go test ./...         → acp / app_error / web 全绿
 - [ ] 提问请求 → `pending_question` → `acp_answer_question`
 - [x] session 驱动 `acp/agent_session.go` + 活连接生命周期 `acp/connection.go`：spawn→握手→注册 SessionRegistry→prompt/permission/cancel/disconnect，HTTP handler 全部接到真实引擎
 - [~] fork ✅（`acp_fork`，两行布局；fork point 需 transcript 解析 → 尾部 fork）；delegation（上游约 1MB 源码，不可行）/ plan approval（引擎未暴露）待做
-- [ ] `yoyocode-mcp` 伴随二进制
+- [ ] `gocode-mcp` 伴随二进制
 
 ---
 
 ## M3 — git / forge / work_task / terminal
 
-- [~] `git`（52 条）：读/分支/写/stash/push/pull/fetch 已落地 32 条；worktree/conflict/remote 管理待做
-- [ ] `forge`（17 条）：GitHub / Gitea / GitLab issue / PR / comment
+- [x] `git`（52/52）：读/分支/写/stash/push/pull/fetch/worktree/conflict/remote 全部落地
+- [x] `forge`（17/17）：GitHub / Gitea / GitLab issue / PR / comment
 - [x] `work_task`（31 条）：全量 schema（work_task 36 列 + work_task_event/_settings/_template）+ 数据面 CRUD/reorder/archive/cleanup/events/attention_count + 生命周期状态机（start/retry/requeue/schedule/return/cancel/merge/merge_unqueue/deliver_pr/complete/start_all）+ 每文件夹设置（get/effective/get_own/set/delete，defaults 合并）+ 模板（list/save-upsert/delete）+ diff/changed_files（git over worktree）。agent 实际执行为后续增强，board 契约忠实。
-- [ ] `terminal`（6 条）：pty spawn / write / resize / kill / list
-- [ ] `version_control`（12 条）
+- [x] `terminal`（6/6）：pty spawn / write / resize / kill / list
+- [x] `version_control`（12/12）
 
 ---
 
 ## M4 — 桌面端模块
 
-- [ ] `automation`(11) · `backup`(11) · `canvas`(12) · `chat_channel`(22) · `computer`(18)
-- [ ] `config_sync`(12) · `custom_skills`(10) · `experts`(8) · `science`(8)
-- [ ] `app_update`(4) · `logging`(5) · `mcp`(8) · `mcp_service`(3)
-- [ ] `office_tools`(14) · `office_watch_proxy`(3) · `token_usage`(4)
-- [ ] `folder_commands`(6) · `folder_links`(6) · `background`(5)
-- [ ] `browser_bridge`(3) · `browser_tools`(2) · `computer_tools`(4)
-- [ ] `chat_authoring`(2) · `delegation`(2) · `feedback`(3) · `question`(2) · `session_info`(2)
-- [ ] `event_metrics`(1) · `workspace_state`(3) · `workspace_files`(4) · `project_boot`(5)
-- [ ] `pet`(19)
+- [x] `automation`(11) · `backup`(12) · `canvas`(12) · `chat_channel`(22) · `computer`(18)
+- [x] `config_sync`(12) · `custom_skills`(10) · `experts`(8) · `science`(8)
+- [x] `app_update`(4) · `logging`(5) · `mcp`(8) · `mcp_service`(3)
+- [x] `office_tools`(14) · `office_watch_proxy`(3) · `token_usage`(4)
+- [x] `folder_commands`(6) · `folder_links`(6) · `background`(5)
+- [x] `browser_bridge`(3) · `browser_tools`(2) · `computer_tools`(4)
+- [x] `chat_authoring`(2) · `delegation`(2) · `feedback`(3) · `question`(2) · `session_info`(2)
+- [x] `event_metrics`(1) · `workspace_state`(3) · `workspace_files`(4) · `project_boot`(5)
+- [x] `pet`(19)
+
+> 以上为路由层注册完成度（与 ROUTE_INVENTORY 一致）；行为深度/最小切片见 `docs/UI_GAPS.md`。
 
 ---
 
 ## M5 — mygo 原生 UI
 
-依赖为普通 Go 模块（`require github.com/egoist/mygo v0.3.5`，哈希在 go.sum），
-构建时经 git 拉取；`_upstream/*` 整目录忽略，仓库不携带上游源码。
+依赖为普通 Go 模块（`require github.com/egoist/mygo v0.5.5`，哈希在 go.sum）。
 
 - [x] `src/app/workspace` 主窗口（会话列表/详情 + composer；文件浏览器 Files；Git 变更 / diff；终端；**主区标签栏** ✅ 2026-10-13）
-- [ ] `src/app/settings/*` 21 个子页
-- [ ] `src/app/commit` / `push` / `merge` / `stash`
+- [x] `src/app/settings/*` 21 个子页（全部接实数据；深度见 UI_GAPS 与上方待办）
+- [x] `src/app/commit` / `push` / `merge` / `stash`（整页路由；工作台深度见待办 #2）
 - [~] `src/app/pet` / `pet-panel`（pet-panel 会话面板接真实数据 ✅ 2026-10-13；pet sprite / marketplace 待做）
 - [x] `src/app/login`（token 门；桌面版恒有 token，等价上游 `isDesktop()` 跳过）✅ 2026-10-13
 - [~] `src/app/project-boot`（诚实占位；后端 `project_boot_*` 未移植）✅ 2026-10-13
@@ -184,7 +314,7 @@ go test ./...         → acp / app_error / web 全绿
   直接问 pi 自己（与一次会话同款可执行文件与 agent dir），**不开 ACP 会话、不发 prompt、不联网**：
   在一个**私有的空临时目录**里以 `--mode rpc --offline --no-session --no-extensions --no-skills
   --no-prompt-templates --no-context-files --no-approve` 起 pi，写一行
-  `{"id":"yoyocode-models","type":"get_available_models"}`，逐行读响应直到匹配（12s 截止）。
+  `{"id":"gocode-models","type":"get_available_models"}`，逐行读响应直到匹配（12s 截止）。
   - `--offline` 是刻意的：否则 RPC 模式会启动后台模型刷新去续期**已过期**的 OAuth 登录（轮换
     refresh token），而它在 stdin EOF 时不等刷新完就退出 —— 这么短的查询会把轮换拦腰砍断。
   - 路由 **infallible**：所有失败都映射为 `status`（`not_found`/`relative_path`/`failed`/
@@ -285,8 +415,8 @@ go test ./...         → acp / app_error / web 全绿
 - **`src-go/web/handlers/acp_kimi_config.go`（新增）**：`acp_update_kimi_code_config` ——
   三种模式：`apikey`（写 `~/.kimi-code/config.toml` 的 managed provider/model 块 + 种下 gate
   token）/ `login`（清 managed 块 + 只删「我们的」token）/ `raw`（校验 TOML 后原样写入 +
-  种 token）。managed 块用**本项目品牌**（provider `yoyocode`、alias `yoyocode-managed`、
-  gate token `yoyocode-local-gate`、标记 `_yoyocode_synthetic`），可识别可移除且不扰动用户手写
+  种 token）。managed 块用**本项目品牌**（provider `gocode`、alias `gocode-managed`、
+  gate token `gocode-local-gate`、标记 `_gocode_synthetic`），可识别可移除且不扰动用户手写
   的 provider/model；`max_context_size` 恒写正数（kimi schema 缺它整个 model 块会被丢弃）。
   reasoning：`capabilities` = thinking/always_thinking + image_in/video_in/tool_use，
   `support_efforts` 去重，`default_effort` 不在列表内则丢弃。每次保存清 `KIMI_MODEL_*` env 覆盖。
@@ -777,10 +907,10 @@ go test ./...         → acp / app_error / web 全绿
 - UI 主题：`src/app/theme.go` 新增 themeDark（对齐上游 globals.css 的 [data-theme="neutral"].dark：近黑画布 #18181b、深灰面板、浅色主色 #e4e4e7 + 深色文字、灰阶）+ resolveTheme(mode)（system 无进程内探测时回退 light）。
 - Shell 接线：Shell 增 appearanceMode 字段（默认 system），View 里经 ensure("appearance-mode","get_appearance_mode") 读取并把 resolveTheme 结果 SetTheme 到整窗——所以主题是全局生效的，不只是某页。
 - Appearance 设置页：settingsPages 的 appearance 由占位改为真实页 viewSettingsAppearance —— 主题模式三选一（System/Light/Dark，当前项高亮为主按钮），点击经 setAppearanceMode 乐观改主题 + 调 update_appearance_mode 持久化 + 失效缓存重绘；下方显示当前模式与三色实时预览块。对齐上游 components/settings/appearance-settings.tsx 的主题模式段（字体/工作区背景等其余段留待）。
-- 全量 build/vet/test ./... 全绿（handlers 82s），exe 重建；dev 热重载预览已重启（yoyocode Dev / YoYoCode）。
+- 全量 build/vet/test ./... 全绿（handlers 82s），exe 重建；dev 热重载预览已重启（gocode Dev / GoCode）。
 ### 2026-10-12（UI：工作区空态欢迎面板）
 
-- src/app/workspace.go viewConversationDetail 的「未选会话」空态由单行「Select or create a conversation」升级为居中欢迎面板（对齐 上游 的无会话画布）：产品名 YoYoCode（28号粗体）+ 一行提示 + 主按钮「New chat」(createChatConversation) 与次按钮「Open folder…」(openFolder)。dev 热重载后 a11y 树已确认渲染（元素 [5]/[6] 两按钮 + 标题/副标题文本）。
+- src/app/workspace.go viewConversationDetail 的「未选会话」空态由单行「Select or create a conversation」升级为居中欢迎面板（对齐 上游 的无会话画布）：产品名 GoCode（28号粗体）+ 一行提示 + 主按钮「New chat」(createChatConversation) 与次按钮「Open folder…」(openFolder)。dev 热重载后 a11y 树已确认渲染（元素 [5]/[6] 两按钮 + 标题/副标题文本）。
 - 说明：本会话此前多轮均为后端路由（450→476）实现，故 UI 一直未变；本次起转入可见 UI 改进。注意本会话无法读取 mygo GPU 窗口像素（截图只回元数据），UI 结构以无障碍树核验、视觉保真以上游 src/app 源逐一移植。
 - go test ./src/app 全绿、go vet 全绿、exe 重建。
 ### 2026-10-12（续：import_local_conversations + import_selected_sessions 会话导入写入，后端 474→476）
@@ -805,7 +935,7 @@ go test ./...         → acp / app_error / web 全绿
   - upload_now：collect→serialize→sha256→counts；remoteTarget=serverUrl\0remoteDir\0profile\0protection；!force 且 sha+target 未变→uploaded:false 不触网；写前 ensureDir→PUT config→PUT manifest→存 state(lastUploadedSha256/Target/SyncAt)。返回 {uploaded,sha256,counts,syncedAt}。
   - peek_remote：GET manifest.json→解析 ConfigManifest 或 null。download_apply：GET manifest+config→validateManifest(schema/encryption/size/sha256)→parse→applyImport(存回滚+应用)→{manifest,applied,rollbackPath}。
   - 加密诚实降级：encrypt=true 的上传/下载直接 ErrConfigInvalid（本构建仅 none），绝不半写加密远端。
-- 测试 config_sync_webdav_remote_test.go（YOYOCODE_HOME 隔离，httptest 内存 WebDAV map 支持 MKCOL/PUT/GET/PROPFIND）：seed→update_settings→upload_now(uploaded:true + config/manifest 落服务器)→二次 upload 不变 no-op→peek_remote 得 manifest→download_apply 应用(manifest+applied+rollbackPath)→空 profile peek 得 null。
+- 测试 config_sync_webdav_remote_test.go（GOCODE_HOME 隔离，httptest 内存 WebDAV map 支持 MKCOL/PUT/GET/PROPFIND）：seed→update_settings→upload_now(uploaded:true + config/manifest 落服务器)→二次 upload 不变 no-op→peek_remote 得 manifest→download_apply 应用(manifest+applied+rollbackPath)→空 profile peek 得 null。
 - 全量 build/vet/test ./... 全绿（handlers 56s），inventory 523/473/P0 128/128，exe 重建。config_sync 全 9 路由（settings/state/export/peek/import/rollback/test_connection/upload_now/peek_remote/download_apply）已闭环。
 ### 2026-10-12（续：config_sync_test_connection WebDAV 连通性探测，后端 469→470）
 
@@ -816,11 +946,11 @@ go test ./...         → acp / app_error / web 全绿
 - 全量 build/vet/test ./... 全绿（handlers 59s），inventory 523/470/P0 128/128，exe 重建。剩余 config_sync 远端 3 路由（upload_now/peek_remote/download_apply）依赖完整 WebDAV 引擎（读写 config.json+manifest.json、可选加密、状态跟踪），留待。
 ### 2026-10-12（续：upload_attachment，后端 468→469）
 
-- 新增 src-go/web/handlers/upload_attachment.go（对齐上游 web/handlers/files.rs upload_attachment）：把单个 multipart 文件流式写入 <uploads-root>/<session-bucket>/，限定在 uploads 根内，文件名清洗 + 冲突后缀、20 MiB 单文件上限、可选总量配额（YOYOCODE_UPLOAD_MAX_TOTAL_BYTES）。返回 {path,name,size,mimeType}。
-  - yoyocodeUploadsRoot：YOYOCODE_HOME/uploads → YOYOCODE_DATA_DIR/uploads → ~/.yoyocode/uploads。sanitizeUploadFilename（取末段、剔控制符、替换 /\:*?"<>| 、剪尾点、限 120 字、全点→file）、sanitizeSessionBucket（仅字母数字-_、去 _ 边界、限 80、空→anon）。
+- 新增 src-go/web/handlers/upload_attachment.go（对齐上游 web/handlers/files.rs upload_attachment）：把单个 multipart 文件流式写入 <uploads-root>/<session-bucket>/，限定在 uploads 根内，文件名清洗 + 冲突后缀、20 MiB 单文件上限、可选总量配额（GOCODE_UPLOAD_MAX_TOTAL_BYTES）。返回 {path,name,size,mimeType}。
+  - gocodeUploadsRoot：GOCODE_HOME/uploads → GOCODE_DATA_DIR/uploads → ~/.gocode/uploads。sanitizeUploadFilename（取末段、剔控制符、替换 /\:*?"<>| 、剪尾点、限 120 字、全点→file）、sanitizeSessionBucket（仅字母数字-_、去 _ 边界、限 80、空→anon）。
   - finalizeUploadName：原名→"name (1).ext"…(≤999)→UUID 回退，用 os.Link（已存在即换名，跨设备回退 O_EXCL 预留 + rename）。.tmp 暂存 + 符号链接 bucket/tmp 拒绝 + ensureNavigable 越界拒。空文件/多 file 字段/缺 file 拒。
   - 配额：cap>0 时 reserve=min(Content-Length,20MiB)，used+reserve>cap 拒。limitedReader 实现 20MiB 硬上限。
-- 测试 upload_attachment_test.go（YOYOCODE_HOME 隔离）：基本上传（落盘+size）、同名冲突得 "notes (1).txt"、../ 文件名清洗为 passwd、空文件拒、缺 file 字段拒、无 session 落 anon 桶。
+- 测试 upload_attachment_test.go（GOCODE_HOME 隔离）：基本上传（落盘+size）、同名冲突得 "notes (1).txt"、../ 文件名清洗为 passwd、空文件拒、缺 file 字段拒、无 session 落 anon 桶。
 - 全量 build/vet/test ./... 全绿（handlers 68s），inventory 523/469/P0 128/128，exe 重建。
 ### 2026-10-12（续：open_worktree_folder，后端 467→468）
 
@@ -850,8 +980,8 @@ go test ./...         → acp / app_error / web 全绿
   - 域（跳过 modelProviders —— 模型供应商配置不在范围）：agentSettings（provider 以自然键 {agentType,name} 引用，导入时解析为本地 model_provider.id，解析不到降级为空而不失败）、customAgents（按 registry_id，排除设备本地 skills_dir/installed_version）、quickMessages（按 title）、taskTemplates（按 name）、preferences（PORTABLE_PREFERENCE_KEYS 白名单的字符串键，导入再校验白名单防注入 github_accounts 等）。未知域忽略，与上游优雅降级一致。
   - 快照序列化 json pretty(2-space) 与 serde to_vec_pretty 一致（domains map Go 按键排序 == BTreeMap）；manifest {schemaVersion,encryption:none,createdAt,appVersion,sourceDevice(hostname),config:{size,sha256},counts}，sha256 覆盖快照字节。counts：数组域取长度、preferences 取白名单字符串键数。
   - config_sync_export_content（返回 {content,counts}）、config_sync_peek_content（解析信封或裸 config.json→{manifest,counts}，裸文件合成信封、appVersion=unknown）、config_sync_import_content（parse→saveRollback(采集当前态写盘)→事务内按序 upsert 5 域→{applied:{domains,total},rollbackPath}）。
-  - 回滚文件：configSnapshotDir = YOYOCODE_HOME|~/.yoyocode /config-snapshots；写 config-<YYYYMMDDTHHMMSSmmm>.json 并保留 10 个；list（名字时间序 desc，id 校验字母数字、createdAt 从 id 反解、counts）、apply_rollback（resolveRollback 校验 id 字母表防穿越→读→applyImport）。
-- 测试 config_sync_content_test.go（YOYOCODE_HOME 隔离，不污染真实 ~/.yoyocode）：seed quick message → export（校验信封 + counts.quickMessages=1 + modelProviders 不出现）→ peek（manifest/counts）→ import（applied.total + rollbackPath）→ list_rollbacks(≥1，id config- 前缀) → apply_rollback → 穿越 id (config-../etc) 被拒。
+  - 回滚文件：configSnapshotDir = GOCODE_HOME|~/.gocode /config-snapshots；写 config-<YYYYMMDDTHHMMSSmmm>.json 并保留 10 个；list（名字时间序 desc，id 校验字母数字、createdAt 从 id 反解、counts）、apply_rollback（resolveRollback 校验 id 字母表防穿越→读→applyImport）。
+- 测试 config_sync_content_test.go（GOCODE_HOME 隔离，不污染真实 ~/.gocode）：seed quick message → export（校验信封 + counts.quickMessages=1 + modelProviders 不出现）→ peek（manifest/counts）→ import（applied.total + rollbackPath）→ list_rollbacks(≥1，id config- 前缀) → apply_rollback → 穿越 id (config-../etc) 被拒。
 - 全量 build/vet/test ./... 全绿（handlers 60s），inventory 523/465/P0 128/128，exe 重建。剩余 config_sync 远端同步 4 路由（test_connection/upload_now/peek_remote/download_apply）依赖 WebDAV 后端，留待。
 ### 2026-10-12（续：工作区下载票据流 + 路由 raw 前缀路由，后端 459→460）
 
@@ -868,7 +998,7 @@ go test ./...         → acp / app_error / web 全绿
 
 - 路由基座：src-go/web 的 Context 加 `Handled bool`；serveAPI 在 handler 返回后若 `ctx.Handled` 为真则不再写 JSON（handler 已自写文件流/zip/原始字节）。这是非 JSON 响应的通用出口，解锁后续 raw-HTTP 端点（backup 下载、下载票据等）。web 包测试全绿。
 - 新增 src-go/web/handlers/workspace_file_transfer.go（对齐上游 web/handlers/workspace_files.rs，Issue #179 服务端无原生文件对话框）：
-  - upload_workspace_file：解析 multipart（root_path/rootPath、target_path/targetPath、relative_path/relativePath、file），computeFinalRel（sanitizeSegment/sanitizeRelativeSubpath 跨平台清洗、拒 ..）→ resolveTreePath 定位 → MkdirAll parent → ensureNavigable 越界拒 → 已存在目录/文件拒 → 写 .yoyocode-upload-<uuid>.part 暂存 → os.Link 原子提交（已存在报 already_exists，无硬链接文件系统回退 os.Rename）→ 复核 navigable + Lstat 校验 → 返回 {path,name,size}。
+  - upload_workspace_file：解析 multipart（root_path/rootPath、target_path/targetPath、relative_path/relativePath、file），computeFinalRel（sanitizeSegment/sanitizeRelativeSubpath 跨平台清洗、拒 ..）→ resolveTreePath 定位 → MkdirAll parent → ensureNavigable 越界拒 → 已存在目录/文件拒 → 写 .gocode-upload-<uuid>.part 暂存 → os.Link 原子提交（已存在报 already_exists，无硬链接文件系统回退 os.Rename）→ 复核 navigable + Lstat 校验 → 返回 {path,name,size}。
   - download_workspace_file：resolveTreePath + Stat（非文件/不存在拒）+ ensureNavigable → 流式写 c.W（octet-stream + Content-Length + attachmentHeader，RFC5987 filename*）。
   - download_workspace_dir：resolveTreePath 目录（空 path=根）→ archive/zip 流式写 c.W（跳过符号链接），Content-Type application/zip + attachmentHeader(<name>.zip)。
   - attachmentHeader 对齐 attachment_header（header-safe ASCII filename + filename*=UTF-8''<pct-encoded>）。
@@ -879,7 +1009,7 @@ go test ./...         → acp / app_error / web 全绿
 - 新增 src-go/web/handlers/custom_import_from_agent.go（对齐上游 commands/custom_skills.rs: custom_import_from_agent + import_one_from_agent_locked）：把某 agent 的全局技能批量复制进中央自定义技能库，让单 agent 技能变为共享自定义技能。
   - 逐项结果（不中断批次）：locateExistingSkillAcrossDirs 在 spec.globalDirs 里按 kind 找到（找不到→ok:false/skipped:false/error:not found）；中央库已存在/软链→幂等 skipped:true；validateSkillID 守卫内置包占用的 id；按 layout 选 copyDirRecursive（目录）或 copyFileContents→SKILL.md（独立 .md）；复制失败回滚部分拷贝（受护：在库内且非链接）。
   - 仅取全局技能（项目作用域技能工作区专属，故意排除）；不支持的 agent → ErrTaskExecution。复用现有 skillStorageSpecFor/customCentralPath/pathIsSymlink/copyDirRecursive/copyFileContents/validateSkillID。
-- 测试 custom_import_from_agent_test.go：在 ~/.claude/skills 植入技能 → 导入（含 bogus id 返回 error）→ 校验落入 ~/.yoyocode/skills 中央库 → 重导入幂等 skip → 不支持 agent 报错。
+- 测试 custom_import_from_agent_test.go：在 ~/.claude/skills 植入技能 → 导入（含 bogus id 返回 error）→ 校验落入 ~/.gocode/skills 中央库 → 重导入幂等 skip → 不支持 agent 报错。
 - 全量 build/vet/test ./... 全绿（handlers 52s），inventory 523/456/P0 128/128，exe 重建。
 ### 2026-10-12（续：acp_fetch_registry_catalog + acp_add_registry_agent，后端 453→455）
 
@@ -919,11 +1049,11 @@ go test ./...         → acp / app_error / web 全绿
 - pet_codex.go（3 路由 + marketplace 3 路由）落地并通过测试。对齐上游 pets/codex_import.rs + pets/marketplace.rs：
   - pet_codex_import_available / pet_list_importable_codex / pet_import_codex：扫描用户自有 \/pets/<id>（{pet.json, spritesheet.webp} 同构），复制进 上游 本地 pets 库；支持 ids 过滤、overwriteWithSuffix（冲突时存为 <id>-imported）、skipped 原因回传。
   - pet_marketplace_list/install/asset：远端成品宠物目录含第三方角色美术，**不抓取/不复刻**——list 返回空页，install/asset 返回 ErrConfigInvalid（本构建不可用）。
-- **修复 pet_codex_test.go 污染根因**：petsRoot() 优先读 YOYOCODE_HOME，再读 YOYOCODE_DATA_DIR；开发机 env 里 YOYOCODE_DATA_DIR=…/app.yoyocode 为真实数据目录，之前测试 import 把 oo 写进真实 pets 库，导致复跑时 alreadyImported=true。修法：测试首行 	.Setenv("YOYOCODE_HOME", t.TempDir()) 隔离 pets 根（既不读也不污染真实目录）；并清理已污染的 oo。
+- **修复 pet_codex_test.go 污染根因**：petsRoot() 优先读 GOCODE_HOME，再读 GOCODE_DATA_DIR；开发机 env 里 GOCODE_DATA_DIR=…/app.gocode 为真实数据目录，之前测试 import 把 oo 写进真实 pets 库，导致复跑时 alreadyImported=true。修法：测试首行 	.Setenv("GOCODE_HOME", t.TempDir()) 隔离 pets 根（既不读也不污染真实目录）；并清理已污染的 oo。
 - 全量 go build/vet/test ./... 全绿（handlers 49s），inventory 523 路由 / 450 实现 / P0 128/128，exe 重建。
 ### 2026-10-12（续：Pet 本地数据层 12 路由，后端 432→444）
 
-- 新增 `src-go/web/handlers/pet.go`（原生 Go，wire 对齐上游 commands/pet.rs + pets/*）：桌面宠物的数据层——本地宠物包存于 <pets-root>/<id>/{pet.json, spritesheet.webp}（YOYOCODE_HOME/YOYOCODE_DATA_DIR/~.yoyocode 解析），加 app_metadata 的窗口配置。
+- 新增 `src-go/web/handlers/pet.go`（原生 Go，wire 对齐上游 commands/pet.rs + pets/*）：桌面宠物的数据层——本地宠物包存于 <pets-root>/<id>/{pet.json, spritesheet.webp}（GOCODE_HOME/GOCODE_DATA_DIR/~.gocode 解析），加 app_metadata 的窗口配置。
   - pet_list / pet_get / pet_read_spritesheet（magic bytes 判 webp/png，base64）/ pet_add（校验 id、1KB–16MB、base64 可带 data: 前缀）/ pet_update_meta / pet_replace_sprite / pet_delete（限 pets 根内）。
   - pet_get_settings / pet_set_active（校验存在 + 发 pet://active-changed）/ pet_save_window_state（x/y/scale/alwaysOnTop/enabled 补丁）：PetWindowConfig 存 pet.config，默认 scale 0.75 / alwaysOnTop true。
   - pet_get_current_state → "idle"（本构建无 ACP→pet 状态映射器）；pet_celebrate（jumping/waving/failed 校验 → 发 pet://oneshot）。
@@ -944,7 +1074,7 @@ go test ./...         → acp / app_error / web 全绿
 
 - 新增 `src-go/web/handlers/science.go`（原生 Go，wire 对齐上游 commands/science.rs）：与 Experts 同构的 bundled 技能包族，共享中央库 + 链接引擎。本构建不内置 science 包：
   - science_list / science_list_all_install_statuses / science_get_install_status → 空。
-  - science_read_content → 只读中央库 ~/.yoyocode/skills/<id>/SKILL.md（无 embedded 回退）。
+  - science_read_content → 只读中央库 ~/.gocode/skills/<id>/SKILL.md（无 embedded 回退）。
   - science_open_central_dir → mkdir + 路径。
   - science_apply_links / science_link_to_agent / science_unlink_from_agent → 复用 skills_link.go 的共享引擎（enableSkillLink/disableSkillLink/applySkillLinkOps）。
 - 测试 `science_test.go`：空列表 + open_central_dir + read 读到/缺失报错。全量 build/vet/test ./... 全绿，exe 重建。ROUTE_INVENTORY 413→421（P0 仍 128/128）。至此 experts/science/custom-skills 三条技能族 + 共享链接引擎全部就位。
@@ -988,14 +1118,14 @@ go test ./...         → acp / app_error / web 全绿
 
 - settings.go 新增三页接真实后端（build/vet/test/exe 全绿）：
   - **Chat Channels**：list_chat_channels → 渠道卡片（名称 + channel_type + enabled/disabled 状态点）。
-  - **Computer Use**：computer_available → 状态（available / 本后端不可用）+ platform，附说明（仅 YOYOCODE_COMPUTER_USE=1 桌面会话提供）。
+  - **Computer Use**：computer_available → 状态（available / 本后端不可用）+ platform，附说明（仅 GOCODE_COMPUTER_USE=1 桌面会话提供）。
   - **Experts**：experts_list → 列表（本构建无内置包 → 空态引导去 Skills → Custom skills 自建）。
 - Settings 二级导航 19 页中 12 页出实数据（General / Web Service / Quick Messages / Agents / Version Control / System / MCP / Logs / Skills+Custom / Chat Channels / Computer Use / Experts）。
 - 自验：mygo dev 热重载常驻，build/vet/test ./src/app 全绿，exe 重建。
 
 ### 2026-10-12（续：Skill 链接引擎 5 路由，后端 403→408）
 
-- 新增 `src-go/web/handlers/skills_link.go`（原生 Go，共享于 experts + custom skills，wire 对齐上游 commands/experts.rs 链接原语）：把中央库技能 ~/.yoyocode/skills/<id> 软链进 agent 自己的全局技能目录。
+- 新增 `src-go/web/handlers/skills_link.go`（原生 Go，共享于 experts + custom skills，wire 对齐上游 commands/experts.rs 链接原语）：把中央库技能 ~/.gocode/skills/<id> 软链进 agent 自己的全局技能目录。
   - `custom_apply_links` / `experts_apply_links`（ops[{expertId,agentType,enable}]）→ []LinkOpResult（逐 op ok/status/error，失败不中断）。
   - `custom_list_all_install_statuses` → (技能 × 15 个 skills-capable agent) 矩阵的 ExpertInstallStatus（expert_id/agent_type/state/link_path/target_path/expected_target_path/copy_mode）。
   - `experts_link_to_agent`（单 enable → ExpertInstallStatus）/ `experts_unlink_from_agent`（单 disable → null）。
@@ -1016,7 +1146,7 @@ go test ./...         → acp / app_error / web 全绿
 
 - 新增 `src-go/web/handlers/experts.go`（原生 Go，wire 对齐上游 commands/experts.rs）：本构建不内置 bundled expert 包，故：
   - `experts_list` / `experts_list_all_install_statuses` / `experts_get_install_status` → 空列表（无内置包、无链接）。
-  - `experts_read_content`：只读中央库 ~/.yoyocode/skills/<id>/SKILL.md（校验 id；**不内置任何 bundled 包内容**，无 embedded 回退）。
+  - `experts_read_content`：只读中央库 ~/.gocode/skills/<id>/SKILL.md（校验 id；**不内置任何 bundled 包内容**，无 embedded 回退）。
   - `experts_open_central_dir`：mkdir 中央库并返回路径。
 - link 引擎（experts_link_to_agent/apply_links/unlink + custom_apply_links/list_all_install_statuses/import_from_agent，把中央技能 symlink/junction 进各 agent 技能目录）仍留待专门一轮。
 - 测试 `experts_test.go`：空目录三连、open_central_dir 建目录、read_content 读到/缺失报错。全量 build/vet/test ./... 全绿，exe 重建。ROUTE_INVENTORY 395→400（里程碑：实现 400/523，P0 仍 128/128）。
@@ -1043,13 +1173,13 @@ go test ./...         → acp / app_error / web 全绿
 
 - 新增 `src-go/web/handlers/backup.go`（原生 Go，wire 对齐上游 commands/backup/restore.rs）：
   - `backup_active_agents` → []（咨询用；无头构建此层不追踪活跃 ACP agent，忠实报告无）。
-  - `backup_list_safety_snapshots` → SafetySnapshot[]（camelCase：id/path/created_at/size_bytes/rollback_supported），扫 <data_dir>/.yoyocode-restore-backup/ 下目录，读 .yoyocode-snapshot.json（v1+staging 才算可回滚），按时间（无则目录名）倒序。
+  - `backup_list_safety_snapshots` → SafetySnapshot[]（camelCase：id/path/created_at/size_bytes/rollback_supported），扫 <data_dir>/.gocode-restore-backup/ 下目录，读 .gocode-snapshot.json（v1+staging 才算可回滚），按时间（无则目录名）倒序。
 - 归档流式传输/恢复/回滚/下载票据等写入面是更大的 archive 子系统，后续。
 - 测试 `backup_read_test.go`：active_agents 空；两个快照目录（含/不含 manifest）→ rollback_supported 正确、created_at 读出、size_bytes 计数。全量 build/vet/test ./... 全绿，exe 重建。ROUTE_INVENTORY 383→385（P0 仍 128/128）。
 
 ### 2026-10-12（续：Custom Skills 中央库 CRUD 7 路由，后端 376→383）
 
-- 新增 `src-go/web/handlers/custom_skills.go`（原生 Go，wire 对齐上游 commands/custom_skills.rs）：中央技能库 ~/.yoyocode/skills/<id>/SKILL.md 的增删改查：
+- 新增 `src-go/web/handlers/custom_skills.go`（原生 Go，wire 对齐上游 commands/custom_skills.rs）：中央技能库 ~/.gocode/skills/<id>/SKILL.md 的增删改查：
   - `custom_list` → CustomSkillItem[]（camelCase：id/name/description/centralPath）；扫描库目录（dir+SKILL.md、合法 id、跳 dotfile），name 取 frontmatter 顶层 name: 否则 id，description 复用 readSkillDescription。
   - `custom_read_skill` / `custom_create_skill` / `custom_save_skill`（校验非 symlink + 已存在）/ `custom_duplicate_skill`（递归拷贝）/ `custom_import_skill`（.md 包成 <id>/SKILL.md 或整目录拷贝，id 显式或从名派生 deriveIDFromName）/ `custom_delete_skills`（批量，逐条 ok/error，symlink 只解链、真实目录限中央库内 RemoveAll 防越界）。
   - reserved-id（bundled experts/science/office）在 Go 构建为空集（本构建不内置这些包），故库内每个目录都是 custom——忠实于不内置 bundled 包的构建。
@@ -1085,7 +1215,7 @@ go test ./...         → acp / app_error / web 全绿
   - `computer_available` → {available:false, platform}（platform 由 GOOS 映射 macos/windows/linux）：无头 Go server 不托管 computer-use 服务，诚实报告不可用，让 mcode-app 的能力探测正常拿到结果。
   - 其余 17 个 computer_* 操作（status/request_permission/open_permission_settings/reveal_helper/list_shareable_windows/window_thumbnail/share_window(s)/shared_state/share_app/share_screen/revoke_all/stop/stop_key_status/driver_info/driver_install/driver_uninstall）统一经 computerRefused 返回 configuration_invalid + 上游同款「computer use is not available here…」文案，而非 404。
   - 全部用字面量 reg.Register 注册（便于 route-inventory 静态扫描 + 人读）。
-- 契合上游语义：computer use 仅由带 YOYOCODE_COMPUTER_USE=1 的桌面会话（或桌面 app 自身窗口）提供；真正的驱动/截屏/窗口共享是重桌面子系统，后续若做桌面宿主再接。
+- 契合上游语义：computer use 仅由带 GOCODE_COMPUTER_USE=1 的桌面会话（或桌面 app 自身窗口）提供；真正的驱动/截屏/窗口共享是重桌面子系统，后续若做桌面宿主再接。
 - 测试 `computer_test.go`：available=false + 合法 platform；6 个操作路由被拒。全量 build/vet/test ./... 全绿，exe 重建。ROUTE_INVENTORY 346→364（P0 仍 128/128）。
 
 ### 2026-10-12（续：Canvas 路由接真实数据，workbench 3/4 实面板）
@@ -1093,7 +1223,7 @@ go test ./...         → acp / app_error / web 全绿
 - workspace.go：viewCanvas 接 canvas_list_boards → 看板卡片（名称 + 描述 + node_count/terminal_count），Refresh 重拉；dispatch 加 canvas 分支；viewRoutePlaceholder 仅剩 forge（需连 GitHub 账号，故留占位）。
 - 新增小协助：asObjVal（嵌套对象）、intOf（JSON number→int）。
 - 至此 workbench 四路由中 Automations / To-dos / Canvas 三个出真实数据，仅 Repositories(forge) 留占位。
-- 自验：mygo dev 热重载生效（workspace.go 存盘 ~4-8s 重建）。build/vet/test ./src/app 全绿，build/yoyocode.exe 重建。
+- 自验：mygo dev 热重载生效（workspace.go 存盘 ~4-8s 重建）。build/vet/test ./src/app 全绿，build/gocode.exe 重建。
 
 ### 2026-10-12（续：workbench 路由接真实数据 — Automations + To-dos 面板）
 
@@ -1101,18 +1231,18 @@ go test ./...         → acp / app_error / web 全绿
   - viewAutomations：automation_list → 卡片列表（名称 + enabled/disabled 状态点 + trigger_kind·agent_type），Refresh 重拉。
   - viewTasks：work_task_list（选中文件夹时带 folderId，否则全量）→ 任务卡片（title/prompt + status + agent_type）。
   - 复用既有 ensure 异步缓存模式（与 Settings 实数据页同一路径）；新增 truthy 协助 enabled 布尔归一。
-- 自验：桌面共享下重启的 mygo dev watcher 热重载生效（workspace.go 存盘 8.3s 重建、新窗口 pid 常驻、a11y 树确认导航块 + 分段渲染正常，路由切换此前已验）。build/vet/test ./src/app 全绿，build/yoyocode.exe 重建。
+- 自验：桌面共享下重启的 mygo dev watcher 热重载生效（workspace.go 存盘 8.3s 重建、新窗口 pid 常驻、a11y 树确认导航块 + 分段渲染正常，路由切换此前已验）。build/vet/test ./src/app 全绿，build/gocode.exe 重建。
 - 注：mygo GPU 窗口在本会话截图只回元数据、按坐标点击工具报 generation 错，故结构验证以 a11y 树为准；用户可在常驻窗口自行点 Automations/To-dos 看真实数据。
 
 ### 2026-10-12（续：原生 UI 侧栏 IA 对齐 上游 + 桌面共享自验）
 
-- 用户共享整个桌面 → 我用 computer_snapshot 读 yoyocode 窗口 a11y 树做结构自验（mygo GPU 窗口截图在本会话只回元数据、不可直接读像素，故以 a11y 树 + 上游 已移植 globals.css 设计 token 为准）。
+- 用户共享整个桌面 → 我用 computer_snapshot 读 gocode 窗口 a11y 树做结构自验（mygo GPU 窗口截图在本会话只回元数据、不可直接读像素，故以 a11y 树 + 上游 已移植 globals.css 设计 token 为准）。
 - workspace.go 侧栏按 上游 sidebar IA 重构：
   - 顶部**固定导航块**（原创几何 glyph）：New chat（主操作，开无文件夹会话）+ Automations / To-dos / Repositories / Canvas 四个路由行；点击切换主区为对应 route 占位（viewWorkbenchRoute 带标题+对应上游路由说明），选中态浅灰高亮（navRow）。
   - 会话列表拆 **PINNED + CHATS** 两段（isPinned 读 pinned/pinned_at），sectionHeader 带 glyph；convRow 统一行；选会话清 workbench 路由。
   - 新增 icons.go 原创 glyph：iconNewChat/Automations/Tasks/Forge/Canvas/Pinned/Recent（纯几何，非任何版权图标艺术）。app.go Shell 加 workbench 字段。
 - 自验（w33 pid4268 a11y 树）：导航块 5 行 + FOLDERS/CONVERSATIONS 分段 + 点击 Repositories/Canvas 主区正确切换对应占位，均渲染正常。
-- 工具链：重启 mygo dev 热更新（旧 watcher 已 quit），现 pid 常驻，存盘自动重编译+重开窗口（桌面共享下新窗口自动可截图，解决此前单窗口共享断链痛点）。build/vet/test ./... 全绿，build/yoyocode.exe 重建。
+- 工具链：重启 mygo dev 热更新（旧 watcher 已 quit），现 pid 常驻，存盘自动重编译+重开窗口（桌面共享下新窗口自动可截图，解决此前单窗口共享断链痛点）。build/vet/test ./... 全绿，build/gocode.exe 重建。
 - 待续：workbench 四路由的实面板（automations/work_task/forge/canvas 后端已多数就绪，待接 UI）；顶层 Workspace/Settings/Pet 导航与 上游 chrome 细化；像素级配色/间距在能读像素的环境下再精修。
 
 ### 2026-10-12（续：Config Sync 本地设置/状态 3 路由，后端 343→346）
@@ -1198,8 +1328,8 @@ go test ./...         → acp / app_error / web 全绿
   - **底部状态栏**:连接圆点(连上=绿)+ 后端地址 + 版本(对应 上游 底部 chrome)。
   - **composer dock**:transcript 与输入区之间加 Divider,输入框包进圆角描边卡片,Send/Cancel 右对齐。
   - **「+ New chat」主操作**:侧栏顶部,走 create_chat_conversation 直开无文件夹会话并选中(对应 上游 "新建会话")。
-  - **「Open…」**:FOLDERS 区原生选目录框(mygo.Dialog.Open)→ add_folder_to_history,解决 ~/.yoyocode 空库无数据的问题。
-- 工具链:`go run github.com/egoist/mygo/cmd/mygo dev ./cmd/yoyocode` 跑起热更新(改 Go 存盘即自动重编译+重启窗口)。`build/yoyocode.exe` 同步到最新。
+  - **「Open…」**:FOLDERS 区原生选目录框(mygo.Dialog.Open)→ add_folder_to_history,解决 ~/.gocode 空库无数据的问题。
+- 工具链:`go run github.com/egoist/mygo/cmd/mygo dev ./cmd/gocode` 跑起热更新(改 Go 存盘即自动重编译+重启窗口)。`build/gocode.exe` 同步到最新。
 - 已知协作卡点:热更新每次重开新窗口 → computer-use 单窗口共享会断,需用户开常驻自动共享后智能体才能连续截图自验;本轮多处视觉改动为对照截图的合理实现,逻辑/构建已保证,像素级细节待共享后迭代。
 
 ### 2026-10-12（B12 UI 布局修复 + 外观打磨）
@@ -1216,9 +1346,9 @@ go test ./...         → acp / app_error / web 全绿
 
 - 工作区列表自动刷新：stream.onChange 签名扩为 `func(connID, channel string)`；收到 firehose `conversation://changed` 时清 folders + 当前文件夹 convs 缓存，侧栏随服务端变更（含 agent 自动回填标题、任何来源的建/删/改名/改状态）自动刷新，无需手点 Refresh。stream_test 适配新签名。
 - **本地预览验证（无头沙箱）**：
-  - `go build -o build/yoyocode.exe ./cmd/yoyocode` 成功（30MB 纯 Go 原生二进制）。
-  - 后端可无头起：`build/yoyocode-server.exe`（YOYOCODE_PORT/TOKEN/DATA_DIR 可配）起在 :38080，`curl /api/health` → `{"status":"ok","version":"0.1.0"}`，确认 UI/mcode-app 连的服务可用；用完 taskkill 清理。
-  - 原生 GUI 窗口（mygo 走 GPU/WebView2）需显示器，本沙箱无头无法显示；本机预览命令：`go tool mygo dev ./cmd/yoyocode`（热重载）或直接 `go run ./cmd/yoyocode`。
+  - `go build -o build/gocode.exe ./cmd/gocode` 成功（30MB 纯 Go 原生二进制）。
+  - 后端可无头起：`build/gocode-server.exe`（GOCODE_PORT/TOKEN/DATA_DIR 可配）起在 :38080，`curl /api/health` → `{"status":"ok","version":"0.1.0"}`，确认 UI/mcode-app 连的服务可用；用完 taskkill 清理。
+  - 原生 GUI 窗口（mygo 走 GPU/WebView2）需显示器，本沙箱无头无法显示；本机预览命令：`go tool mygo dev ./cmd/gocode`（热重载）或直接 `go run ./cmd/gocode`。
 - `go build/vet/test ./...` 全绿。
 
 ### 2026-10-11（续：transcript 解析里程碑启动 — claude_code JSONL 读取打通）
@@ -1292,25 +1422,25 @@ go test ./...         → acp / app_error / web 全绿
 
 ### 2026-10-11（续：B12 原生 UI 页面树 — src/app 结构化 + Workspace/Settings 实数据）
 
-- 新建 Go 包 `yoyocode/src/app`（上游 Next.js src/app 的等价层，一页一文件便于跟上游 diff）：
+- 新建 Go 包 `gocode/src/app`（上游 Next.js src/app 的等价层，一页一文件便于跟上游 diff）：
   - `app.go`：Backend loopback 客户端 + Shell 根状态；**异步缓存模式**——view 永不阻塞 IO，调 `ensure(key,cmd,body)` 首次触发后台 goroutine 拉取，落地后用 `ui.Services().Invalidate()`（goroutine 安全）请求重绘；`invalidate(key)` 供 Refresh 丢缓存重拉。顶层 Sidebar（Workspace/Settings/Pet）。
   - `workspace.go`：镜像 src/app/workspace。左列 folders（list_all_folder_details），点选 → 右列该文件夹会话（list_conversations{folderId}，标题/agent/status）。folderId 用 numOrString 按数字/字符串正确送型。
   - `settings.go`：镜像 src/app/settings。二级导航列出全部 19 个上游设置页；已接后端的 3 页出实数据——General（get_system_language_settings→language）、Web Service（get_web_server_status→running/port/addresses）、Quick Messages（quick_messages_list 列表）；其余页占位并标注对应上游路由。
   - `pet.go`：占位（pet_* 后端后置）。
-- `cmd/yoyocode/main.go` 精简为「起进程内后端 + app.New(backend) + 开窗」。
+- `cmd/gocode/main.go` 精简为「起进程内后端 + app.New(backend) + 开窗」。
 - 单测 `src/app/app_test.go`：asList/asObj/str/numOrString/itoa 纯函数覆盖（无需开窗）。
-- `go build/vet/test ./...` 全绿（新增 yoyocode/src/app 包测试通过）。B12 结构就位，后续按上游逐页填充（commit/merge/push/stash 窗口、login、project-boot、import-sessions、pet-panel、computer-indicator/marker，及 settings 其余页）。
+- `go build/vet/test ./...` 全绿（新增 gocode/src/app 包测试通过）。B12 结构就位，后续按上游逐页填充（commit/merge/push/stash 窗口、login、project-boot、import-sessions、pet-panel、computer-indicator/marker，及 settings 其余页）。
 
 ### 2026-10-11（续：B12 原生 UI 骨架启动 + dev 实时预览打通）
 
 - **mygo 原生 UI 接入**：go.mod 新增 `require github.com/egoist/mygo`（replace → ./_upstream/mygo），拉入 UI 依赖 purego / go-text/typesetting / golang.org/x/image（纯 Go，无 cgo）。
-- 新建 `cmd/yoyocode/main.go`（上游 Tauri+Next.js 外壳的 Go 等价物）：单可执行文件——
+- 新建 `cmd/gocode/main.go`（上游 Tauri+Next.js 外壳的 Go 等价物）：单可执行文件——
   - `bootBackend()`：在 127.0.0.1:0 以进程内方式起 src-go web 服务器（复用 db/appstate/web/handlers，与 mcode-app 完全同一 HTTP 契约），后台 goroutine serve。
-  - mygo 原生窗口（package ui，GPU 绘制，无 webview）：Row = 左侧 Sidebar（YoYoCode 标题 + 后端地址 + Workspace/Settings/Pet 导航，用 ui.Sidebar/ui.SidebarItem）+ 右侧主区（按 section 切换；Workspace 区经 `list_folders` 展示打开的文件夹及会话计数，Refresh 按钮重拉）。
+  - mygo 原生窗口（package ui，GPU 绘制，无 webview）：Row = 左侧 Sidebar（GoCode 标题 + 后端地址 + Workspace/Settings/Pet 导航，用 ui.Sidebar/ui.SidebarItem）+ 右侧主区（按 section 切换；Workspace 区经 `list_folders` 展示打开的文件夹及会话计数，Refresh 按钮重拉）。
   - UI 经 loopback HTTP 调后端（`Bearer` token），验证原生 UI ↔ 后端端到端路径。
-- 新建 `mygo.json`（name/identifier/version/main=./cmd/yoyocode/out=build/app）。
-- **实时 dev 预览可用**：`go tool mygo dev ./cmd/yoyocode`（或 `go run github.com/egoist/mygo/cmd/mygo dev`）——改 Go 代码即自动重编译+重启窗口，编译失败则保留上一个在运行。原生 UI 无需 dev server/devUrl。注意：会开真实桌面窗口（Windows WebView2/GPU），需显示器；无头环境可编译不可显示。首次需联网拉 mygo CLI 依赖。
-- `go build ./...` / `go vet ./...` / `go test ./...` 全绿（cmd/yoyocode 纳入构建）；gofmt 干净。B12 由 [ ] → [~]（骨架可跑，页面树待逐页镜像 src/app）。
+- 新建 `mygo.json`（name/identifier/version/main=./cmd/gocode/out=build/app）。
+- **实时 dev 预览可用**：`go tool mygo dev ./cmd/gocode`（或 `go run github.com/egoist/mygo/cmd/mygo dev`）——改 Go 代码即自动重编译+重启窗口，编译失败则保留上一个在运行。原生 UI 无需 dev server/devUrl。注意：会开真实桌面窗口（Windows WebView2/GPU），需显示器；无头环境可编译不可显示。首次需联网拉 mygo CLI 依赖。
+- `go build ./...` / `go vet ./...` / `go test ./...` 全绿（cmd/gocode 纳入构建）；gofmt 干净。B12 由 [ ] → [~]（骨架可跑，页面树待逐页镜像 src/app）。
 
 ### 2026-10-11（续：list_directory_with_files + list_workspace_files 文件系统读）
 
@@ -1377,11 +1507,11 @@ go test ./...         → acp / app_error / web 全绿
 - 测试 `conversations_sidebar_test.go`：seed 1 folder + 3 会话（claude_code×2 / codex×1），断言 get_stats/list_folders/get_sidebar_data 三者 wire 形状与计数/排序。
 - conversations 16/21（+get_sidebar_data）。gofmt/vet/test 全绿；inventory 302/523，P0 128/128。
 
-### 2026-10-11（续：B11p — mcp_service yoyocode-mcp 服务状态/工具组 3/3）
+### 2026-10-11（续：B11p — mcp_service gocode-mcp 服务状态/工具组 3/3）
 
 - `src-go/web/handlers/mcp_service.go`：状态栏指示器的服务健康报告 + 工具组开关，忠实移植 commands/mcp_service.rs 的 wire 契约。
-- `get_codeg_mcp_service_status` → YoyocodeMcpServiceStatus（snake_case）：`{state, listening, socket_path, binary_path, tool_groups, companion_count, session_count, active_delegations, depth_limit, started_at, last_error, can_start}`；tool_groups 9 项（delegation/feedback/ask/sessions/automations/taskboard/browser/browser_eval(within browser)/computer），顺序与 companion 的 features 解析一致，browser_eval 为 browser&&eval 的依赖项（带 requires）。
-- 诚实降级：Go 构建不含进程内 delegation broker socket 与 yoyocode-mcp companion 二进制 → listening=false、binary_path=null（除非 YOYOCODE_MCP_BIN 覆盖），按上游 state 排序 → "stopped"、can_start=false（UI 隐藏启动按钮）；companion/session/active_delegations=0。`start_codeg_mcp_service` 无 socket 可绑 → 返回该 stopped 状态供 UI 重新同步。
+- `get_codeg_mcp_service_status` → GocodeMcpServiceStatus（snake_case）：`{state, listening, socket_path, binary_path, tool_groups, companion_count, session_count, active_delegations, depth_limit, started_at, last_error, can_start}`；tool_groups 9 项（delegation/feedback/ask/sessions/automations/taskboard/browser/browser_eval(within browser)/computer），顺序与 companion 的 features 解析一致，browser_eval 为 browser&&eval 的依赖项（带 requires）。
+- 诚实降级：Go 构建不含进程内 delegation broker socket 与 gocode-mcp companion 二进制 → listening=false、binary_path=null（除非 GOCODE_MCP_BIN 覆盖），按上游 state 排序 → "stopped"、can_start=false（UI 隐藏启动按钮）；companion/session/active_delegations=0。`start_codeg_mcp_service` 无 socket 可绑 → 返回该 stopped 状态供 UI 重新同步。
 - 工具组开关是真实的：`set_codeg_mcp_tool_group(key, enabled)` 按 slug 写对应 per-feature 的 app_metadata 键（复用 settings_misc/tools_settings 既有键与默认值）并广播该功能自己的 `*-settings://changed` 事件，故 popover 与设置页一致；depth_limit 读自 delegation 设置；未知 slug 报 invalid_input。
 - 测试 `mcp_service_test.go`：status 的 state=stopped/can_start=false、9 工具组、browser_eval 带 requires、ask 默认 ON；toggle computer 后 status 与 get_computer_tools_settings 均反映；未知 slug 报错。
 - 结果：build / `go vet ./...` / `go test ./...` 全绿；ROUTE_INVENTORY 523 路由、301 实现、mcp_service 3/3、P0 仍 128/128。
@@ -1421,7 +1551,7 @@ go test ./...         → acp / app_error / web 全绿
 
 - `src-go/web/handlers/app_update.go`：补齐 web_server 模块的两条更新查询路由，忠实移植 web/handlers/web_server.rs 的 wire 形状（camelCase）。
 - `check_app_update` → `{currentVersion, update, selfUpdateSupported, capability, runtime, restartDelayMs, rollbackAvailable, liveProgress}`；`app_update_status` → 同上去掉 update、`selfUpdateBlocker` 无阻碍时省略（skip_serializing_if）。
-- 诚实降级：此 Go 构建非自替换二进制 → selfUpdateSupported=false、update=null（不抓取 manifest，不虚报新版本）、rollbackAvailable=false、liveProgress=true；capability 复用现有 updateCapability()（YOYOCODE_SUPERVISED→supervised 否则 reexec）；runtime 由 /.dockerenv 或 YOYOCODE_RUNTIME 判定 docker/standalone；currentVersion 取 YOYOCODE_VERSION 否则常量 0.34.0（对齐上游 Cargo，注明可被构建覆盖）。与既有 app_update_state/perform/restart/rollback 的降级口径一致，升级 UI 不致因缺路由报错。
+- 诚实降级：此 Go 构建非自替换二进制 → selfUpdateSupported=false、update=null（不抓取 manifest，不虚报新版本）、rollbackAvailable=false、liveProgress=true；capability 复用现有 updateCapability()（GOCODE_SUPERVISED→supervised 否则 reexec）；runtime 由 /.dockerenv 或 GOCODE_RUNTIME 判定 docker/standalone；currentVersion 取 GOCODE_VERSION 否则常量 0.34.0（对齐上游 Cargo，注明可被构建覆盖）。与既有 app_update_state/perform/restart/rollback 的降级口径一致，升级 UI 不致因缺路由报错。
 - 测试（app_update_bridge_test.go 追加）：check 带 currentVersion/capability、selfUpdateSupported=false、update 存在且为 null、liveProgress=true；status 带 currentVersion、省略 selfUpdateBlocker、不含 update。
 - 结果：build / `go vet ./...` / `go test ./...` 全绿；ROUTE_INVENTORY 523 路由、293 实现、web_server 8/8、P0 仍 128/128。
 - 剩余小模块候选：event_metrics(1，GET 需路由管线)、workspace_state(3，文件树+git 快照流子系统较重)、mcp_service(3，依赖 delegation broker/companion 较重)、office_watch_proxy(3)；以及 feedback(submit 依赖活跃 ACP turn)、files(upload_attachment)、(inline) 等收尾。
@@ -1430,12 +1560,12 @@ go test ./...         → acp / app_error / web 全绿
 ### 2026-10-11（续：B11k — logging 日志查看器模块 5/5）
 
 - `src-go/web/handlers/logging.go`：Settings → Logs 查看器后端，忠实移植 commands/logging.rs + web/handlers/logging.rs 的 5 条命令。
-- `get_log_settings`：从 app_metadata `logging.level` 读持久化 LogSettings（默认 level=info、targets=[]），env_locked 由 `YOYOCODE_LOG`/`RUST_LOG` 是否设置决定；wire `{level, targets, env_locked}`（LogSettingsView 无 rename_all → snake_case）。
+- `get_log_settings`：从 app_metadata `logging.level` 读持久化 LogSettings（默认 level=info、targets=[]），env_locked 由 `GOCODE_LOG`/`RUST_LOG` 是否设置决定；wire `{level, targets, env_locked}`（LogSettingsView 无 rename_all → snake_case）。
 - `set_log_settings`：校验 level ∈ {off,error,warn,info,debug,trace}、targets 每项 {target,level} 合法；持久化到 app_metadata（targets 空时省略，复刻 skip_serializing_if）；广播 `log-settings://changed`；返回规范化 LogSettings。
 - `get_recent_logs`：Go server 无内存 tracing 环形缓冲（桌面端 Rust subscriber 专有），诚实降级返回空数组（注明"后续：若 Go 侧接入日志 hub 再补"）。
 - `list_log_files`：读 logsRoot 下 *.log，返回 `{name, size_bytes, modified_ms}` 按 mtime 降序。
 - `read_log_file`：路径遍历防护（禁 / \\ \0 ..、必须 .log、解析后父目录须等于 logs 目录），按末尾 maxBytes（上限 16MiB）读取 tail（日志 append-only，尾部即最新）。
-- logsRoot 解析沿用 paths.rs yoyocode_logs_root 优先级：YOYOCODE_HOME/logs → YOYOCODE_DATA_DIR/logs → AppState.DataDir/logs → ~/.yoyocode/logs。
+- logsRoot 解析沿用 paths.rs gocode_logs_root 优先级：GOCODE_HOME/logs → GOCODE_DATA_DIR/logs → AppState.DataDir/logs → ~/.gocode/logs。
 - 测试 `logging_test.go`：env_locked、默认设置、set 校验与 targets 规范化（空省略/非法拒绝）、list 按 mtime 降序且仅 .log、read 全量/尾部/遍历·非log·缺失拒绝 —— 纯函数 + 临时目录，无需 DB、不触真实目录。
 - 结果：build / `go vet ./...` / `go test ./...` 全绿；ROUTE_INVENTORY 523 路由、291 实现、logging 5/5、P0 仍 128/128。
 - 下一个小模块候选：workspace_state(3)、mcp_service(3)、event_metrics(1)、office_watch_proxy(3)，以及 feedback/files/web_server 的收尾。
@@ -1505,7 +1635,7 @@ go test ./...         → acp / app_error / web 全绿
 ### 2026-10-11（续：B11j — mcp 增量3a：市场搜索 search_marketplace）
 
 - `src-go/web/handlers/mcp_market.go`：市场只读搜索半区，忠实移植 commands/mcp.rs 的 `mcp_search_marketplace`（official registry + smithery 两源）。
-- HTTP：`net/http` 客户端（connect 8s / TLS 8s / 整体 20s、UA `yoyocode-mcp-market/1.0`），`mcpMarketGet` 复刻 `send_request_with_retry`（3 次尝试、429/5xx 或传输错误线性退避 attempt×350ms、超时/连接错误带诊断前缀）。
+- HTTP：`net/http` 客户端（connect 8s / TLS 8s / 整体 20s、UA `gocode-mcp-market/1.0`），`mcpMarketGet` 复刻 `send_request_with_retry`（3 次尝试、429/5xx 或传输错误线性退避 attempt×350ms、超时/连接错误带诊断前缀）。
 - official（registry.modelcontextprotocol.io/v0.1/servers?limit&version=latest&search）：`officialEntryToItem` 从原始 JSON 直取字段（title→name 回退 name、空描述→"No description"、websiteUrl→repository.url 回退 homepage、remotes 非空→remote、_meta 官方 status==active→verified、首个非空 icon.src、version→latest_version）；`officialServerProtocols` 从 remotes[].type + packages[].transport.type 收集并去重排序；owner/namespace/downloads/score/is_deployed 恒为 null。
 - smithery（api.smithery.ai/servers?limit&q）：`smitheryItemFromSummary` 映射 qualifiedName→server_id、displayName→name、iconUrl 修剪、useCount→downloads、score、isDeployed，remote→protocols=["http"] 否则 []。
 - wire：McpMarketplaceItem 无 rename_all → snake_case 字段，Option 字段输出 null、protocols 恒为数组，逐字段对齐。
@@ -1546,7 +1676,7 @@ go test ./...         → acp / app_error / web 全绿
 ### 2026-10-11（续：B11i — background 工作区背景图 + wallhaven 市场）
 
 - `src-go/web/handlers/background.go`（6 命令）：`background_read` / `background_set` / `background_clear`（磁盘单文件）+ `background_market_search` / `background_market_asset` / `background_market_download`（wallhaven.cc 市场）。忠实移植 commands/background.rs + backgrounds/mod.rs + backgrounds/marketplace.rs。
-- 存储：单文件 `DataDir/backgrounds/background.img`，字节原样存（动图 GIF/APNG/WebP 保持动画），路径解析沿用上游 paths.rs 优先级（YOYOCODE_HOME → YOYOCODE_DATA_DIR → AppState.DataDir → ~/.yoyocode）。写入采用 per-writer 暂存文件 + rename 原子覆盖 + 过期 .tmp 清扫，与 write_background_atomic_in 一致。wire：BackgroundAsset `{mime, dataBase64}`（camelCase）。
+- 存储：单文件 `DataDir/backgrounds/background.img`，字节原样存（动图 GIF/APNG/WebP 保持动画），路径解析沿用上游 paths.rs 优先级（GOCODE_HOME → GOCODE_DATA_DIR → AppState.DataDir → ~/.gocode）。写入采用 per-writer 暂存文件 + rename 原子覆盖 + 过期 .tmp 清扫，与 write_background_atomic_in 一致。wire：BackgroundAsset `{mime, dataBase64}`（camelCase）。
 - 校验：魔数识别 PNG/JPEG/WebP/GIF（否则 invalid_input），MIN 64B / MAX 16MiB 字节上限；40Mpx 像素上限用无依赖的 header 尺寸解析（PNG IHDR / GIF 逻辑屏 / JPEG SOF / WebP VP8·VP8L·VP8X）复刻，解析不出时仅跳过像素上限（字节/格式上限仍生效），符合上游"sanity bound 非 DoS 边界"的定位 —— 未引入 image 解码依赖。read 时按魔数嗅探 mime。
 - market（wallhaven.cc）：host 白名单 `wallhaven.cc` / `*.wallhaven.cc`，仅 https、禁 userinfo；`net/http` 客户端的 CheckRedirect 对每一跳重新校验白名单（≤5 跳）。search 强制 `purity=100`（SFW，永不取自入参），category 仅 all/general/anime/people（否则报错）→ bitmask 111/100/010/001，query ≤128 字符；`MarketSearchPage{items, page, lastPage}`、`MarketWallpaperSummary{id, thumbUrl, fullUrl, sourceUrl, width, height, fileSizeBytes, category}`（camelCase），列表过滤掉非 wallhaven 托管条目，sourceUrl 由 id 派生（`/w/{id}`，不信任列表）。asset（缩略图上限 4MiB）→ BackgroundAsset；download（full 图上限 16MiB、sourceUrl 必须 `https://wallhaven.cc/w/<id>`）→ 取字节→ validate →原子落盘。content-type 早筛 image/jpeg·png·webp，read_capped 对 Content-Length 与累计字节双重封顶。
 - 测试 `background_test.go`：磁盘 set/read/clear 往返 + 空读为 null + clear 幂等；validate 拒小/非图/超像素；sniffMime 四格式；wallhaven host 白名单（接受子域、拒 http/异host/后缀诈骗/userinfo）；category 映射 + 未知拒绝；marketDownload 对坏 sourceUrl / 异host full 短路（不打网络、不落盘）；parseSearchPayload 过滤异host条目并派生 sourceUrl、page/lastPage 下限为 1。market 真实抓取不在测试中触网。
@@ -1576,7 +1706,7 @@ B11 已完成：folder_commands·folder_links·automation·system_settings(代�
 
 ### 2026-10-11（续：B11f — app_update + browser_bridge）
 
-- `src-go/web/handlers/app_update.go`（4 命令）：`app_update_state` 返回忠实 Idle 快照（{seq:0, status:"idle", capability}，capability 由 YOYOCODE_SUPERVISED 判 supervised/reexec）；`perform_app_update`/`restart_app`/`rollback_app` 在本 Go 版（非自替换二进制运行时）返回 invalid_input「本构建不支持原地更新」——与桌面构建同形，升级 UI 不会因缺路由报错。
+- `src-go/web/handlers/app_update.go`（4 命令）：`app_update_state` 返回忠实 Idle 快照（{seq:0, status:"idle", capability}，capability 由 GOCODE_SUPERVISED 判 supervised/reexec）；`perform_app_update`/`restart_app`/`rollback_app` 在本 Go 版（非自替换二进制运行时）返回 invalid_input「本构建不支持原地更新」——与桌面构建同形，升级 UI 不会因缺路由报错。
 - `src-go/web/handlers/browser_bridge.go`（3 命令）：端口桥接（让工作台 iframe 本地 dev server 过 上游 鉴权）。本 Go 版未运行桥接监听子系统，故 `browser_bridge_status` 回 {enabled:false}、`browser_bridge_open` 先按上游顺序校验目标（仅 http:// + 本机 loopback 可桥接，否则 invalid_input）再因禁用回 configuration_missing、`browser_bridge_close` 回 {ok:true}。wire 形状对齐，UI 降级方式与上游一致。
 - 测试 `app_update_bridge_test.go`：app_update idle+capability+三动作 400；browser_bridge 禁用状态 + 非 http/非 loopback 目标 invalid_input + loopback 目标过校验后 configuration_missing + close ok。
 

@@ -1,4 +1,4 @@
-# YoYoCode 复刻计划 (Replication Plan)
+# GoCode 复刻计划 (Replication Plan)
 
 - 上游：本地克隆见 `_upstream/ref`（基线 v0.34.0，2026-10 抓取）
 - 原生 UI：https://github.com/egoist/mygo （见 `_upstream/mygo`）
@@ -34,7 +34,7 @@
 
 `src-tauri` 已改名为 `src-go`，且把上游的 `src-tauri/src/*` 提升一层，使每个子目录与上游同名子目录 1:1 对应。
 
-| 上游 | 复刻 YoYoCode | 说明 |
+| 上游 | 复刻 GoCode | 说明 |
 |---|---|---|
 | `src-tauri/src/web/` | `src-go/web/` | HTTP/WS 服务器（**兼容核心**） |
 | `src-tauri/src/web/handlers/` | `src-go/web/handlers/` | 每个上游 handler 文件一个 Go 文件 |
@@ -51,8 +51,8 @@
 | `src-tauri/src/db/` | `src-go/db/` | SQLite |
 | `src-tauri/src/commands/` | `src-go/commands/` | 命令实现 |
 | `src-tauri/src/app_state.rs` | `src-go/app_state/` | 全局状态 |
-| `src-tauri/src/bin/`（服务器二进制） | `cmd/yoyocode-server/` | 独立服务器二进制 |
-| `src-tauri/src/bin/`（MCP 二进制） | `cmd/yoyocode-mcp/` | MCP 伴随进程 |
+| `src-tauri/src/bin/`（服务器二进制） | `cmd/gocode-server/` | 独立服务器二进制 |
+| `src-tauri/src/bin/`（MCP 二进制） | `cmd/gocode-mcp/` | MCP 伴随进程 |
 | `src/`（Next.js 前端） | `src/`（mygo 原生 UI） | 镜像上游页面树 |
 
 **依赖方向**：`acp` **不得** import `web`（会成环，因为 web 的 attach 协议需要 acp）。
@@ -245,7 +245,7 @@ attach 决策顺序（与上游 `ws_attach::handle_attach` 逐条对齐）：
 - [~] **B9** forge（15 P0）：GitHub 全量（含 PR 细节/merge）完成；Gitea/GitLab REST 待做：GitHub/Gitea/GitLab 的 issue/PR/comment（REST，复用 B3 的 token 存储）
 - [x] **B10** work_task（26 P0 ✅ 2026-10-11）：全量 schema（work_task 扩列 + work_task_event / _settings / _template 表）+ 数据面 CRUD/排序/归档/事件/设置/模板 + 生命周期状态机（start/retry/requeue/schedule/return/cancel/merge/deliver_pr/complete，接 B7 ACP + B8 worktree + B9 forge）
 - [~] **B11** 其余后端模块（M4）—— 已完成 folder_commands(6✅)·folder_links(6✅)·automation(11✅)·system_settings 代理/终端(5✅)·canvas(12✅)·computer_tools(4✅)·browser_tools(2✅)·app_update(4✅)·browser_bridge(3✅)·token_usage(4✅)·project_boot(5✅)·background(6✅)·mcp(8/8✅ 15/15 agent)·logging(5✅)·web_server(8✅)·workspace_state(3✅)·event_metrics(1✅)·feedback(submit✅)·mcp_service(3✅)·conversations侧栏聚合(get_sidebar_data✅ + 修正get_stats/list_folders契约)·conversations chat模式(create_chat_dir✅ create_chat_conversation✅)；剩余：automation / backup / canvas / chat_channel / computer / config_sync / custom_skills / experts / science / app_update / office_tools(_watch_proxy) / token_usage / folder_commands / folder_links / browser_bridge / browser_tools / computer_tools / chat_authoring / pet 全量 / project_boot
-- [~] **B12** mygo 原生 UI（M5，骨架启动 ✅ 2026-10-11：cmd/yoyocode 进程内起后端 + mygo 原生窗口 Sidebar/Workspace，go tool mygo dev 实时预览可用；src/app 结构化：Workspace(folders+conversations 实数据)/Settings(19页二级导航,general/web-service/quick-messages 实数据)/Pet 占位 ✅ 2026-10-11；工作区核心主循环（folders→conversations→会话详情+composer 驱动 acp_connect/acp_prompt）✅ 2026-10-11，按用户定调优先；git 窗口(commit/merge/push/stash)降后；transcript JSONL 解析 + WS 事件流渲染为下一步）：workspace 主窗口 → settings/* 子页 → commit/push/merge/stash → pet/pet-panel → login → project-boot → import-sessions → computer-indicator/marker。镜像上游 `src/app` 页面树，走已实现的 HTTP/WS。
+- [~] **B12** mygo 原生 UI（M5，骨架启动 ✅ 2026-10-11：cmd/gocode 进程内起后端 + mygo 原生窗口 Sidebar/Workspace，go tool mygo dev 实时预览可用；src/app 结构化：Workspace(folders+conversations 实数据)/Settings(19页二级导航,general/web-service/quick-messages 实数据)/Pet 占位 ✅ 2026-10-11；工作区核心主循环（folders→conversations→会话详情+composer 驱动 acp_connect/acp_prompt）✅ 2026-10-11，按用户定调优先；git 窗口(commit/merge/push/stash)降后；transcript JSONL 解析 + WS 事件流渲染为下一步）：workspace 主窗口 → settings/* 子页 → commit/push/merge/stash → pet/pet-panel → login → project-boot → import-sessions → computer-indicator/marker。镜像上游 `src/app` 页面树，走已实现的 HTTP/WS。
 
 > 原则：客户端会读返回值的命令必须逐字段对齐；只被 `gateway.call<void>` 忽略的返回可宽松。
 > 每批补回归测试（真实 DB / 真实 git / httptest），其中若发现上游契约与现实现冲突，以上游为准并记日志。
@@ -319,9 +319,9 @@ GOPRIVATE=github.com/egoist/mygo go build ./...
 
 - **注释用词分语言**：中文注释用「上游」，英文注释用 `upstream` —— 把中文词塞进
   英文句子（`上游's bottom chrome`）读不通。
-- **本地命名空间**已一并改掉，不再是上游的：数据目录 `~/.yoyocode`（原为上游桌面版的
-  目录，共用会互相干扰）、数据库 `yoyocode.db`、环境变量 `YOYOCODE_*`、
-  二进制 `cmd/yoyocode-server` / `cmd/yoyocode-mcp`、config-sync 默认远端目录、
+- **本地命名空间**已一并改掉，不再是上游的：数据目录 `~/.gocode`（原为上游桌面版的
+  目录，共用会互相干扰）、数据库 `gocode.db`、环境变量 `GOCODE_*`、
+  二进制 `cmd/gocode-server` / `cmd/gocode-mcp`、config-sync 默认远端目录、
   出网 User-Agent、`folder_links` 写进 `.git/info/exclude` 的标记。
 
 ### 7.1 例外：这些字符串**不能**改

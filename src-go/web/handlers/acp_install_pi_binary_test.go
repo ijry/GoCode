@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"testing"
 
-	"yoyocode/src-go/web/handlers"
+	"gocode/src-go/web/handlers"
 )
 
 func writeFakeNpm(t *testing.T, dir string, exitCode int) {

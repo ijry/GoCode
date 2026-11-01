@@ -1,4 +1,4 @@
-// Package backup is the YoYoCode port of upstream commands/backup: the
+// Package backup is the GoCode port of upstream commands/backup: the
 // runtime-agnostic archive engine (create / read / validate / extract / verify).
 // The web layer (handlers/backup.go) resolves inputs and wraps this over HTTP;
 // the DB and section roots are passed in so the engine stays free of env
@@ -11,15 +11,15 @@ package backup
 const BackupFormatVersion = 2
 
 // Magic discriminator in every manifest so a stray ZIP can't pass as a backup.
-// Rebranded from upstream "codeg-backup" (the archive is YoYoCode's own).
-const BackupKind = "yoyocode-backup"
+// Rebranded from upstream "codeg-backup" (the archive is GoCode's own).
+const BackupKind = "gocode-backup"
 
 // ManifestEntryName is the fixed entry name of the manifest inside the archive.
 const ManifestEntryName = "manifest.json"
 
 // DBEntry is the archive path of the SQLite snapshot. Rebranded from
 // "db/codeg.db"; both create and validate use this constant.
-const DBEntry = "db/yoyocode.db"
+const DBEntry = "db/gocode.db"
 
 // Progress channel both runtimes emit on.
 const BackupProgressEvent = "backup://progress"
@@ -27,7 +27,7 @@ const BackupProgressEvent = "backup://progress"
 // LatestMigration is the schema-compatibility contract recorded in the manifest
 // (upstream keys off the newest sea-orm migration name; this port carries a
 // single schema generation instead — same role, self-consistent across builds).
-const LatestMigration = "yoyocode-schema-1"
+const LatestMigration = "gocode-schema-1"
 
 // Reject-reason i18n keys (values mirrored from upstream app_error.rs).
 const (
