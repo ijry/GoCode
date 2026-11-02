@@ -913,6 +913,7 @@
   "cvNodesDeleted": "已删除 {count} 个节点",
   "cvNewNote": "新建便签",
   "cvNoteTitle": "便签",
+  "cvResize": "调整大小",
   "cvZoomReset": "重置视图",
   "cvKindNote": "便签",
   "cvKindGroup": "分组",

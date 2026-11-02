@@ -192,6 +192,7 @@ type Shell struct {
 	canvasZoom          float32                    // Canvas: board surface zoom (0 = 100%)
 	canvasPan           ui.Point                   // Canvas: board surface pan, in world DIPs
 	canvasDrag          map[string]canvasDragEntry // Canvas: in-flight node drags, by node id
+	canvasResize        map[string]canvasResizeEntry // Canvas: in-flight node resizes, by node id
 	canvasNoteSeq       int                        // Canvas: stagger offset for new notes
 	canvasSelNodes      map[string]bool            // Canvas: selected node ids
 	canvasBand          *canvasBand                // Canvas: in-flight marquee band (world DIPs)

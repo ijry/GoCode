@@ -227,10 +227,10 @@ go test ./...         → acp / app_error / web 全绿
 - [x] 内置 agent registry（`acp/registry.go`，15 个内置 agent：wire 名/registry_id/distribution/is_acp_adapter），`acp_list_agents` 返回忠实 AcpAgentInfo
 - [x] **`preflight` / 依赖探测 / 二进制下载** —— 完成（2026-11-02）：`acp_preflight` 从桩改为真实离线探测（npx/uvx 查 PATH、binary 查缓存+PATH）；新增 `acp_install_agent_binary` 路由复用 `EnsureAgentBinary` 下载安装二进制 agent；Settings → Agents 按 preflight 显示「可用 / 未安装」、对可装二进制 agent 给 Install 按钮（安装中→成功/诚实报错）、对缺运行时的 agent 显示原因而非死路。验证：`preflight_test.go`（DetectAgent / Preflight 离线）、`acp_preflight_test.go`（结构化返回 + 非二进制拒绝 + 缺参）、`settings_agents_test.go` 的 Install 表面测试。
 - [x] 权限请求：`session/request_permission` → emit permission_request → `acp_respond_permission` HTTP → ResolvePermission 全链路打通
-- [ ] 提问请求 → `pending_question` → `acp_answer_question`
+- [x] 提问请求 → `pending_question` → `acp_answer_question`（2026-11-02 核实：backend `ask_user.go` 的 `AskUser`/`SetPendingQuestion`/`PendingQuestionState` + `acp_answer_question` 路由 + `companion_ask_user_question` 桥接；UI `workspace.go` 的 `viewPendingQuestion`/`answerQuestion`；测试 `conversation_question_test.go`/`ask_user_route_test.go`/`ask_user_test.go` 已全链路覆盖。原 `[ ]` 为陈旧条目，现更正。）
 - [x] session 驱动 `acp/agent_session.go` + 活连接生命周期 `acp/connection.go`：spawn→握手→注册 SessionRegistry→prompt/permission/cancel/disconnect，HTTP handler 全部接到真实引擎
-- [~] fork ✅（`acp_fork`，两行布局；fork point 需 transcript 解析 → 尾部 fork）；delegation（上游约 1MB 源码，不可行）/ plan approval（引擎未暴露）待做
-- [ ] `gocode-mcp` 伴随二进制
+- [~] fork ✅（`acp_fork`，两行布局；尾部 fork 已落地）；fork-from-turn（从历史消息分叉）**有意不做**：需上游 `session/fork` 的 fork point（`_meta.jetbrains.air.fork` = messageId/fingerprint/occurrence，按 agent 类型解析），并要求活动连接已加载到该历史点——本构建无法在真实 agent 上验证（node 子进程在本机无法派生），且「线格式契约保真」原则下不应发一个会静默退化为尾分叉的 UI。delegation（上游约 1MB 源码，不可行）/ plan approval（引擎未暴露）待做
+- [~] `gocode-mcp` 伴随二进制（2026-11-02 决议：**不做**）。上游 companion 守护进程负责提供 MCP 服务 socket（`listening`/`socket_path`/`binary_path`）与 delegation/browser/computer 等工具组；本构建已用 `mcp_service.go` 的**诚实降级面**（status 报 stopped、`can_start=false`、9 工具组开关真实可用）覆盖。单独再编译一个跨平台守护二进制等于重做上述不可行子系统，故不列入口。
 
 ---
 

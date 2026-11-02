@@ -52,11 +52,16 @@
   点卡片单选/再点取消；头部「N selected + Delete selected」走 `canvas_delete_nodes` 批量删。
   坑：拖拽释放帧 `Clicked()` 也会为真，会把刚移动的多选塌缩成单选 —— 必须**先处理拖拽**
   并用 `dragged` 标记跳过该帧的点击选择。**仍未做**：region 分组
-  （`canvas_group_into_region`）、节点尺寸拖拽、滚轮缩放（mygo v0.5.5 未暴露 wheel 事件）、
-  Delete 快捷键。测试：`TestCanvasNodeDragAndZoom`（拖拽落库 + 缩放百分比）、
+  （`canvas_group_into_region`）、滚轮缩放（mygo v0.5.5 未暴露 wheel 事件）、
+  Delete 快捷键。**节点尺寸拖拽已完成**（2026-11-02）：选中卡片右下角 20×20 resize 手柄
+  拖拽，增量落库走 `canvas_update_node` 的 width/height patch，后端 clamp 48–20000；
+  手柄仅在选中态出现，tooltip「调整大小」。测试 `TestCanvasNodeResizeDrag`
+  （拖拽 +80/+60 → 落库 280×180）。
+  测试：`TestCanvasNodeDragAndZoom`（拖拽落库 + 缩放百分比）、
   `TestCanvasPanAndNewNote`（平移位移 + 新建便签）、
-  `TestCanvasMarqueeSelectMoveAndDelete`（框选 2/3 → 组拖两条落库 → 批量删），
-  `canvas-board-spatial.png` / `canvas-board-selection.png`。（2026-10-19）
+  `TestCanvasMarqueeSelectMoveAndDelete`（框选 2/3 → 组拖两条落库 → 批量删）、
+  `TestCanvasNodeResizeDrag`（选中后拖右下角手柄改尺寸落库），
+  `canvas-board-spatial.png` / `canvas-board-selection.png`。（2026-10-19，resize 2026-11-02）
 - **P1-7（部分）Repositories(forge) 工作台深度**（提交 ac08d04）：从纯占位符升级为
   文件夹 forge remote 摘要（`folder_forge_remote`，免鉴权：provider + owner/repo + host/url）→
   无 remote / 不识别 host 的可操作提示 → 未连接时的「Connect a \<provider\> account」卡片

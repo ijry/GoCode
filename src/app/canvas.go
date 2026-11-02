@@ -173,6 +173,13 @@ type canvasDragEntry struct {
 	dx, dy       float32
 }
 
+// canvasResizeEntry is one in-flight resize: the node's stored size plus the
+// resize-handle's accumulated delta, in world DIPs.
+type canvasResizeEntry struct {
+	baseW, baseH float32
+	dx, dy       float32
+}
+
 // canvasBand is the in-flight marquee band, in world DIPs.
 type canvasBand struct {
 	start ui.Point
@@ -351,7 +358,9 @@ func (s *Shell) commitCanvasBand(nodes []map[string]any, bases map[string]ui.Poi
 	s.canvasSelNodes = sel
 }
 
-// canvasNodeSize is a node's card size, with defaults and sane clamps.
+// canvasNodeSize is a node's card size. A stored width/height is honoured
+// verbatim (the backend clamps to 48–20000); only a missing/zero dimension
+// falls back to the default card size so legacy nodes still render.
 func canvasNodeSize(n map[string]any) (w, h float32) {
 	w, h = float32(floatOf(n["width"])), float32(floatOf(n["height"]))
 	if w <= 0 {
@@ -360,7 +369,7 @@ func canvasNodeSize(n map[string]any) (w, h float32) {
 	if h <= 0 {
 		h = canvasNodeH
 	}
-	return min(max(w, 120), 640), min(max(h, 60), 480)
+	return w, h
 }
 
 // closeCanvasBoard leaves the board view and drops its transient state.
@@ -371,6 +380,7 @@ func (s *Shell) closeCanvasBoard() {
 	s.canvasSelNodes = nil
 	s.canvasBand = nil
 	s.canvasDrag = nil
+	s.canvasResize = nil
 }
 
 // canvasNodeCard draws one node at its stored spot. A drag accumulates in
@@ -385,6 +395,11 @@ func (s *Shell) canvasNodeCard(c *ui.Context, n map[string]any, bases map[string
 		x, y = off.baseX+off.dx, off.baseY+off.dy
 	}
 	w, h := canvasNodeSize(n)
+	// A live resize overrides the stored size so the card tracks the handle.
+	ew, eh := w, h
+	if re, ok := s.canvasResize[id]; ok {
+		ew, eh = re.baseW+re.dx, re.baseH+re.dy
+	}
 	kind := firstNonEmpty(str(n, "kind"), "note")
 	label := firstNonEmpty(str(n, "title"), str(n, "content"), str(n, "path"), m.Untitled())
 	selected := s.canvasSelNodes[id]
@@ -393,7 +408,7 @@ func (s *Shell) canvasNodeCard(c *ui.Context, n map[string]any, bases map[string
 	if selected {
 		border = t.Accent
 	}
-	card := ui.Column(c.Key("cv-node-"+id)).Absolute().Left(x).Top(y).Width(w).Height(h).
+	card := ui.Column(c.Key("cv-node-"+id)).Absolute().Left(x).Top(y).Width(ew).Height(eh).
 		Padding(8).Gap(4).Radius(8).Background(t.Surface).
 		Border(1, border)
 	card.Children(func() {
@@ -449,6 +464,30 @@ func (s *Shell) canvasNodeCard(c *ui.Context, n map[string]any, bases map[string
 			s.canvasSelNodes = map[string]bool{id: true}
 		}
 	}
+
+	// Resize handle: appears on the selected card's bottom-right corner. Its
+	// drag accumulates in world DIPs and commits through canvas_update_node.
+	if selected {
+		handle := ui.Box(c.Key("cv-resize-"+id)).Absolute().
+			Left(x + ew - 12).Top(y + eh - 12).Width(20).Height(20).
+			Background(t.Surface).Border(2, t.Accent).Radius(3)
+		handle.Tooltip(m.CvResize())
+		if rdx, rdy, ok := handle.Dragged(); ok {
+			if s.canvasResize == nil {
+				s.canvasResize = map[string]canvasResizeEntry{}
+			}
+			e, ok := s.canvasResize[id]
+			if !ok {
+				e = canvasResizeEntry{baseW: w, baseH: h}
+			}
+			e.dx += rdx
+			e.dy += rdy
+			s.canvasResize[id] = e
+		}
+		if _, _, rended := handle.DragEnded(); rended {
+			s.commitCanvasResize(c)
+		}
+	}
 }
 
 // commitCanvasDrag persists every dragged card's new spot in one
@@ -477,6 +516,46 @@ func (s *Shell) commitCanvasDrag(c *ui.Context) {
 		return
 	}
 	s.canvasMoveNodes(c, moves)
+}
+
+// commitCanvasResize persists every resized card's new size through
+// canvas_update_node, then clears the in-flight offsets. The backing call clamps
+// each dimension to 48–20000, so oversized drags land at that ceiling.
+func (s *Shell) commitCanvasResize(c *ui.Context) {
+	if len(s.canvasResize) == 0 {
+		return
+	}
+	svc := s.svc
+	loc := c.Locale()
+	board := s.canvasSel
+	jobs := make([]map[string]any, 0, len(s.canvasResize))
+	for id, e := range s.canvasResize {
+		jobs = append(jobs, map[string]any{
+			"nodeId": numOrString(id),
+			"patch": map[string]any{
+				"width":  float64(e.baseW + e.dx),
+				"height": float64(e.baseH + e.dy),
+			},
+		})
+	}
+	s.canvasResize = nil
+	go func() {
+		var firstErr error
+		for _, job := range jobs {
+			if _, err := s.B.raw("canvas_update_node", job); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+		s.mu.Lock()
+		if firstErr != nil {
+			s.notifyErr(locales.In(loc).CvMoveFailed(firstErr.Error()))
+		}
+		if board != "" {
+			delete(s.cache, "canvas-nodes:"+board)
+		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
 }
 
 // canvasKindLabel names a node kind in the window's language.

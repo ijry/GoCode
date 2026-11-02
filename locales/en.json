@@ -980,6 +980,7 @@
   "cvNodesDeleted": "{count} node(s) deleted",
   "cvNewNote": "New note",
   "cvNoteTitle": "Note",
+  "cvResize": "Resize",
   "cvZoomReset": "Reset view",
   "cvKindNote": "Note",
   "cvKindGroup": "Group",

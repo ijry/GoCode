@@ -440,6 +440,75 @@ func TestCanvasMarqueeSelectMoveAndDelete(t *testing.T) {
 	}
 }
 
+// TestCanvasNodeResizeDrag resizes a selected card by dragging its bottom-right
+// handle: the new size persists through canvas_update_node (width/height patch).
+func TestCanvasNodeResizeDrag(t *testing.T) {
+	s, b, ids := canvasShellForTest(t, "Resize board")
+	boardID := ids[0]
+	if _, err := b.raw("canvas_create_node", map[string]any{"input": map[string]any{
+		"kind": "note", "board_id": numOrString(boardID), "title": "Sizable",
+		"content": "resize me", "x": 40, "y": 60, "width": 200, "height": 120,
+	}}); err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	nodesRaw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+	if err != nil {
+		t.Fatalf("canvas_list_nodes: %v", err)
+	}
+	s.cache["canvas-nodes:"+boardID] = nodesRaw
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Resize board"); err != nil {
+		t.Fatalf("open board: %v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("Sizable") {
+		t.Fatalf("node missing; texts = %v", tt.Texts())
+	}
+	// Select the card so the resize handle appears.
+	if err := tt.Click("Sizable"); err != nil {
+		t.Fatalf("select node: %v", err)
+	}
+	tt.Frame()
+
+	// The handle sits at the card's bottom-right corner. The card left edge is 8
+	// DIPs right of the title (column padding), and the card bottom is exactly
+	// 88 DIPs below the title's top (independent of text height), so the handle
+	// centre is (title.X + width - 10, title.Y + 86) at 1:1 zoom.
+	title, ok := tt.Find("Sizable")
+	if !ok {
+		t.Fatalf("title lost after select; texts = %v", tt.Texts())
+	}
+	hx := title.X + 200 - 10
+	hy := title.Y + 86
+	tt.Press(hx, hy)
+	tt.Frame()
+	tt.Move(hx+40, hy+30)
+	tt.Frame()
+	tt.Move(hx+80, hy+60)
+	tt.Frame()
+	tt.Release(hx+80, hy+60)
+	tt.Frame()
+
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		for _, n := range canvasNodesOf(t, b, boardID) {
+			if fmt.Sprintf("%v", n["title"]) != "Sizable" {
+				continue
+			}
+			w, _ := n["width"].(float64)
+			h, _ := n["height"].(float64)
+			if w == 280 && h == 180 {
+				return
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("resize did not persist: %v", canvasNodesOf(t, b, boardID))
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 // canvasNodesOf lists a board's nodes from the backend.
 func canvasNodesOf(t *testing.T, b *Backend, boardID string) []map[string]any {
 	t.Helper()

@@ -8802,6 +8802,16 @@ func (msgs Messages) CvNoteTitle() string {
 	return Catalog.Format(msgs.locale, "cvNoteTitle", nil)
 }
 
+// CvResize says "Resize"
+// in the language the app shows.
+func CvResize() string { return In(i18n.Locale()).CvResize() }
+
+// CvResize says "Resize"
+// in the language of msgs.
+func (msgs Messages) CvResize() string {
+	return Catalog.Format(msgs.locale, "cvResize", nil)
+}
+
 // CvZoomReset says "Reset view"
 // in the language the app shows.
 func CvZoomReset() string { return In(i18n.Locale()).CvZoomReset() }
