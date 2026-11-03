@@ -51,17 +51,32 @@
   选中卡加 accent 边框；拖任一选中卡 **整组移动**（一次 `canvas_move_nodes` 传多条目）、
   点卡片单选/再点取消；头部「N selected + Delete selected」走 `canvas_delete_nodes` 批量删。
   坑：拖拽释放帧 `Clicked()` 也会为真，会把刚移动的多选塌缩成单选 —— 必须**先处理拖拽**
-  并用 `dragged` 标记跳过该帧的点击选择。**仍未做**：region 分组
-  （`canvas_group_into_region`）、滚轮缩放（mygo v0.5.5 未暴露 wheel 事件）、
-  Delete 快捷键。**节点尺寸拖拽已完成**（2026-11-02）：选中卡片右下角 20×20 resize 手柄
+  并用 `dragged` 标记跳过该帧的点击选择。**节点尺寸拖拽已完成**（2026-11-02）：选中卡片右下角 20×20 resize 手柄
   拖拽，增量落库走 `canvas_update_node` 的 width/height patch，后端 clamp 48–20000；
   手柄仅在选中态出现，tooltip「调整大小」。测试 `TestCanvasNodeResizeDrag`
-  （拖拽 +80/+60 → 落库 280×180）。
+  （拖拽 +80/+60 → 落库 280×180）。**滚轮/捏合缩放 + Delete 键 + region 分组已完成**（2026-11-03）：
+  - **滚轮/捏合**：world 元素 `Focusable().HandleInput(...)`（mygo 0.7）——`InputScroll` 平移
+    （DX/DY 已在 world 轴上，pan -= zoom·delta，与滚动容器同向）；`InputZoom`（捏合 / Windows
+    触摸板 Ctrl 滚动）与 Ctrl+滚轮 notch（×1.25 / ×0.8）经 `zoomCanvasAt` 以指针为锚缩放
+    （pan += w·(old−new)，指针下的世界点不动）。fn 拒绝指针事件，卡片点击/拖拽不受影响。
+  - **Delete/Backspace**：world 可聚焦（点画布任意处即获得键盘），`InputKeyDown` 里
+    Delete/Backspace（有选中时）置 `canvasKeyDelete` 标志，下一帧 View 消费并走
+    `canvas_delete_nodes`；无选中不吞键。
+  - **region 分组**：选中含会话卡片时头部出现「Group into region」——`canvasRegionPlanOf`
+    照上游 `groupSelection` 收集成员（`conversation_id`）与待消费的松散卡、按选中框
+    （+12 padding，整卡列宽 224×132·gap12，≤6 列）算 region 框几何，`canvas_group_into_region`
+    成功后消费卡删除、region 成为选中；region 卡显示「N members」。上游在框内网格渲染成员卡，
+    本 build 只显示计数（诚实最小切片）；`canvas_detach_member` 未接 UI。
   测试：`TestCanvasNodeDragAndZoom`（拖拽落库 + 缩放百分比）、
   `TestCanvasPanAndNewNote`（平移位移 + 新建便签）、
   `TestCanvasMarqueeSelectMoveAndDelete`（框选 2/3 → 组拖两条落库 → 批量删）、
-  `TestCanvasNodeResizeDrag`（选中后拖右下角手柄改尺寸落库），
-  `canvas-board-spatial.png` / `canvas-board-selection.png`。（2026-10-19，resize 2026-11-02）
+  `TestCanvasNodeResizeDrag`（选中后拖右下角手柄改尺寸落库）、
+  `TestCanvasWheelPanAndPinchZoom`（触摸板平移精确位移 + 捏合锚点随指针移动）、
+  `TestCanvasDeleteKeySelection`（点选卡片 → Delete 键 → 节点删除、邻卡保留）、
+  `TestCanvasGroupIntoRegion`（框选两会话卡 → 按钮出现 → region 框几何 (28,28 484×196)、
+  member_ids 保序、消费卡删除、region 选中 + 成员计数），
+  `canvas-board-spatial.png` / `canvas-board-selection.png` / `canvas-zoom-pinch.png` /
+  `canvas-region.png`。（2026-10-19，resize 2026-11-02，wheel/delete/region 2026-11-03）
 - **P1-7（部分）Repositories(forge) 工作台深度**（提交 ac08d04）：从纯占位符升级为
   文件夹 forge remote 摘要（`folder_forge_remote`，免鉴权：provider + owner/repo + host/url）→
   无 remote / 不识别 host 的可操作提示 → 未连接时的「Connect a \<provider\> account」卡片

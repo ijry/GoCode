@@ -171,32 +171,33 @@ type Shell struct {
 	toastQueue          []ui.Toast
 	renaming            bool
 	renameText          string
-	skillsAgent         string                     // Settings → Skills: selected agent wire type
-	skillsScope         string                     // "global" | "project"
-	qmEditor            *quickMsgEditor            // Settings → Quick Messages: open create/edit form
-	qmErr               string                     // Settings → Quick Messages: validation error
-	qmConfirm           string                     // Settings → Quick Messages: id awaiting delete confirm
-	workbench           string                     // "" (conversations) | automations | tasks | forge | canvas | files | …
-	autoSel             string                     // Automations: selected automation id ("" = first row)
-	autoEditor          *automationEditor          // Automations: open create/edit form (nil = closed)
-	autoConfirm         string                     // Automations: id awaiting delete confirmation ("" = none)
-	taskSel             string                     // To-dos: selected task id ("" = board)
-	taskEditor          *taskEditor                // To-dos: open create/edit form (nil = closed)
-	taskConfirm         string                     // To-dos: id awaiting delete confirmation ("" = none)
-	taskShowCanceled    bool                       // To-dos: show canceled cards in the Done column
-	taskShowArchived    bool                       // To-dos: show archived cards
-	canvasSel           string                     // Canvas: open board id ("" = board list)
-	canvasEditor        *canvasEditor              // Canvas: new/rename board form (nil = closed)
-	canvasConfirm       string                     // Canvas: board id awaiting delete confirmation ("" = none)
-	canvasSearch        string                     // Canvas: board search box
-	canvasZoom          float32                    // Canvas: board surface zoom (0 = 100%)
-	canvasPan           ui.Point                   // Canvas: board surface pan, in world DIPs
-	canvasDrag          map[string]canvasDragEntry // Canvas: in-flight node drags, by node id
+	skillsAgent         string                       // Settings → Skills: selected agent wire type
+	skillsScope         string                       // "global" | "project"
+	qmEditor            *quickMsgEditor              // Settings → Quick Messages: open create/edit form
+	qmErr               string                       // Settings → Quick Messages: validation error
+	qmConfirm           string                       // Settings → Quick Messages: id awaiting delete confirm
+	workbench           string                       // "" (conversations) | automations | tasks | forge | canvas | files | …
+	autoSel             string                       // Automations: selected automation id ("" = first row)
+	autoEditor          *automationEditor            // Automations: open create/edit form (nil = closed)
+	autoConfirm         string                       // Automations: id awaiting delete confirmation ("" = none)
+	taskSel             string                       // To-dos: selected task id ("" = board)
+	taskEditor          *taskEditor                  // To-dos: open create/edit form (nil = closed)
+	taskConfirm         string                       // To-dos: id awaiting delete confirmation ("" = none)
+	taskShowCanceled    bool                         // To-dos: show canceled cards in the Done column
+	taskShowArchived    bool                         // To-dos: show archived cards
+	canvasSel           string                       // Canvas: open board id ("" = board list)
+	canvasEditor        *canvasEditor                // Canvas: new/rename board form (nil = closed)
+	canvasConfirm       string                       // Canvas: board id awaiting delete confirmation ("" = none)
+	canvasSearch        string                       // Canvas: board search box
+	canvasZoom          float32                      // Canvas: board surface zoom (0 = 100%)
+	canvasPan           ui.Point                     // Canvas: board surface pan, in world DIPs
+	canvasDrag          map[string]canvasDragEntry   // Canvas: in-flight node drags, by node id
 	canvasResize        map[string]canvasResizeEntry // Canvas: in-flight node resizes, by node id
-	canvasNoteSeq       int                        // Canvas: stagger offset for new notes
-	canvasSelNodes      map[string]bool            // Canvas: selected node ids
-	canvasBand          *canvasBand                // Canvas: in-flight marquee band (world DIPs)
-	canvasPanMode       bool                       // Canvas: background drag pans instead of marqueeing
+	canvasNoteSeq       int                          // Canvas: stagger offset for new notes
+	canvasSelNodes      map[string]bool              // Canvas: selected node ids
+	canvasBand          *canvasBand                  // Canvas: in-flight marquee band (world DIPs)
+	canvasPanMode       bool                         // Canvas: background drag pans instead of marqueeing
+	canvasKeyDelete     bool                         // Canvas: Delete/Backspace landed on the focused surface
 	// Conversation history paging (conversation.go): the accumulated turns,
 	// oldest first, plus how many older turns the backend still holds.
 	convTurnsConv    string // conversation the accumulated page belongs to
@@ -321,16 +322,16 @@ type Shell struct {
 	wfUploadPath    string      // picked local file to upload
 	wfUploadRel     string      // target subpath (optional)
 	// Settings → Agents (settings_agents.go): version probes + custom agents.
-	agentChecking   string            // agent type whose probe is running ("" = idle)
-	agentCheckNote  map[string]string // post-check note per agent (not installed, …)
-	agentCheckErr   map[string]string // probe failure per agent
+	agentChecking  string            // agent type whose probe is running ("" = idle)
+	agentCheckNote map[string]string // post-check note per agent (not installed, …)
+	agentCheckErr  map[string]string // probe failure per agent
 	// agentInstalling is the agent type whose binary download is in flight ("" = idle).
-	agentInstalling string
-	agentInstallErr map[string]string // install failure per agent
+	agentInstalling  string
+	agentInstallErr  map[string]string // install failure per agent
 	agentInstallNote map[string]string // post-install note per agent (Installed, …)
-	caEditor        *customAgentEditor
-	caErr           string // custom-agent form validation / save error
-	caDeleteConfirm string // custom-agent registry id awaiting a second remove click
+	caEditor         *customAgentEditor
+	caErr            string // custom-agent form validation / save error
+	caDeleteConfirm  string // custom-agent registry id awaiting a second remove click
 	// Import-sessions (import_sessions.go): the scan picker — which discovered
 	// sessions are checked for import, and the last import's outcome summary.
 	importSel    map[string]bool // key = agentType\x00\x00externalId → chosen
@@ -461,34 +462,34 @@ type Shell struct {
 // New builds the root shell.
 func New(b *Backend) *Shell {
 	return &Shell{
-		B:              b,
-		section:        "workspace",
-		settingsPage:   "general",
-		appearanceMode: "system",
-		sidebarTab:     "recent",
-		tabsOrigin:     fmt.Sprintf("gocode-%d", time.Now().UnixNano()),
-		cache:          map[string]json.RawMessage{},
-		inflight:       map[string]bool{},
-		errs:           map[string]string{},
-		errHints:       map[string]string{},
-		connByConv:     map[string]string{},
-		changesIdx:     -1, // Changes list: no row chosen yet
-		commitsIdx:     -1, // Commits list: no row chosen yet
-		toolOpen:       map[string]bool{},
-		agentVer:       map[string]string{},
-		agentLatest:    map[string]string{},
-		agentCheckNote: map[string]string{},
-		agentCheckErr:  map[string]string{},
-		agentInstallErr: map[string]string{},
+		B:                b,
+		section:          "workspace",
+		settingsPage:     "general",
+		appearanceMode:   "system",
+		sidebarTab:       "recent",
+		tabsOrigin:       fmt.Sprintf("gocode-%d", time.Now().UnixNano()),
+		cache:            map[string]json.RawMessage{},
+		inflight:         map[string]bool{},
+		errs:             map[string]string{},
+		errHints:         map[string]string{},
+		connByConv:       map[string]string{},
+		changesIdx:       -1, // Changes list: no row chosen yet
+		commitsIdx:       -1, // Commits list: no row chosen yet
+		toolOpen:         map[string]bool{},
+		agentVer:         map[string]string{},
+		agentLatest:      map[string]string{},
+		agentCheckNote:   map[string]string{},
+		agentCheckErr:    map[string]string{},
+		agentInstallErr:  map[string]string{},
 		agentInstallNote: map[string]string{},
-		importSel:      map[string]bool{},
-		pbSkillAgents:  map[string]bool{},
-		pbType:         pbTypeShadcn,
-		pbPkg:          "npm",
-		usageBucket:    "day",
-		usageRange:     "all",
-		wfGitExclude:   true,
-		welcomeTip:     -1,
+		importSel:        map[string]bool{},
+		pbSkillAgents:    map[string]bool{},
+		pbType:           pbTypeShadcn,
+		pbPkg:            "npm",
+		usageBucket:      "day",
+		usageRange:       "all",
+		wfGitExclude:     true,
+		welcomeTip:       -1,
 		// The in-process backend is always connection #0 ("local"); saved
 		// remotes come from ~/.gocode/servers.json.
 		localURL:     b.URL,

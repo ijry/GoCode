@@ -277,6 +277,46 @@ go test ./...         → acp / app_error / web 全绿
 
 ## 日志
 
+### 2026-11-03（mygo 0.7.4 升级 + Canvas 收尾：滚轮/捏合缩放、Delete 键、region 分组）
+
+- **mygo v0.6.3 → v0.7.4**（用户既有指令：有新版本就升级、新特性就用上）。`go get` 强制
+  toolchain ≥1.27.3（go.mod `go 1.27.1 → 1.27.3`；proxy.golang.org 拉不到 toolchain，走
+  `GOPROXY=https://goproxy.cn,direct`）。**零 API 破坏**：`go build ./...`、`go vet ./...` 与
+  全量 `go test ./src/app/`（175.9s）直接全绿。新文档组件 decimal-input / video 未用；
+  本轮用上的新能力是 **`Element.HandleInput`**（按键/滚轮/捏合按事件流直达元素，见下）。
+- **Canvas 滚轮/捏合缩放**（`src/app/canvas.go`）：world 元素 `Focusable().HandleInput(s.canvasWorldInput)`——
+  - `InputZoom`（捏合；Windows 触摸板 Ctrl 滚动也走它）与 Ctrl+滚轮 notch（`InputScroll` +
+    Ctrl，×1.25/×0.8）经 `zoomCanvasAt(wx, wy, z)` 以**指针为锚**缩放：`pan += w·(old−z)`，
+    指针下的世界点保持不动。
+  - 其余 `InputScroll`（触摸板 Precise / 普通滚轮）= 平移：DX/DY 经引擎按逆矩阵换算到 world 轴，
+    `pan -= zoom·delta`（与滚动容器同向：positive DY = 视线沿内容下移）。
+  - fn **拒绝指针事件**（只接 scroll/zoom/key），卡片的 Clicked/Dragged 走既有 build 期轮询，互不干扰；
+    fn 在主线程、下一帧构建前运行，直接改 `canvasPan/canvasZoom`（View 同为无锁主线程，惯例一致）。
+- **Canvas Delete/Backspace**：world 可聚焦 —— 点击画布任意处（含卡片；卡片不可聚焦，焦点落到 world）
+  即获得键盘。`InputKeyDown` 的 Delete/Backspace 在有选中时置 `canvasKeyDelete` 标志并吞键
+  （无 Repeat、无选中不吞，不干扰文本编辑），下一帧 `viewCanvasBoard` 消费标志走
+  `canvasDeleteSelected`。引擎侧 `focusHandler` 只在元素持焦时投递，且窗口 Shortcut 优先
+  （本 build 无裸 Delete 绑定，无冲突）。
+- **Canvas region 分组**：选中含会话卡片时头部出现「Group into region」——`canvasRegionPlanOf`
+  照上游 `groupSelection`：会话卡贡献成员（`conversation_id`）并作为待消费的松散卡
+  （`consume_node_ids`），region 框 = 选中框 + 12 padding、整卡列几何（卡 224×132、gap 12、
+  `REGION_HEADER_HEIGHT` 40，≤6 列，行数 = ⌈成员/列⌉）。`canvas_group_into_region` 成功后
+  消费卡删除、新 region 成为选中（卡上显示「N members」）。上游在框内网格渲染成员卡、支持
+  `canvas_detach_member` 拖出 —— 本 build 只显示计数，诚实最小切片（后端契约本就绪）。
+- **测试坑（记入 memory）**：mygo 的 `Find`/a11y 矩形在 `Scale` 变换下不可靠（zoom 2 时 Y 与
+  布局对不上，X 却精确）——捏合断言改用**状态级不变式**：两个相距已知屏幕距离的捏合点，
+  `panB − panA == −(siteB − siteA)`（zoom 1 的逆映射是单位线性），不依赖任何卡片内部几何。
+- i18n：`cvGroupRegion` / `cvGrouped` / `cvGroupFailed` / `cvRegionMembers`（en + zh-Hans，
+  `mygo generate` 重生 catalog）。
+- 测试：`canvas_test.go` 新增 3 个（`TestCanvasWheelPanAndPinchZoom` 触摸板平移精确位移 +
+  捏合锚点跟随指针 + 缩放标签、`TestCanvasDeleteKeySelection` 点选 → Delete 键 → 节点删除
+  邻卡保留、`TestCanvasGroupIntoRegion` 框选两会话卡 → region 框几何 (28,28 484×196) +
+  member_ids 保序 + 消费卡删除 + region 选中 + 成员计数）；快照 `canvas-zoom-pinch.png` /
+  `canvas-region.png`。既有 7 个 canvas 测试全绿（Focusable/HandleInput 不影响点击/拖拽路径）。
+- 顺带：`gofmt -w` 本批三个触碰文件（app.go 的 Shell struct 注释列在早前 resize 提交后就没对齐，
+  本次一并归位；仓内其余文件的 gofmt 漂移与 CRLF 噪声为存量，不在本批动）。
+- `go build ./...` / `go vet ./...` / `scripts/test.sh` 全绿；exe 重建见下。
+
 ### 2026-10-13（完整复刻：pi 项目信任 4 条）
 
 - **`src-go/web/handlers/acp_pi_trust.go`（新增）**：

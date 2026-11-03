@@ -8916,6 +8916,46 @@ func (msgs Messages) CvNoteCreated() string {
 	return Catalog.Format(msgs.locale, "cvNoteCreated", nil)
 }
 
+// CvGroupRegion says "Group into region"
+// in the language the app shows.
+func CvGroupRegion() string { return In(i18n.Locale()).CvGroupRegion() }
+
+// CvGroupRegion says "Group into region"
+// in the language of msgs.
+func (msgs Messages) CvGroupRegion() string {
+	return Catalog.Format(msgs.locale, "cvGroupRegion", nil)
+}
+
+// CvGrouped says "region created"
+// in the language the app shows.
+func CvGrouped() string { return In(i18n.Locale()).CvGrouped() }
+
+// CvGrouped says "region created"
+// in the language of msgs.
+func (msgs Messages) CvGrouped() string {
+	return Catalog.Format(msgs.locale, "cvGrouped", nil)
+}
+
+// CvGroupFailed says "group failed: {message}"
+// in the language the app shows.
+func CvGroupFailed(message string) string { return In(i18n.Locale()).CvGroupFailed(message) }
+
+// CvGroupFailed says "group failed: {message}"
+// in the language of msgs.
+func (msgs Messages) CvGroupFailed(message string) string {
+	return Catalog.Format(msgs.locale, "cvGroupFailed", map[string]any{"message": message})
+}
+
+// CvRegionMembers says "{count, plural, one {# member} other {# members}}"
+// in the language the app shows.
+func CvRegionMembers(count int) string { return In(i18n.Locale()).CvRegionMembers(count) }
+
+// CvRegionMembers says "{count, plural, one {# member} other {# members}}"
+// in the language of msgs.
+func (msgs Messages) CvRegionMembers(count int) string {
+	return Catalog.Format(msgs.locale, "cvRegionMembers", map[string]any{"count": count})
+}
+
 // CvCreateFailed says "create failed: {message}"
 // in the language the app shows.
 //

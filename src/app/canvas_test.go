@@ -509,6 +509,238 @@ func TestCanvasNodeResizeDrag(t *testing.T) {
 	}
 }
 
+// TestCanvasWheelPanAndPinchZoom drives the surface through mygo 0.7's
+// HandleInput: a touchpad scroll pans (a scroll container's direction), and a
+// pinch zooms around the pointer — the world point under the pointer stays put.
+func TestCanvasWheelPanAndPinchZoom(t *testing.T) {
+	s, b, ids := canvasShellForTest(t, "Wheel board")
+	boardID := ids[0]
+	if _, err := b.raw("canvas_create_node", map[string]any{"input": map[string]any{
+		"kind": "note", "board_id": numOrString(boardID), "title": "Anchor",
+		"x": 40, "y": 60, "width": 200, "height": 100,
+	}}); err != nil {
+		t.Fatalf("create node: %v", err)
+	}
+	nodesRaw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+	if err != nil {
+		t.Fatalf("canvas_list_nodes: %v", err)
+	}
+	s.cache["canvas-nodes:"+boardID] = nodesRaw
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Wheel board"); err != nil {
+		t.Fatalf("open board: %v", err)
+	}
+	tt.Frame()
+	rect, ok := tt.Find("Anchor")
+	if !ok {
+		t.Fatalf("card not found; texts = %v", tt.Texts())
+	}
+	// Touchpad scroll up-left: the view walks down-right the content, so the
+	// card follows the fingers.
+	tt.Scroll(rect.X+rect.W/2, rect.Y+rect.H/2, -50, -40)
+	tt.Frame()
+	after, ok := tt.Find("Anchor")
+	if !ok {
+		t.Fatalf("card lost after scroll; texts = %v", tt.Texts())
+	}
+	if dx, dy := after.X-rect.X, after.Y-rect.Y; dx != 50 || dy != 40 {
+		t.Fatalf("scroll panned the card by (%v,%v), want (50,40)", dx, dy)
+	}
+
+	// Pinch: the zoom anchors at the pointer — the world point under the
+	// pinch site becomes the anchor, so pinching at two sites a known screen
+	// distance apart must anchor their world points exactly that far apart
+	// (pan2 - pan1 = -(siteB - siteA) at zoom 1). Find rects are not trusted
+	// under the Scale transform, so this asserts on the pan/zoom state.
+	if err := tt.Click("Reset view"); err != nil {
+		t.Fatalf("reset view: %v", err)
+	}
+	tt.Frame()
+	pinchA := ui.Point{X: rect.X, Y: rect.Y}
+	tt.Pinch(pinchA.X, pinchA.Y, 2)
+	tt.Frame()
+	if !tt.HasText("200%") {
+		t.Fatalf("pinch did not zoom; texts = %v", tt.Texts())
+	}
+	if s.canvasZoom != 2 {
+		t.Fatalf("zoom = %v, want 2", s.canvasZoom)
+	}
+	panA := s.canvasPan
+	if err := tt.Click("Reset view"); err != nil {
+		t.Fatalf("reset view: %v", err)
+	}
+	tt.Frame()
+	pinchB := ui.Point{X: pinchA.X + 60, Y: pinchA.Y + 30}
+	tt.Pinch(pinchB.X, pinchB.Y, 2)
+	tt.Frame()
+	panB := s.canvasPan
+	if dx, dy := panB.X-panA.X, panB.Y-panA.Y; dx != -60 || dy != -30 {
+		t.Fatalf("pinch anchors did not track the pointer: pan moved (%v,%v), want (-60,-30)", dx, dy)
+	}
+	dumpFrame(t, tt, "canvas-zoom-pinch")
+}
+
+// TestCanvasDeleteKeySelection selects a card and presses Delete on the focused
+// surface: the node is removed; the untouched neighbour stays.
+func TestCanvasDeleteKeySelection(t *testing.T) {
+	s, b, ids := canvasShellForTest(t, "Key board")
+	boardID := ids[0]
+	for _, seed := range []struct {
+		title string
+		x     float64
+	}{
+		{"Alpha", 40},
+		{"Beta", 320},
+	} {
+		if _, err := b.raw("canvas_create_node", map[string]any{"input": map[string]any{
+			"kind": "note", "board_id": numOrString(boardID), "title": seed.title,
+			"x": seed.x, "y": 40, "width": 200, "height": 100,
+		}}); err != nil {
+			t.Fatalf("create %s: %v", seed.title, err)
+		}
+	}
+	nodesRaw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+	if err != nil {
+		t.Fatalf("canvas_list_nodes: %v", err)
+	}
+	s.cache["canvas-nodes:"+boardID] = nodesRaw
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Key board"); err != nil {
+		t.Fatalf("open board: %v", err)
+	}
+	tt.Frame()
+	// Clicking the card selects it and hands the world the keyboard focus.
+	if err := tt.Click("Alpha"); err != nil {
+		t.Fatalf("select node: %v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("1 selected") {
+		t.Fatalf("card not selected; texts = %v", tt.Texts())
+	}
+	tt.Key(0, ui.KeyDelete)
+	tt.Frame()
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		nodes := canvasNodesOf(t, b, boardID)
+		if len(nodes) == 1 && fmt.Sprintf("%v", nodes[0]["title"]) == "Beta" {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("delete key did not remove the selection: %v", nodes)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// TestCanvasGroupIntoRegion marquees two conversation cards and grows a region
+// around them: canvas_group_into_region consumes the loose cards, sizes the
+// frame to whole card columns (upstream's groupSelection), and the new region
+// becomes the selection.
+func TestCanvasGroupIntoRegion(t *testing.T) {
+	s, b, ids := canvasShellForTest(t, "Region board")
+	boardID := ids[0]
+	fraw, err := b.raw("add_folder_to_history", map[string]any{"path": t.TempDir()})
+	if err != nil {
+		t.Fatalf("add_folder: %v", err)
+	}
+	var folder map[string]any
+	_ = json.Unmarshal(fraw, &folder)
+	cids := []float64{}
+	for _, title := range []string{"Conv One", "Conv Two"} {
+		craw, err := b.raw("create_conversation", map[string]any{"folderId": folder["id"], "agentType": "claude_code"})
+		if err != nil {
+			t.Fatalf("create_conversation: %v", err)
+		}
+		var cid float64
+		if err := json.Unmarshal(craw, &cid); err != nil {
+			t.Fatalf("create_conversation returned %s, want a bare id: %v", craw, err)
+		}
+		cids = append(cids, cid)
+		if _, err := b.raw("canvas_create_node", map[string]any{"input": map[string]any{
+			"kind": "conversation", "board_id": numOrString(boardID),
+			"conversation_id": cid, "title": title,
+			"x": 40 + float64(len(cids)-1)*280, "y": 40, "width": 200, "height": 100,
+		}}); err != nil {
+			t.Fatalf("create %s node: %v", title, err)
+		}
+	}
+	nodesRaw, err := b.raw("canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)})
+	if err != nil {
+		t.Fatalf("canvas_list_nodes: %v", err)
+	}
+	s.cache["canvas-nodes:"+boardID] = nodesRaw
+
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Region board"); err != nil {
+		t.Fatalf("open board: %v", err)
+	}
+	tt.Frame()
+	one, ok := tt.Find("Conv One")
+	if !ok {
+		t.Fatalf("Conv One missing; texts = %v", tt.Texts())
+	}
+	two, ok := tt.Find("Conv Two")
+	if !ok {
+		t.Fatalf("Conv Two missing; texts = %v", tt.Texts())
+	}
+	// Marquee both cards.
+	tt.Press(one.X-10, one.Y-10)
+	tt.Frame()
+	tt.Move(two.X+210, one.Y+140)
+	tt.Frame()
+	tt.Release(two.X+210, one.Y+140)
+	tt.Frame()
+	if !tt.HasText("2 selected") {
+		t.Fatalf("marquee selected %v; texts = %v", tt.Texts(), tt.Texts())
+	}
+	if !tt.HasText("Group into region") {
+		t.Fatalf("group button missing for a conversation selection; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Group into region"); err != nil {
+		t.Fatalf("group into region: %v", err)
+	}
+
+	// The region replaces both cards: one custom node holding both
+	// conversations, framed at the selection's padded bounds (2 card columns).
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		nodes := canvasNodesOf(t, b, boardID)
+		if len(nodes) == 1 && fmt.Sprintf("%v", nodes[0]["kind"]) == "custom" {
+			n := nodes[0]
+			members, _ := n["member_ids"].([]any)
+			want := []any{cids[0], cids[1]}
+			if slices.Equal(members, want) {
+				x, _ := n["x"].(float64)
+				y, _ := n["y"].(float64)
+				w, _ := n["width"].(float64)
+				h, _ := n["height"].(float64)
+				if x != 28 || y != 28 || w != canvasRegionWidthForColumns(2) ||
+					h != canvasRegionHeightForRows(1) {
+					t.Fatalf("region frame = (%v,%v %vx%v), want (28,28 %vx%v)",
+						x, y, w, h, canvasRegionWidthForColumns(2), canvasRegionHeightForRows(1))
+				}
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("region members = %v, want %v", members, want)
+			}
+		} else if time.Now().After(deadline) {
+			t.Fatalf("group did not consume the cards: %v", nodes)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	// The region is the selection now, and its card names its members.
+	if !waitText(t, tt, "2 members", true) {
+		t.Fatalf("region card missing the member count; texts = %v", tt.Texts())
+	}
+	if !tt.HasText("1 selected") {
+		t.Errorf("region not selected; texts = %v", tt.Texts())
+	}
+	dumpFrame(t, tt, "canvas-region")
+}
+
 // canvasNodesOf lists a board's nodes from the backend.
 func canvasNodesOf(t *testing.T, b *Backend, boardID string) []map[string]any {
 	t.Helper()

@@ -1,10 +1,10 @@
 module gocode
 
-go 1.27.1
+go 1.27.3
 
 require (
 	github.com/aymanbagabas/go-pty v0.2.3
-	github.com/egoist/mygo v0.6.3
+	github.com/egoist/mygo v0.7.4
 	github.com/gorilla/websocket v1.5.3
 	github.com/klauspost/compress v1.18.0
 	github.com/pelletier/go-toml/v2 v2.2.3

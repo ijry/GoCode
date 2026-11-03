@@ -16,8 +16,18 @@ package app
 //   canvas_list_nodes   {boardId} → {board_id,nodes:[{id,kind,title,content,path,
 //                          color,x,y,width,height,…}],revision}
 //   canvas_delete_node  {nodeId}
+//   canvas_delete_nodes {nodeIds}
+//   canvas_move_nodes   {moves:[{id,x,y}]}
+//   canvas_update_node  {nodeId,patch:{width,height,…}}
+//   canvas_group_into_region {input:{boardId,memberIds,consumeNodeIds,gridColumns,
+//                          x,y,width,height}} → {node:{region},deleted_ids}
+//
+// The surface takes its wheel/pinch through HandleInput (mygo 0.7): a touchpad
+// or the plain wheel pans, a pinch or Ctrl+wheel notch zooms around the pointer,
+// and Delete/Backspace on the focused surface deletes the selection.
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -210,6 +220,36 @@ const (
 	canvasZoomMax = 2
 )
 
+// Region frame geometry, mirroring upstream canvas-model.ts: a group region is
+// sized to whole card columns/rows inside a padded frame with a header bar.
+const (
+	canvasRegionPad    = 12
+	canvasRegionHeader = 40
+	canvasRegionGap    = 12
+	canvasRegionCardW  = 224
+	canvasRegionCardH  = 132
+	canvasRegionCols   = 6 // the most card columns a region grows to
+)
+
+// canvasRegionWidthForColumns sizes a region frame to n card columns.
+func canvasRegionWidthForColumns(n int) float64 {
+	n = max(1, n)
+	return canvasRegionPad*2 + float64(n)*canvasRegionCardW + float64(n-1)*canvasRegionGap
+}
+
+// canvasRegionHeightForRows sizes a region frame to n card rows.
+func canvasRegionHeightForRows(n int) float64 {
+	n = max(1, n)
+	return canvasRegionHeader + canvasRegionPad*2 + float64(n)*canvasRegionCardH + float64(n-1)*canvasRegionGap
+}
+
+// canvasColumnsForRegionWidth is how many card columns fit a region width (at
+// least one — upstream would rather clip a card than render an empty frame).
+func canvasColumnsForRegionWidth(w float64) int {
+	usable := max(w-canvasRegionPad*2, canvasRegionCardW)
+	return max(1, int((usable+canvasRegionGap)/(canvasRegionCardW+canvasRegionGap)))
+}
+
 // viewCanvasBoard renders an open board as a spatial surface: every node sits
 // at its stored x/y, drags to a new spot (persisted through canvas_move_nodes),
 // and the surface zooms/pans from the header. Nodes are placed absolutely in a
@@ -222,6 +262,19 @@ func (s *Shell) viewCanvasBoard(c *ui.Context, boardID string) {
 	if zoom <= 0 {
 		zoom = 1
 	}
+
+	// A Delete/Backspace that landed on the focused surface deletes the
+	// selection; HandleInput runs before this frame, so the flag is fresh.
+	if s.canvasKeyDelete {
+		s.canvasKeyDelete = false
+		s.canvasDeleteSelected(c)
+	}
+
+	snap := asObj(s.ensure("canvas-nodes:"+boardID, "canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)}))
+	nodes := asListVal(snap["nodes"])
+	// The selection's conversation cards can grow into a region (upstream's
+	// groupSelection); the header button carries that plan.
+	group, canGroup := canvasRegionPlanOf(nodes, s.canvasSelNodes)
 
 	ui.Row(c.Key("cv-board-head")).Gap(10).AlignItems(ui.Center).Children(func() {
 		iconButton(c, "cv-board-back", iconBack, m.CvBack(), func() {
@@ -250,6 +303,9 @@ func (s *Shell) viewCanvasBoard(c *ui.Context, boardID string) {
 				s.canvasDeleteSelected(c)
 			}
 		}
+		if canGroup && ui.Button(c.Key("cv-group-region"), m.CvGroupRegion()).Clicked() {
+			s.canvasGroupRegion(c, group)
+		}
 		if ui.Button(c.Key("cv-zoom-out"), "−").Clicked() {
 			s.setCanvasZoom(zoom - 0.2)
 		}
@@ -269,12 +325,10 @@ func (s *Shell) viewCanvasBoard(c *ui.Context, boardID string) {
 		})
 	})
 
-	snap := asObj(s.ensure("canvas-nodes:"+boardID, "canvas_list_nodes", map[string]any{"boardId": numOrString(boardID)}))
 	if snap == nil {
 		loadingState(c, "")
 		return
 	}
-	nodes := asListVal(snap["nodes"])
 	// Base spots, so a group drag can move every selected card without each one
 	// looking its neighbours up.
 	bases := make(map[string]ui.Point, len(nodes))
@@ -288,13 +342,17 @@ func (s *Shell) viewCanvasBoard(c *ui.Context, boardID string) {
 	// The viewport clips; the world inside carries the pan/zoom transform and
 	// hosts the absolutely-placed cards. The world is itself absolute so its
 	// fixed size never stretches the panel — otherwise the header row (and its
-	// zoom controls) would be laid out past the window edge.
+	// zoom controls) would be laid out past the window edge. It is focusable so
+	// a click anywhere on the board hands it the keyboard (Delete/Backspace),
+	// and it takes the wheel, pinch and keys through HandleInput.
 	ui.Box(c.Key("cv-viewport")).Grow(1).FillWidth().Clip().Children(func() {
 		world := ui.Box(c.Key("cv-world")).Absolute().Left(0).Top(0).
 			Width(canvasWorldW).Height(canvasWorldH).
 			TransformOrigin(0, 0).
 			Translate(s.canvasPan.X, s.canvasPan.Y).
-			Scale(zoom, zoom)
+			Scale(zoom, zoom).
+			Focusable().
+			HandleInput(s.canvasWorldInput)
 		world.Children(func() {
 			if len(nodes) == 0 {
 				ui.Column(c.Key("cv-empty-hint")).Absolute().Left(24).Top(24).Gap(6).Children(func() {
@@ -381,6 +439,7 @@ func (s *Shell) closeCanvasBoard() {
 	s.canvasBand = nil
 	s.canvasDrag = nil
 	s.canvasResize = nil
+	s.canvasKeyDelete = false
 }
 
 // canvasNodeCard draws one node at its stored spot. A drag accumulates in
@@ -421,6 +480,13 @@ func (s *Shell) canvasNodeCard(c *ui.Context, n map[string]any, bases map[string
 			})
 		})
 		ui.Text(c, label).FontSize(12).TextColor(t.Text).MaxLines(3).Wrap()
+		// A region card names how many conversations it holds; its members
+		// render inside it upstream, which this build's cards do not.
+		if kind == "custom" {
+			if ids, ok := n["member_ids"].([]any); ok && len(ids) > 0 {
+				ui.Text(c, m.CvRegionMembers(len(ids))).FontSize(11).TextColor(t.TextMuted)
+			}
+		}
 	})
 	// Drag first: the release frame of a drag also reports Clicked, and a
 	// click must not collapse a group selection that was just moved.
@@ -469,7 +535,7 @@ func (s *Shell) canvasNodeCard(c *ui.Context, n map[string]any, bases map[string
 	// drag accumulates in world DIPs and commits through canvas_update_node.
 	if selected {
 		handle := ui.Box(c.Key("cv-resize-"+id)).Absolute().
-			Left(x + ew - 12).Top(y + eh - 12).Width(20).Height(20).
+			Left(x+ew-12).Top(y+eh-12).Width(20).Height(20).
 			Background(t.Surface).Border(2, t.Accent).Radius(3)
 		handle.Tooltip(m.CvResize())
 		if rdx, rdy, ok := handle.Dragged(); ok {
@@ -584,6 +650,116 @@ func canvasKindLabel(m locales.Messages, kind string) string {
 // setCanvasZoom clamps and stores the surface zoom.
 func (s *Shell) setCanvasZoom(z float32) {
 	s.canvasZoom = min(max(z, canvasZoomMin), canvasZoomMax)
+}
+
+// zoomCanvasAt sets a new zoom keeping the world point (wx, wy) — the pointer's
+// spot on the world — under the pointer. Cards stay put under the cursor while
+// the world grows or shrinks around it.
+func (s *Shell) zoomCanvasAt(wx, wy, z float32) {
+	cur := s.canvasZoom
+	if cur <= 0 {
+		cur = 1
+	}
+	z = min(max(z, canvasZoomMin), canvasZoomMax)
+	s.canvasZoom = z
+	s.canvasPan.X += wx * (cur - z)
+	s.canvasPan.Y += wy * (cur - z)
+}
+
+// canvasWorldInput takes the world's wheel, pinch and keys (HandleInput, mygo
+// 0.7): a touchpad's scroll or the plain wheel pans (DX/DY arrive in world
+// axes), a pinch or a Ctrl+wheel notch zooms around the pointer, and
+// Delete/Backspace on the focused surface queues deleting the selection. It
+// declines pointer events, so card clicks and drags are untouched. It runs on
+// the main thread before the next frame, ahead of View.
+func (s *Shell) canvasWorldInput(ev ui.InputEvent) bool {
+	switch ev.Kind {
+	case ui.InputZoom:
+		cur := s.canvasZoom
+		if cur <= 0 {
+			cur = 1
+		}
+		s.zoomCanvasAt(ev.X, ev.Y, cur*ev.Scale)
+		return true
+	case ui.InputScroll:
+		cur := s.canvasZoom
+		if cur <= 0 {
+			cur = 1
+		}
+		if ev.Mods&ui.Ctrl != 0 && !ev.Precise {
+			// Windows reports pinches as Ctrl-scroll, but a mouse wheel's
+			// notches stay InputScroll with Ctrl in Mods: zoom a quarter each.
+			switch {
+			case ev.DY < 0:
+				s.zoomCanvasAt(ev.X, ev.Y, cur*1.25)
+			case ev.DY > 0:
+				s.zoomCanvasAt(ev.X, ev.Y, cur*0.8)
+			}
+			return true
+		}
+		// A touchpad's fingers or the plain wheel: pan, as a scroll container
+		// would. Positive DY moves the view down the content, so the pan
+		// shrinks by the scrolled distance.
+		s.canvasPan.X -= cur * ev.DX
+		s.canvasPan.Y -= cur * ev.DY
+		return true
+	case ui.InputKeyDown:
+		if ev.Repeat || (ev.Key != ui.KeyDelete && ev.Key != ui.KeyBackspace) {
+			return false
+		}
+		if len(s.canvasSelNodes) == 0 {
+			return false
+		}
+		s.canvasKeyDelete = true
+		return true
+	}
+	return false
+}
+
+// canvasRegionPlan is a pending group-into-region action: the conversations the
+// selection covers (members), the loose conversation cards to consume, and the
+// frame the new region grows into.
+type canvasRegionPlan struct {
+	members []any
+	consume []any
+	x, y    float64
+	columns int
+	rows    int
+}
+
+// canvasRegionPlanOf walks the selection the way upstream's groupSelection
+// does: conversation nodes contribute their conversation as a member and
+// themselves as consumed cards; the plan's frame bounds those cards, padded
+// and rounded up to whole card columns (at most six).
+func canvasRegionPlanOf(nodes []map[string]any, sel map[string]bool) (canvasRegionPlan, bool) {
+	var plan canvasRegionPlan
+	minX, minY := float32(1e18), float32(1e18)
+	maxX, maxY := float32(-1e18), float32(-1e18)
+	for _, n := range nodes {
+		id := fmt.Sprintf("%v", n["id"])
+		if !sel[id] || str(n, "kind") != "conversation" {
+			continue
+		}
+		cid := intOf(n["conversation_id"])
+		if cid == 0 {
+			continue
+		}
+		plan.members = append(plan.members, numOrString(fmt.Sprintf("%v", cid)))
+		plan.consume = append(plan.consume, numOrString(id))
+		x, y := float32(floatOf(n["x"])), float32(floatOf(n["y"]))
+		w, h := canvasNodeSize(n)
+		minX, minY = min(minX, x), min(minY, y)
+		maxX, maxY = max(maxX, x+w), max(maxY, y+h)
+	}
+	if len(plan.members) == 0 {
+		return canvasRegionPlan{}, false
+	}
+	plan.x = float64(minX) - canvasRegionPad
+	plan.y = float64(minY) - canvasRegionPad
+	plan.columns = min(canvasRegionCols,
+		canvasColumnsForRegionWidth(float64(maxX-minX)+canvasRegionPad*2))
+	plan.rows = (len(plan.members) + plan.columns - 1) / plan.columns
+	return plan, true
 }
 
 // viewCanvasEditor renders the new/rename board form.
@@ -767,6 +943,49 @@ func (s *Shell) canvasMoveNodes(c *ui.Context, moves []any) {
 		if board != "" {
 			delete(s.cache, "canvas-nodes:"+board)
 		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
+}
+
+// canvasGroupRegion grows a region around the selection's conversations
+// (canvas_group_into_region): their loose cards are consumed, the frame is
+// sized to whole card columns like upstream's groupSelection, and the new
+// region becomes the selection.
+func (s *Shell) canvasGroupRegion(c *ui.Context, plan canvasRegionPlan) {
+	board := s.canvasSel
+	if board == "" || len(plan.members) == 0 {
+		return
+	}
+	svc := s.svc
+	loc := c.Locale()
+	input := map[string]any{
+		"board_id":         numOrString(board),
+		"member_ids":       plan.members,
+		"consume_node_ids": plan.consume,
+		"grid_columns":     plan.columns,
+		"x":                plan.x,
+		"y":                plan.y,
+		"width":            canvasRegionWidthForColumns(plan.columns),
+		"height":           canvasRegionHeightForRows(plan.rows),
+	}
+	go func() {
+		raw, err := s.B.raw("canvas_group_into_region", map[string]any{"input": input})
+		s.mu.Lock()
+		if err != nil {
+			s.notifyErr(locales.In(loc).CvGroupFailed(err.Error()))
+		} else {
+			s.notify(locales.In(loc).CvGrouped())
+			var res map[string]any
+			_ = json.Unmarshal(raw, &res)
+			node := asObjVal(asObjVal(res["value"])["node"])
+			if id := fmt.Sprintf("%v", node["id"]); id != "" && id != "<nil>" {
+				s.canvasSelNodes = map[string]bool{id: true}
+			} else {
+				s.canvasSelNodes = nil
+			}
+		}
+		delete(s.cache, "canvas-nodes:"+board)
 		s.mu.Unlock()
 		svc.Invalidate()
 	}()
