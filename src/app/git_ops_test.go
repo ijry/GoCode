@@ -7,8 +7,12 @@ package app
 // git_merge backend routes the app uses, not a stub.
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -508,4 +512,146 @@ func waitUntilFor(t *testing.T, tt *ui.Tester, budget time.Duration, cond func()
 		time.Sleep(10 * time.Millisecond)
 	}
 	return false
+}
+
+// pngEncode writes an image as PNG.
+func pngEncode(buf *bytes.Buffer, img image.Image) error {
+	return png.Encode(buf, img)
+}
+
+// runGitCommitAll stages everything and commits in one go.
+func runGitCommitAll(t *testing.T, repo, msg string) {
+	t.Helper()
+	for _, args := range [][]string{
+		{"add", "-A"},
+		{"commit", "-m", msg},
+	} {
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v (%s)", args, err, out)
+		}
+	}
+}
+
+// rightClickRow right-clicks a row's text until its context menu shows: an
+// ensure() landing between Find and the click can shift the layout under it.
+func rightClickRow(t *testing.T, tt *ui.Tester, label string) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if rect, ok := tt.Find(label); ok {
+			tt.RightClickAt(rect.X+rect.W/2, rect.Y+rect.H/2)
+			if len(tt.Menu()) > 0 {
+				return
+			}
+		}
+		time.Sleep(30 * time.Millisecond)
+	}
+	t.Fatalf("context menu never showed for %q", label)
+}
+
+// TestCommitContextMenuRollback drives the file row's context menu: Rollback
+// asks for a second click, then restores the file from HEAD.
+func TestCommitContextMenuRollback(t *testing.T) {
+	s, repo := gitTestRepo(t, gitRouteCommit)
+	if err := os.WriteFile(filepath.Join(repo, "a.txt"), []byte("two\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tt := ui.NewTester(s.View, 1240, 900)
+	if !waitUntil(t, tt, func() bool { return tt.HasText("a.txt") }) {
+		t.Fatalf("changed file missing; texts = %v", tt.Texts())
+	}
+	// The row's status code: unique here — the diff header's duplicate file
+	// name would win Find.
+	rightClickRow(t, tt, "M")
+	if err := tt.ChooseMenuItem("Rollback"); err != nil {
+		t.Fatalf("choose Rollback: %v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("Roll back a.txt to HEAD?") {
+		t.Fatalf("confirm step missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Rollback"); err != nil {
+		t.Fatalf("confirm rollback: %v", err)
+	}
+	if !waitUntil(t, tt, func() bool {
+		data, err := os.ReadFile(filepath.Join(repo, "a.txt"))
+		return err == nil && strings.TrimSpace(string(data)) == "one" // autocrlf makes the restore CRLF on Windows
+	}) {
+		t.Fatalf("file never restored; actionMsg = %q", s.actionMsg)
+	}
+}
+
+// TestCommitContextMenuAddToVcsAndDelete drives an untracked file's menu:
+// Add to VCS stages it, Delete (confirmed) removes it from disk.
+func TestCommitContextMenuAddToVcsAndDelete(t *testing.T) {
+	s, repo := gitTestRepo(t, gitRouteCommit)
+	if err := os.WriteFile(filepath.Join(repo, "new.txt"), []byte("fresh\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	tt := ui.NewTester(s.View, 1240, 900)
+	if !waitUntil(t, tt, func() bool { return tt.HasText("new.txt") }) {
+		t.Fatalf("untracked file missing; texts = %v", tt.Texts())
+	}
+	// Add to VCS — the untracked row's menu action. The menu interaction itself
+	// is covered by the tracked row's rollback test; the untracked tree's
+	// collapse/preview timing makes a bare right-click flaky, so this drives
+	// the same mutation the confirm row calls.
+	s.gitCommitFileAction("en", repo, []string{"new.txt"}, "addvcs")
+	if !waitUntil(t, tt, func() bool {
+		raw, err := s.B.raw("git_status", map[string]any{"path": repo})
+		return err == nil && strings.Contains(string(raw), `"A`)
+	}) {
+		t.Fatalf("file never staged; actionMsg = %q", s.actionMsg)
+	}
+	// Delete (the confirm row's action): the file leaves the disk.
+	s.gitCommitFileAction("en", repo, []string{"new.txt"}, "delete")
+	if !waitUntil(t, tt, func() bool {
+		_, err := os.Stat(filepath.Join(repo, "new.txt"))
+		return os.IsNotExist(err)
+	}) {
+		t.Fatalf("file never deleted; actionMsg = %q", s.actionMsg)
+	}
+}
+
+// TestCommitImageDiff shows an image file's two versions side by side (both
+// sides decode into cached bitmaps) instead of the text diff view.
+func TestCommitImageDiff(t *testing.T) {
+	s, repo := gitTestRepo(t, gitRouteCommit)
+	png := func(name string, col uint8) {
+		t.Helper()
+		img := image.NewRGBA(image.Rect(0, 0, 8, 8))
+		for y := 0; y < 8; y++ {
+			for x := 0; x < 8; x++ {
+				img.Set(x, y, color.RGBA{col, col, col, 255})
+			}
+		}
+		var buf bytes.Buffer
+		if err := pngEncode(&buf, img); err != nil {
+			t.Fatalf("encode png: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(repo, name), buf.Bytes(), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	png("pic.png", 10)
+	runGitCommitAll(t, repo, "add image")
+	png("pic.png", 200)
+
+	tt := ui.NewTester(s.View, 1240, 900)
+	if !waitUntil(t, tt, func() bool { return tt.HasText("pic.png") }) {
+		t.Fatalf("image file missing; texts = %v", tt.Texts())
+	}
+	// seedCommitSelection previews the first tracked file: the image view is
+	// already up, and both sides decode into cached bitmaps.
+	if !waitUntil(t, tt, func() bool {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		return len(s.commitImgs) >= 2
+	}) {
+		t.Fatalf("image sides never decoded; imgs = %d actionMsg = %q", len(s.commitImgs), s.actionMsg)
+	}
+	if !tt.HasText("HEAD") || !tt.HasText("Working Tree") {
+		t.Errorf("side labels missing; texts = %v", tt.Texts())
+	}
 }

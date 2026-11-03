@@ -1906,6 +1906,106 @@ func (msgs Messages) GitSelectFile(file string) string {
 	return Catalog.Format(msgs.locale, "gitSelectFile", map[string]any{"file": file})
 }
 
+// GitAddToVcs says "Add to VCS"
+// in the language the app shows.
+func GitAddToVcs() string { return In(i18n.Locale()).GitAddToVcs() }
+
+// GitAddToVcs says "Add to VCS"
+// in the language of msgs.
+func (msgs Messages) GitAddToVcs() string {
+	return Catalog.Format(msgs.locale, "gitAddToVcs", nil)
+}
+
+// GitRollbackAction says "Rollback"
+// in the language the app shows.
+func GitRollbackAction() string { return In(i18n.Locale()).GitRollbackAction() }
+
+// GitRollbackAction says "Rollback"
+// in the language of msgs.
+func (msgs Messages) GitRollbackAction() string {
+	return Catalog.Format(msgs.locale, "gitRollbackAction", nil)
+}
+
+// GitRollbackConfirm says "Roll back {file} to HEAD?"
+// in the language the app shows.
+func GitRollbackConfirm(file string) string { return In(i18n.Locale()).GitRollbackConfirm(file) }
+
+// GitRollbackConfirm says "Roll back {file} to HEAD?"
+// in the language of msgs.
+func (msgs Messages) GitRollbackConfirm(file string) string {
+	return Catalog.Format(msgs.locale, "gitRollbackConfirm", map[string]any{"file": file})
+}
+
+// GitDeleteConfirm says "Delete {file} from disk?"
+// in the language the app shows.
+func GitDeleteConfirm(file string) string { return In(i18n.Locale()).GitDeleteConfirm(file) }
+
+// GitDeleteConfirm says "Delete {file} from disk?"
+// in the language of msgs.
+func (msgs Messages) GitDeleteConfirm(file string) string {
+	return Catalog.Format(msgs.locale, "gitDeleteConfirm", map[string]any{"file": file})
+}
+
+// GitRolledBack says "rolled back {name}"
+// in the language the app shows.
+func GitRolledBack(name string) string { return In(i18n.Locale()).GitRolledBack(name) }
+
+// GitRolledBack says "rolled back {name}"
+// in the language of msgs.
+func (msgs Messages) GitRolledBack(name string) string {
+	return Catalog.Format(msgs.locale, "gitRolledBack", map[string]any{"name": name})
+}
+
+// GitCommitDeleted says "deleted {name}"
+// in the language the app shows.
+func GitCommitDeleted(name string) string { return In(i18n.Locale()).GitCommitDeleted(name) }
+
+// GitCommitDeleted says "deleted {name}"
+// in the language of msgs.
+func (msgs Messages) GitCommitDeleted(name string) string {
+	return Catalog.Format(msgs.locale, "gitCommitDeleted", map[string]any{"name": name})
+}
+
+// GitAddedToVcs says "added to VCS {name}"
+// in the language the app shows.
+func GitAddedToVcs(name string) string { return In(i18n.Locale()).GitAddedToVcs(name) }
+
+// GitAddedToVcs says "added to VCS {name}"
+// in the language of msgs.
+func (msgs Messages) GitAddedToVcs(name string) string {
+	return Catalog.Format(msgs.locale, "gitAddedToVcs", map[string]any{"name": name})
+}
+
+// GitNoImageSide says "no version on this side"
+// in the language the app shows.
+func GitNoImageSide() string { return In(i18n.Locale()).GitNoImageSide() }
+
+// GitNoImageSide says "no version on this side"
+// in the language of msgs.
+func (msgs Messages) GitNoImageSide() string {
+	return Catalog.Format(msgs.locale, "gitNoImageSide", nil)
+}
+
+// GitImageDecoding says "decoding…"
+// in the language the app shows.
+func GitImageDecoding() string { return In(i18n.Locale()).GitImageDecoding() }
+
+// GitImageDecoding says "decoding…"
+// in the language of msgs.
+func (msgs Messages) GitImageDecoding() string {
+	return Catalog.Format(msgs.locale, "gitImageDecoding", nil)
+}
+
+// GitImageFailed says "could not decode the image"
+// in the language the app shows.
+func GitImageFailed() string { return In(i18n.Locale()).GitImageFailed() }
+
+// GitImageFailed says "could not decode the image"
+// in the language of msgs.
+func (msgs Messages) GitImageFailed() string {
+	return Catalog.Format(msgs.locale, "gitImageFailed", nil)
+}
+
 // GitUnselectFile says "Unselect {file}"
 // in the language the app shows.
 //

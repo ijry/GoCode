@@ -677,9 +677,19 @@
     由 `git_has_merge_head` 门控。
   - **深度补齐（2026-10-20）**：Commit / Push 从最小切片升级为上述工作台；缓存按
     branch/remote/文件分键并按前缀失效，换 remote 重置展开与预览。
-  - **仍省略**：hunk 级 stage/unstage 与行内操作、文件/目录右键 rollback·delete·add-to-VCS、
-    图片 diff（ImageDiffView）、force-with-lease、推送进度流、提交信息历史 / AI 生成、
-    提交卡片上的相对时间（这里用 `YYYY-MM-DD`）。
+  - **文件/目录右键 + 图片 diff（2026-11-04）**：对齐上游 commit-dialog 的上下文菜单——
+    未跟踪叶 Add to VCS（`git_add_files`）、跟踪叶 Rollback（`git_rollback_file`；删除态隐藏）、
+    任何叶/目录 Delete（`delete_file_tree_entry`）；目录叶 Rollback/Delete 覆盖其下全部
+    （git 接受目录 pathspec）。菜单选中后行内两步确认（本 build 无确认对话框组件），
+    成功后失效 status/diff 缓存并清掉受影响路径的预览与选择。图片文件（png/jpg/jpeg/gif/
+    webp/bmp）的预览走上游 ImageDiffView 的对应物：HEAD 侧 `git_show_file_base64`、
+    工作区侧 `read_workspace_file_base64`，`ui.DecodeBitmap` 离线解码缓存位图（in-flight/
+    failed 状态防每帧重解），两侧并排 `ui.Image(Fit Contain)`，缺侧诚实提示。
+  - **更正（2026-11-04，核对上游后）**：hunk 级 stage/unstage、force-with-lease、推送进度流、
+    提交信息历史 / AI 生成 —— **上游均没有**（commit-dialog 只做整文件 stage + Add to VCS；
+    push-workspace 无进度流），不是缺口，从「仍省略」除名。
+  - **仍省略**：提交卡片上的相对时间（这里用 `YYYY-MM-DD`）；图片 diff 无尺寸标注与
+    并排像素对比模式（上游 ImageDiffView 的滑块对比未做）。
 - [x] **分支选择器**（composer 上的 branch picker，上游 `conversation-branch-tag`）。
   **已完成（本次）**：composer 输入框下方的**分支 chip**（`viewBranchChip`）+ **Branches 整页路由**
   （`git-branches`，也从 «Git 操作» 菜单进）。chip 显示当前 checkout 的分支名，点击进 Branches 页；

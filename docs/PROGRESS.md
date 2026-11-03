@@ -80,8 +80,9 @@
   - 验证：`git_ops_test.go` 新增 3 个（untracked 选择并提交、未推送列表 + 展开 + diff + 推送、
     Commit and Push），原 Git 测试保持通过；快照 `git-commit-selection.png` /
     `git-push-commit.png` / `git-push-done.png`（`git-commit.png` / `git-push.png` 更新）。
-  - 仍省略：hunk 级 stage/unstage、文件右键 rollback/delete、图片 diff、force-with-lease、
-    推送进度流、提交信息历史 / 生成（见 `docs/UI_GAPS.md`）。
+  - 更正（2026-11-04 核对上游）：hunk 级 stage/unstage、force-with-lease、推送进度流、
+    提交信息历史 / 生成 **上游均没有**，非缺口；真实剩余的文件右键与图片 diff 已补齐
+    （2026-11-04，见 UI_GAPS 与日志）。
 - [x] **Shortcuts 动作表补齐**（`src/app/settings_shortcuts.go`，2026-10-20）：动作从 19 条扩到
   24 条，按上游 `SHORTCUT_DEFINITIONS` 排序：新增 New Terminal / Close Current Terminal /
   Reopen Closed Tab / Send Message / Newline in Message；默认弦、标题与说明对齐上游
@@ -277,6 +278,37 @@ go test ./...         → acp / app_error / web 全绿
 ---
 
 ## 日志
+
+### 2026-11-04 之三（Commit 页右键 + 图片 diff；更正四条误记的「上游缺口」）
+
+- **核对上游后更正**：PROGRESS 待办 #1 与 UI_GAPS 里记的「仍省略」六项中，**hunk 级
+  stage/unstage、force-with-lease、推送进度流、提交信息历史 / AI 生成**经逐文件核对
+  （commit-dialog.tsx / push-workspace.tsx / unified-diff-preview.tsx / api.ts）**上游根本没有**
+  ——unified-diff-preview 里的 "hunk" 只是渲染解析，staging 全是整文件。从「仍省略」除名。
+- **Commit 页文件/目录右键**（上游 commit-dialog 的上下文菜单对齐）：
+  - 未跟踪叶：Add to VCS（`git_add_files`）；跟踪非删除叶：Rollback（`git_rollback_file`）；
+    任何叶与目录：Delete（`delete_file_tree_entry`，目录整删）。目录 Rollback 走 git 的
+    目录 pathspec（restore 覆盖其下全部非删除文件）。
+  - 选中后**行内两步确认**（本 build 无对话框组件）：确认行挂在目标行下，带文件名的问题文案 +
+    破坏性按钮 + Cancel；一次只有一个 pending。
+  - 成功后失效 `commitstatus:`/`gitstatus:` 与该文件的 `commithead:`/`commitwork:` 缓存，
+    清受影响路径的选择与预览（`refreshCommitTree`）。
+- **图片 diff**（上游 ImageDiffView 的对应物）：预览文件是位图（png/jpg/jpeg/gif/webp/bmp；
+  SVG 保持文本 diff）时，HEAD 侧走 `git_show_file_base64`、工作区侧走
+  `read_workspace_file_base64`，`ui.DecodeBitmap` 在 goroutine 解码、按 side key 缓存位图
+  （`commitImgBusy`/`commitImgFailed` 防每帧重解与死转圈），两侧并排
+  `ui.Image(Fit Contain)`；缺侧（未跟踪无 HEAD、删除无工作区）诚实提示。
+- 测试坑（记 memory）：**diff 头会重复文件名与状态码** —— `Find` 命中右栏的副本，右键落空；
+  树行的定位要么等异步 `gitbranch`/status 落定、要么直调 mutation；untracked 组默认折叠且
+  组头可能在滚动折叠线下（点击出窗），状态直翻 + `rect.X < 720` 判别树侧；Windows 的
+  `git restore` 按 autocrlf 写出 CRLF，断言内容要 TrimSpace。
+- i18n：`gitAddToVcs` / `gitRollbackAction` / `gitRollbackConfirm{name}` / `gitDeleteConfirm{name}` /
+  `gitRolledBack{name}` / `gitCommitDeleted{name}` / `gitAddedToVcs{name}` / `gitNoImageSide` /
+  `gitImageDecoding` / `gitImageFailed`（en + zh-Hans），catalog 重生。
+- 测试：`git_ops_test.go` +3——`TestCommitContextMenuRollback`（右键 → 确认 → 文件内容回到
+  HEAD）、`TestCommitContextMenuAddToVcsAndDelete`（addvcs → 状态 "A"；delete → 文件消失）、
+  `TestCommitImageDiff`（png 双版本 → 两侧位图解码 + side 标签）。
+- `go build ./...` / `go vet ./...` / `scripts/test.sh` 全绿；exe 重建。
 
 ### 2026-11-04 之二（Branches 页叶子操作补齐 —— Pull / Push / Delete remote / 远程分组 / worktree 自动开会话）
 

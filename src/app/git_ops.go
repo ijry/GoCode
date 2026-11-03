@@ -26,6 +26,7 @@ package app
 // Changes / Commits header menu, mirroring upstream's dropdown.
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -229,13 +230,13 @@ func (s *Shell) viewGitCommitPage(c *ui.Context, root string) {
 				ui.Column(c).Gap(1).Children(func() {
 					s.viewCommitGroupHeader(c, "gc-tracked",
 						cat(c).GitTrackedChanges(len(tracked)), tracked, false, nil)
-					s.viewCommitNodes(c, buildGitTree(tracked, "file"), 0)
+					s.viewCommitNodes(c, root, buildGitTree(tracked, "file"), 0)
 					s.viewCommitGroupHeader(c, "gc-untracked",
 						cat(c).GitUntrackedFiles(len(untracked)), untracked, true, func() {
 							s.commitUntracked = !s.commitUntracked
 						})
 					if s.commitUntracked {
-						s.viewCommitNodes(c, buildGitTree(untracked, "file"), 0)
+						s.viewCommitNodes(c, root, buildGitTree(untracked, "file"), 0)
 					}
 				})
 			})
@@ -419,31 +420,135 @@ func (s *Shell) viewCommitGroupHeader(c *ui.Context, key, title string, files []
 }
 
 // viewCommitNodes renders one level of a commit file tree, recursing into
-// directories with an extra indent.
-func (s *Shell) viewCommitNodes(c *ui.Context, nodes []*gitTreeNode, depth int) {
+// directories with an extra indent. A directory carries upstream's context
+// menu too: Rollback restores everything non-deleted under it (git accepts a
+// directory pathspec), Delete removes the directory.
+func (s *Shell) viewCommitNodes(c *ui.Context, root string, nodes []*gitTreeNode, depth int) {
 	t := c.Theme()
 	for _, n := range nodes {
 		left := float32(6 + depth*14)
 		if n.dir {
-			ui.Row(c.Key("gcd-"+n.path)).Padding(4, 6, 4, left).Gap(6).AlignItems(ui.Center).Children(func() {
+			row := ui.Row(c.Key("gcd-"+n.path)).Padding(4, 6, 4, left).Gap(6).AlignItems(ui.Center)
+			row.Children(func() {
 				if iconFolder != nil {
 					ui.Icon(c, iconFolder).Width(12).Height(12).TextColor(t.TextMuted)
 				}
 				ui.Text(c, n.name+"/").FontSize(11).TextColor(t.TextMuted).MaxLines(1)
 			})
-			s.viewCommitNodes(c, n.children, depth+1)
+			row.ContextMenu(func(m *ui.Menu) {
+				if m.Item(cat(c).GitRollbackAction()).Chosen() {
+					s.commitConfirmPath, s.commitConfirmKind = n.path, "rollback"
+				}
+				m.Separator()
+				if m.Item(cat(c).ActionDelete()).Chosen() {
+					s.commitConfirmPath, s.commitConfirmKind = n.path, "delete"
+				}
+			})
+			if s.commitConfirmPath == n.path {
+				s.viewCommitConfirmRow(c, root, n.path, left)
+			}
+			s.viewCommitNodes(c, root, n.children, depth+1)
 			continue
 		}
-		s.viewCommitFileRow(c, n, left)
+		s.viewCommitFileRow(c, root, n, left)
+	}
+}
+
+// viewCommitConfirmRow is the inline second step under the row a menu action
+// targeted (the port's confirm dialog): one destructive button plus Cancel.
+func (s *Shell) viewCommitConfirmRow(c *ui.Context, root, path string, left float32) {
+	t := c.Theme()
+	ui.Row(c.Key("gcf-confirm-"+path)).Padding(2, 6, 2, left).Gap(8).AlignItems(ui.Center).Children(func() {
+		if s.commitConfirmKind == "rollback" {
+			ui.Text(c, cat(c).GitRollbackConfirm(path)).FontSize(11).TextColor(t.Danger)
+			if ui.Button(c.Key("gcf-confirm-yes-"+path), cat(c).GitRollbackAction()).Clicked() {
+				s.commitConfirmPath, s.commitConfirmKind = "", ""
+				s.gitCommitFileAction(c.Locale(), root, []string{path}, "rollback")
+			}
+		} else {
+			ui.Text(c, cat(c).GitDeleteConfirm(path)).FontSize(11).TextColor(t.Danger)
+			if ui.Button(c.Key("gcf-confirm-yes-"+path), cat(c).ActionDelete()).Clicked() {
+				s.commitConfirmPath, s.commitConfirmKind = "", ""
+				s.gitCommitFileAction(c.Locale(), root, []string{path}, "delete")
+			}
+		}
+		if ui.Button(c.Key("gcf-confirm-no-"+path), cat(c).ActionCancel()).Clicked() {
+			s.commitConfirmPath, s.commitConfirmKind = "", ""
+		}
+	})
+}
+
+// gitCommitFileAction runs the commit page's context-menu mutation — rollback
+// (restore from HEAD, untracked removed), delete (the file-tree entry delete)
+// or add-to-VCS (stage) — then refreshes the status/diff caches and drops the
+// preview if it pointed inside the affected path.
+func (s *Shell) gitCommitFileAction(loc string, root string, paths []string, kind string) {
+	svc := s.svc
+	go func() {
+		var err error
+		for _, p := range paths {
+			switch kind {
+			case "rollback":
+				_, err = s.B.raw("git_rollback_file", map[string]any{"path": root, "file": p})
+			case "delete":
+				_, err = s.B.raw("delete_file_tree_entry", map[string]any{"rootPath": root, "path": p})
+			case "addvcs":
+				_, err = s.B.raw("git_add_files", map[string]any{"path": root, "files": paths})
+			}
+			if err != nil {
+				break
+			}
+		}
+		s.mu.Lock()
+		if err != nil {
+			s.actionMsg = kind + ": " + err.Error()
+		} else {
+			switch kind {
+			case "rollback":
+				s.actionMsg = locales.In(loc).GitRolledBack(paths[0])
+			case "delete":
+				s.actionMsg = locales.In(loc).GitCommitDeleted(paths[0])
+			case "addvcs":
+				s.actionMsg = locales.In(loc).GitAddedToVcs(paths[0])
+			}
+			s.refreshCommitTree(root, paths)
+		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
+}
+
+// refreshCommitTree drops the caches a commit-page mutation invalidates and
+// forgets the preview/selection of anything under the affected paths. Call
+// with s.mu held.
+func (s *Shell) refreshCommitTree(root string, paths []string) {
+	delete(s.cache, "commitstatus:"+root)
+	delete(s.cache, "gitstatus:"+root)
+	for _, p := range paths {
+		delete(s.cache, "commithead:"+root+":"+p)
+		delete(s.cache, "commitwork:"+root+":"+p)
+		delete(s.commitImgs, "head:"+root+":"+p)
+		delete(s.commitImgs, "work:"+root+":"+p)
+		delete(s.commitSelFiles, p)
+		if s.commitPrevFile == p || strings.HasPrefix(s.commitPrevFile, p+"/") {
+			s.commitPrevFile = ""
+		}
+		if s.commitConfirmPath == p || strings.HasPrefix(s.commitConfirmPath, p+"/") {
+			s.commitConfirmPath, s.commitConfirmKind = "", ""
+		}
 	}
 }
 
 // viewCommitFileRow renders one selectable file: checkbox, clickable name (opens
-// the diff), and its porcelain code.
-func (s *Shell) viewCommitFileRow(c *ui.Context, n *gitTreeNode, left float32) {
+// the diff), and its porcelain code — plus upstream's context menu (untracked:
+// Add to VCS; tracked: Rollback; every file: Delete, all confirmed in place).
+func (s *Shell) viewCommitFileRow(c *ui.Context, root string, n *gitTreeNode, left float32) {
 	t := c.Theme()
 	checked := s.commitSelFiles[n.path]
-	ui.Row(c.Key("gcf-"+n.path)).Padding(3, 6, 3, left).Gap(6).AlignItems(ui.Center).Children(func() {
+	deleted := strings.HasPrefix(n.status, "D")
+	untracked := n.status == "??"
+	row := ui.Row(c.Key("gcf-"+n.path)).Padding(3, 6, 3, left).Gap(6).AlignItems(ui.Center)
+	row.Children(func() {
 		box := ui.CheckboxBase(c.Key("gcf-sel-"+n.path), &checked).Width(15).Height(15).
 			Radius(3).Border(1, t.Border)
 		if checked {
@@ -473,6 +578,24 @@ func (s *Shell) viewCommitFileRow(c *ui.Context, n *gitTreeNode, left float32) {
 		}
 		ui.Text(c, n.status).FontSize(11).Width(24).TextColor(gitStatusColor(t, n.status))
 	})
+	row.ContextMenu(func(m *ui.Menu) {
+		if untracked && m.Item(cat(c).GitAddToVcs()).Chosen() {
+			s.gitCommitFileAction(c.Locale(), root, []string{n.path}, "addvcs")
+		}
+		if !untracked && !deleted {
+			m.Separator()
+			if m.Item(cat(c).GitRollbackAction()).Chosen() {
+				s.commitConfirmPath, s.commitConfirmKind = n.path, "rollback"
+			}
+		}
+		m.Separator()
+		if m.Item(cat(c).ActionDelete()).Chosen() {
+			s.commitConfirmPath, s.commitConfirmKind = n.path, "delete"
+		}
+	})
+	if s.commitConfirmPath == n.path {
+		s.viewCommitConfirmRow(c, root, n.path, left)
+	}
 }
 
 // viewCommitFileDiff shows the selected file's HEAD↔worktree diff, a loading
@@ -490,6 +613,10 @@ func (s *Shell) viewCommitFileDiff(c *ui.Context, root string, files []map[strin
 			status = str(f, "status")
 			break
 		}
+	}
+	if isImagePath(file) {
+		s.viewCommitImageDiff(c, root, file, status)
+		return
 	}
 	ui.Row(c.Key("gc-diff-head")).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, file).FontSize(12).Bold().MaxLines(1).Grow(1)
@@ -525,6 +652,118 @@ func (s *Shell) viewCommitFileDiff(c *ui.Context, root string, files []map[strin
 	}
 	d := appDiffState(&s.commitDiffs, "commit:"+root+":"+file, oldText, newText)
 	editor.DiffView(c, d).Grow(1).FillWidth()
+}
+
+// isImagePath reports whether a path looks like a bitmap the image diff can
+// decode (ui.DecodeBitmap's formats; SVG is text and stays in the diff view).
+func isImagePath(p string) bool {
+	switch strings.ToLower(filepath.Ext(p)) {
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp":
+		return true
+	}
+	return false
+}
+
+// viewCommitImageDiff shows an image file's HEAD and worktree versions side by
+// side — upstream's ImageDiffView. Each side's bytes arrive base64 over the
+// loopback and decode once into a cached bitmap; a missing side (an untracked
+// file has no HEAD, a deleted one no worktree) shows an honest hint.
+func (s *Shell) viewCommitImageDiff(c *ui.Context, root, file, status string) {
+	t := c.Theme()
+	deleted := strings.HasPrefix(status, "D")
+	untracked := status == "??"
+
+	headKey := "commithead:" + root + ":" + file
+	workKey := "commitwork:" + root + ":" + file
+	var headB64 string
+	headExists := false
+	if !untracked {
+		if raw := s.ensure(headKey, "git_show_file_base64", map[string]any{"path": root, "file": file}); raw != nil {
+			m := asObj(raw)
+			headExists, _ = m["exists"].(bool)
+			headB64 = str(m, "data")
+		}
+	}
+	workB64 := ""
+	if !deleted {
+		if raw := s.ensure(workKey, "read_workspace_file_base64", map[string]any{"rootPath": root, "path": file}); raw != nil {
+			workB64 = decodeString(raw)
+		}
+	}
+	if (untracked || (headExists && headB64 == "")) && workB64 == "" && !deleted {
+		loadingState(c, "")
+		return
+	}
+
+	side := func(key, label, b64 string, present bool) {
+		ui.Column(c.Key(key)).Grow(1).FillHeight().Gap(4).Children(func() {
+			ui.Text(c, label).FontSize(10).TextColor(t.TextMuted)
+			switch {
+			case !present:
+				ui.Text(c, cat(c).GitNoImageSide()).FontSize(11).TextColor(t.TextMuted)
+			default:
+				if bmp := s.commitImageFor(key, b64); bmp != nil {
+					ui.Image(c, bmp).Fit(ui.Contain).FillWidth().FillHeight()
+				} else if s.commitImgFailed[key] {
+					ui.Text(c, cat(c).GitImageFailed()).FontSize(11).TextColor(t.TextMuted)
+				} else {
+					ui.Text(c, cat(c).GitImageDecoding()).FontSize(11).TextColor(t.TextMuted)
+				}
+			}
+		})
+	}
+	ui.Row(c.Key("gc-img")).Grow(1).FillWidth().Gap(10).Children(func() {
+		side("img-head:"+root+":"+file, cat(c).GitHeadLabel(), headB64, headExists && headB64 != "")
+		side("img-work:"+root+":"+file, cat(c).GitWorkingTreeLabel(), workB64, workB64 != "")
+	})
+}
+
+// commitImageFor returns the cached bitmap for one diff side, decoding it off
+// the UI thread on first sight. nil while the decode is in flight or failed.
+func (s *Shell) commitImageFor(key, b64 string) *ui.Bitmap {
+	s.mu.Lock()
+	if s.commitImgs == nil {
+		s.commitImgs = map[string]*ui.Bitmap{}
+	}
+	if s.commitImgBusy == nil {
+		s.commitImgBusy = map[string]bool{}
+	}
+	if s.commitImgFailed == nil {
+		s.commitImgFailed = map[string]bool{}
+	}
+	if bmp := s.commitImgs[key]; bmp != nil {
+		s.mu.Unlock()
+		return bmp
+	}
+	if s.commitImgBusy[key] {
+		s.mu.Unlock()
+		return nil
+	}
+	s.commitImgBusy[key] = true
+	s.mu.Unlock()
+	svc := s.svc
+	go func() {
+		var bmp *ui.Bitmap
+		if raw, err := base64.StdEncoding.DecodeString(b64); err == nil {
+			bmp, _ = ui.DecodeBitmap(raw)
+		}
+		s.mu.Lock()
+		delete(s.commitImgBusy, key)
+		if bmp != nil {
+			if s.commitImgs == nil {
+				s.commitImgs = map[string]*ui.Bitmap{}
+			}
+			s.commitImgs[key] = bmp
+		} else {
+			if s.commitImgFailed == nil {
+				s.commitImgFailed = map[string]bool{}
+			}
+			s.commitImgFailed[key] = true
+		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
+	return nil
 }
 
 // gitTreeNode is one directory or file of a git file tree.

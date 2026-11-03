@@ -268,7 +268,14 @@ type Shell struct {
 	commitUntracked bool
 	commitRunning   bool // Commit page: a commit is in flight
 	commitDiffs     map[string]*editor.DiffState
-	mergeBranch     string // Merge page: selected branch to merge
+	// Commit page: the file/dir context menu's pending confirm, and the decoded
+	// image previews (side key → bitmap) for image diffs.
+	commitConfirmPath string
+	commitConfirmKind string                // "rollback" | "delete"
+	commitImgs        map[string]*ui.Bitmap // image diff sides, by side key
+	commitImgBusy     map[string]bool       // image sides decoding right now
+	commitImgFailed   map[string]bool       // image sides that failed to decode
+	mergeBranch       string                // Merge page: selected branch to merge
 	// Branches page (git_ops.go): the create forms, delete confirmations and the
 	// prefix-grouped branch tree's collapsed groups.
 	branchNewName             string          // Branches page: new-branch name input
