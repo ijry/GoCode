@@ -11032,46 +11032,6 @@ func (msgs Messages) TerminalStartHint(root string) string {
 	return Catalog.Format(msgs.locale, "terminalStartHint", map[string]any{"root": root})
 }
 
-// TerminalExited says "Terminal exited."
-// in the language the app shows.
-func TerminalExited() string { return In(i18n.Locale()).TerminalExited() }
-
-// TerminalExited says "Terminal exited."
-// in the language of msgs.
-func (msgs Messages) TerminalExited() string {
-	return Catalog.Format(msgs.locale, "terminalExited", nil)
-}
-
-// TerminalPlaceholder says "command…"
-// in the language the app shows.
-func TerminalPlaceholder() string { return In(i18n.Locale()).TerminalPlaceholder() }
-
-// TerminalPlaceholder says "command…"
-// in the language of msgs.
-func (msgs Messages) TerminalPlaceholder() string {
-	return Catalog.Format(msgs.locale, "terminalPlaceholder", nil)
-}
-
-// TerminalSend says "Send"
-// in the language the app shows.
-func TerminalSend() string { return In(i18n.Locale()).TerminalSend() }
-
-// TerminalSend says "Send"
-// in the language of msgs.
-func (msgs Messages) TerminalSend() string {
-	return Catalog.Format(msgs.locale, "terminalSend", nil)
-}
-
-// TerminalRefresh says "Refresh"
-// in the language the app shows.
-func TerminalRefresh() string { return In(i18n.Locale()).TerminalRefresh() }
-
-// TerminalRefresh says "Refresh"
-// in the language of msgs.
-func (msgs Messages) TerminalRefresh() string {
-	return Catalog.Format(msgs.locale, "terminalRefresh", nil)
-}
-
 // TerminalKill says "Kill"
 // in the language the app shows.
 func TerminalKill() string { return In(i18n.Locale()).TerminalKill() }

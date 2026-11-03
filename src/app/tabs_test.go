@@ -113,19 +113,22 @@ func TestConversationTabClose(t *testing.T) {
 	s, _, _, second := tabsShellForTest(t)
 	tt := ui.NewTester(s.View, 1240, 820)
 
-	// Close the ACTIVE first tab; the second should take over.
+	// Close the ACTIVE first tab; the second should take over. Pump until the
+	// state settles — under the full suite's load a single frame after the
+	// click has flaked here.
 	if err := tt.Click("Close tab"); err != nil {
 		t.Fatalf("click close: %v", err)
 	}
-	tt.Frame()
-	s.mu.Lock()
-	n := len(s.openTabs)
-	s.mu.Unlock()
-	if n != 1 {
-		t.Fatalf("after close, %d tabs open, want 1", n)
-	}
-	if s.selectedConv != second {
-		t.Fatalf("after closing the active tab, selectedConv = %q, want %q", s.selectedConv, second)
+	if !waitUntil(t, tt, func() bool {
+		s.mu.Lock()
+		n, conv := len(s.openTabs), s.selectedConv
+		s.mu.Unlock()
+		return n == 1 && conv == second
+	}) {
+		s.mu.Lock()
+		n, conv := len(s.openTabs), s.selectedConv
+		s.mu.Unlock()
+		t.Fatalf("after close, %d tabs open and selectedConv = %q, want 1/%q", n, conv, second)
 	}
 	if tt.HasText("Fix the parser") {
 		t.Errorf("the closed tab is still rendered; texts = %v", tt.Texts())
@@ -174,9 +177,10 @@ func TestConversationTabsPersist(t *testing.T) {
 		t.Fatalf("click second tab: %v", err)
 	}
 	// The save runs off the UI thread; pump until the backend reports the
-	// second conversation as the active tab.
+	// second conversation as the active tab. 600 rounds ≈ 6s+: one CAS POST
+	// is fast, but the full suite's load has eaten the old 2s window.
 	raw, err := func() (json.RawMessage, error) {
-		for i := 0; i < 200; i++ {
+		for i := 0; i < 600; i++ {
 			tt.Frame()
 			r, e := s.B.raw("list_opened_tabs", nil)
 			if e != nil {

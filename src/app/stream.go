@@ -314,13 +314,21 @@ func (s *Shell) ensureStream() {
 		if connID != "" {
 			sh.invalidate("snapshot:" + connID)
 		}
-		// Live terminal output (terminal://output/{id} / terminal://exit/{id})
-		// carries no body on the firehose; drop that terminal's snapshot so its
-		// buffered text refetches, whether or not its tab is active.
-		if strings.HasPrefix(channel, "terminal://") {
-			if i := strings.LastIndexByte(channel, '/'); i >= 0 && i+1 < len(channel) {
-				sh.invalidate("term:" + channel[i+1:])
+		// Live terminal output feeds a tab's emulator through its bridge: the
+		// frames carry the VT chunk (TerminalEvent) the bridge Reads, and the
+		// exit frame ends it ([Process exited]). The backend PTY stays the
+		// single owner of the process, as upstream's is.
+		if strings.HasPrefix(channel, "terminal://output/") {
+			id := channel[len("terminal://output/"):]
+			var ev struct {
+				Data string `json:"Data"`
+				Seq  uint64 `json:"Seq"`
 			}
+			if json.Unmarshal(payload, &ev) == nil {
+				sh.pushTerminalChunk(id, ev.Data, ev.Seq)
+			}
+		} else if strings.HasPrefix(channel, "terminal://exit/") {
+			sh.terminalEnded(channel[len("terminal://exit/"):])
 		}
 		// A server-side conversation mutation (create/delete/title/status, incl.
 		// the agent's auto-title) refreshes the sidebar lists — and the tab

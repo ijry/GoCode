@@ -369,34 +369,34 @@ type Shell struct {
 	// and working directory it was opened in, so a worktree's shell stays bound
 	// to that worktree when the selection moves elsewhere.
 	termTabs         []termTab
-	termActive       string          // active tab id (also its PTY id)
-	termCounter      int             // "Terminal N" numbering
-	termOpen         bool            // panel expanded?
-	termErr          string          // last terminal action error
-	termRenameID     string          // tab being renamed ("" = none)
-	termRenameDraft  string          // inline rename draft
-	termHovered      bool            // pointer is over the panel (routes tab shortcuts)
-	termInputFocused bool            // the terminal line input has the keyboard
-	loginToken       string          // login gate: token input
-	loginErr         string          // login gate: last probe error
-	servers          []serverProfile // saved remote connections (the local one is synthesized)
-	activeServer     string          // localServerID | saved profile id
-	localURL         string          // boot backend URL (the "local" connection's home)
-	localToken       string          // boot backend token
-	srvEditor        *serverEditor   // Settings → Servers: add/edit form (nil = closed)
-	srvErr           string          // Settings → Servers: last add/switch failure (inline)
-	srvConfirm       string          // Settings → Servers: profile id awaiting delete confirmation
-	gitCustomPath    string          // Settings → Version Control: custom git path input
-	gitTestOK        *bool           // Settings → Version Control: last test_git_path result (nil = untested)
-	gitTestMsg       string          // Settings → Version Control: why the last test failed
-	vcTesting        string          // Settings → Version Control: account id being validated
-	vcRotate         string          // Settings → Version Control: account id whose token form is open
-	vcRotateToken    string          // Settings → Version Control: the new token typed in it
-	vcRemove         string          // Settings → Version Control: account id awaiting removal confirmation
-	vcAdd            *vcAddForm      // Settings → Version Control: add-account form (nil = closed)
-	paletteOpen      bool            // ⌘K command palette: open
-	paletteQuery     string          // ⌘K command palette: the filter query
-	paletteSel       int             // ⌘K command palette: the highlighted row
+	termActive       string              // active tab id (also its PTY id)
+	termCounter      int                 // "Terminal N" numbering
+	termOpen         bool                // panel expanded?
+	termConns        map[string]*ptyConn // terminal bridges, by tab/PTY id
+	termRenameID     string              // tab being renamed ("" = none)
+	termRenameDraft  string              // inline rename draft
+	termHovered      bool                // pointer is over the panel (routes tab shortcuts)
+	termInputFocused bool                // the terminal emulator view has the keyboard
+	loginToken       string              // login gate: token input
+	loginErr         string              // login gate: last probe error
+	servers          []serverProfile     // saved remote connections (the local one is synthesized)
+	activeServer     string              // localServerID | saved profile id
+	localURL         string              // boot backend URL (the "local" connection's home)
+	localToken       string              // boot backend token
+	srvEditor        *serverEditor       // Settings → Servers: add/edit form (nil = closed)
+	srvErr           string              // Settings → Servers: last add/switch failure (inline)
+	srvConfirm       string              // Settings → Servers: profile id awaiting delete confirmation
+	gitCustomPath    string              // Settings → Version Control: custom git path input
+	gitTestOK        *bool               // Settings → Version Control: last test_git_path result (nil = untested)
+	gitTestMsg       string              // Settings → Version Control: why the last test failed
+	vcTesting        string              // Settings → Version Control: account id being validated
+	vcRotate         string              // Settings → Version Control: account id whose token form is open
+	vcRotateToken    string              // Settings → Version Control: the new token typed in it
+	vcRemove         string              // Settings → Version Control: account id awaiting removal confirmation
+	vcAdd            *vcAddForm          // Settings → Version Control: add-account form (nil = closed)
+	paletteOpen      bool                // ⌘K command palette: open
+	paletteQuery     string              // ⌘K command palette: the filter query
+	paletteSel       int                 // ⌘K command palette: the highlighted row
 	// Settings → Collaboration: the delegation form, seeded once from
 	// get_delegation_settings, and the agent-tools switch matrix seeded from
 	// its six per-group endpoints. Baselines are what Save diffs against.

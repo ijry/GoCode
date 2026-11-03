@@ -963,8 +963,17 @@
   - **firehose**：按 `terminal://…/{id}` 的 id 失效对应快照，后台标签的输出也会在切回时刷新。
   - **测试**：`terminal_test.go` 10 个（切换/关闭回落到邻位、Rename、Close Others/All、
     创建目录不随选择漂移、zh chrome）；`render_test.go` 的 `terminal-panel.png` 改为双标签。
-  - **仍是文本回放**：没有 xterm 的光标/ANSI 色彩/选区，也没有移动端虚拟键栏；终端聚焦时的
-    新建/关闭快捷键归入快捷键深化项（见 PROGRESS 待办 #3）。
+  - **真终端模拟器（2026-11-04，替换文本回放）**：面板体换成 mygo 0.7 的 terminal 插件
+    （libghostty-vt）——光标/ANSI 全彩/选区复制/回滚重排/全屏程序，架构同上游（模拟器在 UI、
+    PTY 在后端）：`ptyConn`（`terminal.Options.Conn`）把 firehose 推送的 `TerminalEvent` VT 块
+    喂给模拟器（spawn 后先 `terminal_snapshot` priming，seq 去重防重），键击经写队列走
+    `terminal_write`，视图尺寸合并 latest-wins 走 `terminal_resize`，`terminal://exit` 以 EOF
+    收尾（视图显示 [Process exited]）。输入行/Send/快照回放/Refresh 退役（模拟器自己收键；
+    `TerminalPlaceholder/Send/Refresh/Exited` 四键删除）；OSC 标题随 tab 标题（用户改名后不覆盖）。
+    输出行断言经 `term.Text()`（模拟器格子不是 ui.Text，`tt.Texts` 看不见）。
+    顺带修**存量后端 bug**：裸 shell 名（`powershell.exe`）+ `Cmd.Dir` 在 Windows 被 exec 的
+    CreateProcess 硬化解析进 workingDir → spawn 必败（旧 handlers 测试因此静默 skip）——
+    spawn 前经 `exec.LookPath` 解析为绝对路径。
 
 > **宏观结构对齐清单（2026-10-17 起）至此全部勾选完成。** 上游的主面板 / 路由 / 工作台
 > 在本 build 中均已有对应物（部分为最小切片或诚实降级面，已在各条注明）。后续若继续，

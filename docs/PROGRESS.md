@@ -48,7 +48,8 @@
 - [x] **Terminal 多标签 + worktree 上下文**（`src/app/terminal.go`）：底部面板升级为上游式标签条
   （切换 / 关闭 / 右键 Rename·Close Others·Close All / 新建 / 折叠），每个 tab 独立 PTY（tab id 即
   `terminalId`，spawn 可带 `initialCommand`），并保留创建时的 folder + workingDir，worktree 终端
-  不随选择漂移；firehose 按 terminal id 失效对应快照。输出仍是文本回放（非 xterm，见 UI_GAPS）。
+  不随选择漂移；firehose 按 terminal id 推送 VT 块进模拟器。输出已是**真终端模拟器**
+  （2026-11-04，mygo 0.7 terminal 插件 + ptyConn 桥接，见日志与 UI_GAPS）。
   验证：`terminal_test.go` 10 个（含右键菜单、rename、Close Others/All、目录上下文、中文）；
   `terminal-panel.png` 双 tab 快照。
 - [x] **Branch picker 补齐 worktree / rebase**（`src/app/git_ops.go`）：Branches 页新增
@@ -276,6 +277,43 @@ go test ./...         → acp / app_error / web 全绿
 ---
 
 ## 日志
+
+### 2026-11-04（终端面板换成真终端模拟器 —— mygo terminal 插件 + 后端 PTY 桥接）
+
+- **动因**：mygo 0.7.4 自带 terminal 插件（libghostty-vt，Ghostty 的模拟器核心，全 Go 无 npm），
+  「输出仍是文本回放（非 xterm）」这个记录已久的缺口第一次有了真解。架构照上游（模拟器在 UI、
+  PTY 在后端）：插件 view 是模拟器，进程仍是后端 `terminal_*` 路由管的那个 PTY。
+- **`ptyConn` 桥接**（`src/app/terminal.go`，`terminal.Options.Conn` = io.ReadWriteCloser）：
+  - **读**：spawn 成功后先 `terminal_snapshot` priming（把 attach 前的输出喂给模拟器），
+    此后 firehose `terminal://output/{id}` 的 `TerminalEvent{Data,Seq}` 由 stream 回调推进
+    `conn.push`——**seq 去重**（快照已含的与重复帧跳过）、保序；`terminal://exit/{id}` 置
+    EOF，模拟器显示 [Process exited]。
+  - **写**：Conn.Write 只入队（256 缓冲，满了诚实短写），单一 worker 按序 POST
+    `terminal_write`——键击/粘贴的 HTTP 往返不占 UI 线程，顺序有保证。
+  - **尺寸**：视图布局触发 `Conn.Resize(cols, rows)`，latest-wins 合并后 worker POST
+    `terminal_resize`（改窗口大小不再错位）。
+  - fn/worker 全在 goroutine；conn 关闭（tab 关闭）后 push/Write 安全拒收。
+- **面板**（`terminal.go`）：标签条/折叠/右键 Rename·Close Others·Close All 全保留；正文换成
+  `terminal.View`——输入行 + Send + 快照回放 + Refresh **退役**（模拟器自己收键，点它即聚焦；
+  `termInputFocused` 改由模拟器视图的 `Focused()` 驱动共享弦路由）。OSC 标题跟随 tab 标题，
+  用户改名（`Renamed`）后不覆盖。`terminal_snapshot` 路由保留（线契约），UI 不再消费；
+  i18n 删 4 个死键（TerminalPlaceholder/Send/Refresh/Exited）。
+- **顺带修存量后端 bug**（`src-go/terminal/pty.go`）：裸 shell 名（`powershell.exe`）+
+  `Cmd.Dir` 在 Windows 被 exec 的 CreateProcess 硬化解析进 workingDir → **spawn 必败**
+  （`exec: "…\Temp\…\powershell.exe": file does not exist`）——旧 handlers 终端测试因此在
+  Windows 上一直静默 skip，无人发现。修复：spawn 前对不含路径分隔符的 shell 名走
+  `exec.LookPath` 解析为绝对路径（默认 PowerShell 同样解析）。
+- **测试**：`terminal_test.go` 重写 10 个 + 新 4 个——chrome 断言照旧（标签条是 ui.Text）；
+  输出断言经 `term.Text()`（模拟器格子不是 ui.Text，`tt.Texts` 看不见程序输出）；
+  `TestPtyConnPrimeOrdering`（priming/去重/EOF 纯桥接）、`TestPtyConnEOFWithoutPrime`、
+  **`TestTerminalBridgeE2E`**（真后端 + 真流：spawn → prime → firehose 推送 → `term.Send`
+  键击 → echo 回环在模拟器出现；PTY 不可用的环境诚实 skip；cleanup 同步收割 PTY，
+  否则 shell 占着 TempDir 清不掉）。快照 `terminal-panel.png` 改双标签真模拟器。
+- **顺带加固两个负载型 flaky**（新终端测试让包更重后首跑暴露，单跑恒过）：
+  `TestConversationTabClose` 的关后断言改 waitUntil 泵到状态落定；`TestConversationTabsPersist`
+  的 CAS 轮询 200 → 600 轮（≈6s 窗口）。
+- `go build ./...` / `go vet ./...` / `scripts/test.sh` 全绿（src/app 全包 253s）；exe 重建
+  （26.2MB，含 libghostty-vt 资源）。
 
 ### 2026-11-03（mygo 0.7.4 升级 + Canvas 收尾：滚轮/捏合缩放、Delete 键、region 分组）
 

@@ -145,16 +145,16 @@ func TestToolCardExpands(t *testing.T) {
 	dumpFrame(t, tt, "conversation-tool-open")
 }
 
-// TestZZRenderTerminalPanel renders the bottom terminal panel, both expanded (a
-// live snapshot + line input) and collapsed (header only), so the layout can be
-// eyeballed against upstream's bottom terminal bar.
+// TestZZRenderTerminalPanel renders the bottom terminal panel, both expanded
+// (the tab strip over the real emulator) and collapsed (header only), so the
+// layout can be eyeballed against upstream's bottom terminal bar.
 func TestZZRenderTerminalPanel(t *testing.T) {
 	if os.Getenv("MYGO_UI_PNG") == "" {
 		t.Skip("set MYGO_UI_PNG to render")
 	}
 	s := terminalShellForTest(t, "t1")
-	s.cache["term:t1"] = json.RawMessage(`{"alive":true,"data":"$ ls\nsrc  go.mod  README.md\n$ echo hello\nhello\n$ ","seq":7}`)
-	addTerminalTabForTest(s, "t2", "Terminal 2", "$ git status\nOn branch main\n")
+	s.termTabs[0].Term, _ = newTestTerm(t, "$ ls\r\nsrc  go.mod  README.md\r\n$ echo hello\r\nhello\r\n$ ")
+	addTerminalTabForTest(t, s, "t2", "Terminal 2", "$ git status\r\nOn branch main\r\n")
 	tt := ui.NewTester(s.View, 1240, 820)
 	if !tt.HasText("Terminal") {
 		t.Fatalf("panel header missing; texts = %v", tt.Texts())

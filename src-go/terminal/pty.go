@@ -8,6 +8,7 @@ package terminal
 
 import (
 	"os"
+	"os/exec"
 	"runtime"
 	"strings"
 	"sync/atomic"
@@ -60,10 +61,23 @@ func (g *goPty) Terminate() error {
 // default on Windows (-NoLogo -NoProfile, -NoExit when an initial command
 // runs), cmd.exe with /K; the login shell with -c elsewhere.
 func buildShellCommand(opts SpawnOptions) (string, []string) {
+	shell := opts.Shell
+	// A bare name resolves on PATH up front: with Cmd.Dir set, Windows would
+	// otherwise look for the binary inside the working directory (exec's
+	// CreateProcess hardening) and fail with "file does not exist".
+	if shell != "" && !strings.ContainsAny(shell, `\/`) {
+		if p, err := exec.LookPath(shell); err == nil {
+			shell = p
+		}
+	}
 	if runtime.GOOS == "windows" {
-		shell := opts.Shell
 		if shell == "" {
-			shell = "powershell.exe"
+			// The default goes through LookPath too, so resolve it directly.
+			if p, err := exec.LookPath("powershell.exe"); err == nil {
+				shell = p
+			} else {
+				shell = "powershell.exe"
+			}
 		}
 		low := strings.ToLower(shell)
 		switch {
@@ -85,7 +99,6 @@ func buildShellCommand(opts SpawnOptions) (string, []string) {
 			return shell, nil
 		}
 	}
-	shell := opts.Shell
 	if shell == "" {
 		shell = os.Getenv("SHELL")
 		if shell == "" {
