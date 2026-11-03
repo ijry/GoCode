@@ -1664,6 +1664,16 @@ func (msgs Messages) GitPushAction() string {
 	return Catalog.Format(msgs.locale, "gitPushAction", nil)
 }
 
+// GitPullAction says "Pull"
+// in the language the app shows.
+func GitPullAction() string { return In(i18n.Locale()).GitPullAction() }
+
+// GitPullAction says "Pull"
+// in the language of msgs.
+func (msgs Messages) GitPullAction() string {
+	return Catalog.Format(msgs.locale, "gitPullAction", nil)
+}
+
 // GitPushed says "pushed"
 // in the language the app shows.
 func GitPushed() string { return In(i18n.Locale()).GitPushed() }
@@ -2626,6 +2636,46 @@ func GitBranchDeleted() string { return In(i18n.Locale()).GitBranchDeleted() }
 // in the language of msgs.
 func (msgs Messages) GitBranchDeleted() string {
 	return Catalog.Format(msgs.locale, "gitBranchDeleted", nil)
+}
+
+// GitRemoteBranchDeleted says "remote branch deleted"
+// in the language the app shows.
+func GitRemoteBranchDeleted() string { return In(i18n.Locale()).GitRemoteBranchDeleted() }
+
+// GitRemoteBranchDeleted says "remote branch deleted"
+// in the language of msgs.
+func (msgs Messages) GitRemoteBranchDeleted() string {
+	return Catalog.Format(msgs.locale, "gitRemoteBranchDeleted", nil)
+}
+
+// GitRemoteDeleteAction says "Delete remote"
+// in the language the app shows.
+func GitRemoteDeleteAction() string { return In(i18n.Locale()).GitRemoteDeleteAction() }
+
+// GitRemoteDeleteAction says "Delete remote"
+// in the language of msgs.
+func (msgs Messages) GitRemoteDeleteAction() string {
+	return Catalog.Format(msgs.locale, "gitRemoteDeleteAction", nil)
+}
+
+// GitRemoteDeleteYes says "Delete from remote"
+// in the language the app shows.
+func GitRemoteDeleteYes() string { return In(i18n.Locale()).GitRemoteDeleteYes() }
+
+// GitRemoteDeleteYes says "Delete from remote"
+// in the language of msgs.
+func (msgs Messages) GitRemoteDeleteYes() string {
+	return Catalog.Format(msgs.locale, "gitRemoteDeleteYes", nil)
+}
+
+// GitBranchUpdated says "{count, plural, =0 {branch up to date} one {updated # file} other {updated # files}}"
+// in the language the app shows.
+func GitBranchUpdated(count int) string { return In(i18n.Locale()).GitBranchUpdated(count) }
+
+// GitBranchUpdated says "{count, plural, =0 {branch up to date} one {updated # file} other {updated # files}}"
+// in the language of msgs.
+func (msgs Messages) GitBranchUpdated(count int) string {
+	return Catalog.Format(msgs.locale, "gitBranchUpdated", map[string]any{"count": count})
 }
 
 // GitRemoteAdd says "Add remote"

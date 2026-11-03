@@ -694,11 +694,20 @@
   - rebase：每个非当前本地分支一个 Rebase（`git_rebase`）。
   - 分组：本地分支按 `/` 前缀压缩成可折叠树（组头显示叶子数，worktree 持有的分支不再给普通
     Delete，与上游 `branchLeafActions` 一致）。
-  - 远程分支：列出 `remote/branch`，Checkout 按短名检出为 root 工作树的跟踪分支（上游 isRemote
-    规则；不会误撞同名本地 worktree 分支）。
-  - 仍省略：分支级 Pull / Push / Delete remote（上游叶子操作气泡里的同步尾项）、远程分支按 remote
-    名分组、worktree 创建后自动开新会话（这里只选中该文件夹）。
-  **最小切片**：上游 `branch-dropdown.tsx`(860 行) 的上述剩余项未复刻。
+  - 远程分支：**按 remote 分组**（组头 remote 名 + 数量），叶子显示短名；Checkout 按短名检出为
+    root 工作树的跟踪分支（上游 isRemote 规则；不会误撞同名本地 worktree 分支）。
+  - **叶子操作补齐（2026-11-04，对齐上游 `runLeafAction`/`branchLeafActions`）**：本地叶子
+    +Pull（`git_update_branch`，不动工作树：检出分支真 pull、其余从上游 ff；按 updated_files
+    本地化 toast）与 +Push（**打开 Push 工作台并预选该分支**——`pushBranchOverride`，菜单里的
+    Push 入口清 override）；远程叶子 +Pull（`git_update_branch isRemote:true` 更新跟踪引用）与
+    +Delete remote（两步确认 → `git_delete_remote_branch`）。
+  - **worktree 创建后自动开新会话**（上游 openWorktreeFolder + fresh conversation）：
+    `git_worktree_add` → `open_worktree_folder` → `create_conversation` → `openConversationTab`；
+    开会话失败不影响 worktree 本身。
+  - 仍省略：远程叶子的 Merge / Rebase（上游对远程引用也提供；本 build 只在本地叶子给，
+    `git_merge`/`git_rebase` 对 `origin/x` 未验证）、上游 Push 窗口的分支下拉（本 build 用
+    预选 override 代替）。
+  **最小切片**：上游 `branch-dropdown.tsx`(860 行) 的远程叶子合并/变基与 Push 窗口分支下拉未复刻。
 - [x] **Terminal 移到底部面板**（本次）：上游 terminal 是「底部可折叠面板 + 多
   terminal tab」，现在改成底栏——`viewWorkspace` 外层由 `ui.Row` 改为 `ui.Column`，
   三栏（sidebar / detail / aux）`Grow(1)` 占满上部，下方始终挂一个

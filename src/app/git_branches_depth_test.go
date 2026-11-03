@@ -116,6 +116,18 @@ func TestGitWorktreeCreateSwitchRemove(t *testing.T) {
 	}) {
 		t.Fatalf("selected folder path = %q, want %q", s.folderPathByID(openFolder), wtPath)
 	}
+	// Upstream opens a fresh conversation in the new checkout: a tab for it is
+	// in the strip and it is the selected conversation.
+	if !waitUntil(t, tt, func() bool {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		return len(s.openTabs) == 1 && s.openTabs[0].folderID == openFolder && s.selectedConv != ""
+	}) {
+		s.mu.Lock()
+		tabs, conv := len(s.openTabs), s.selectedConv
+		s.mu.Unlock()
+		t.Fatalf("worktree conversation not opened; tabs = %d conv = %q actionMsg = %q", tabs, conv, s.actionMsg)
+	}
 
 	// Back to the root repo's branch page: Switch resolves and reopens the
 	// worktree folder.
@@ -241,7 +253,9 @@ func TestGitRemoteBranchCheckout(t *testing.T) {
 	runGitT(t, repo, "update-ref", "refs/remotes/origin/remote-only", sha)
 
 	tt := ui.NewTester(s.View, 1240, 900)
-	if !waitUntil(t, tt, func() bool { return tt.HasText("origin/remote-only") }) {
+	// Remote leaves sit under their remote's group header, so the short name
+	// and the remote name render as separate texts.
+	if !waitUntil(t, tt, func() bool { return tt.HasText("remote-only") && tt.HasText("origin") }) {
 		t.Fatalf("remote branch missing; texts = %v", tt.Texts())
 	}
 	if err := tt.Click("Checkout"); err != nil {
@@ -252,5 +266,207 @@ func TestGitRemoteBranchCheckout(t *testing.T) {
 		return err == nil && strings.TrimSpace(string(out)) == "remote-only"
 	}) {
 		t.Fatalf("remote branch never checked out; actionMsg = %q", s.actionMsg)
+	}
+}
+
+// gitBareRemoteForTest creates a bare remote, points repo's origin at it, and
+// pushes repo's checked-out branch there. Returns the bare path.
+func gitBareRemoteForTest(t *testing.T, repo string) string {
+	t.Helper()
+	bare := t.TempDir()
+	runGitT(t, bare, "init", "--bare")
+	runGitT(t, repo, "remote", "add", "origin", bare)
+	runGitT(t, repo, "push", "origin", "HEAD")
+	return bare
+}
+
+// gitCloneForTest clones bare into a fresh temp repo with a test identity, so
+// its commits are attributable.
+func gitCloneForTest(t *testing.T, bare string) string {
+	t.Helper()
+	clone := t.TempDir()
+	runGitT(t, clone, "clone", bare, ".")
+	runGitT(t, clone, "config", "user.name", "Tester")
+	runGitT(t, clone, "config", "user.email", "t@e.st")
+	return clone
+}
+
+// TestRemoteBranchesGroupedAndDeleteRemote covers the remote section's new
+// shape: branches grouped under their remote, and a two-step Delete remote
+// that removes the branch on the server.
+func TestRemoteBranchesGroupedAndDeleteRemote(t *testing.T) {
+	s, repo := gitTestRepo(t, gitRouteBranches)
+	bare := gitBareRemoteForTest(t, repo)
+	// Delete a NON-current remote branch: a bare remote refuses to delete the
+	// one its HEAD points at. Only that leaf stays in the list, so the clicks
+	// below are unambiguous.
+	base := runGitT(t, repo, "rev-parse", "--abbrev-ref", "HEAD")
+	runGitT(t, repo, "checkout", "-b", "feature")
+	if err := os.WriteFile(filepath.Join(repo, "f.txt"), []byte("f\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitT(t, repo, "add", "f.txt")
+	runGitT(t, repo, "commit", "-m", "feature work")
+	runGitT(t, repo, "push", "origin", "feature")
+	runGitT(t, repo, "checkout", base)
+	runGitT(t, repo, "update-ref", "-d", "refs/remotes/origin/"+base)
+
+	tt := ui.NewTester(s.View, 1240, 900)
+	if !waitUntil(t, tt, func() bool { return tt.HasText("Delete remote") }) {
+		t.Fatalf("remote leaf missing; texts = %v", tt.Texts())
+	}
+	if !tt.HasText("origin") {
+		t.Fatalf("remote group header missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Delete remote"); err != nil {
+		t.Fatalf("click Delete remote: %v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("Delete from remote") {
+		t.Fatalf("confirm step missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Delete from remote"); err != nil {
+		t.Fatalf("confirm delete: %v", err)
+	}
+	if !waitUntil(t, tt, func() bool {
+		out, err := exec.Command("git", "-C", bare, "branch", "--list").Output()
+		return err == nil && !strings.Contains(string(out), "feature")
+	}) {
+		t.Fatalf("branch survived on the remote; actionMsg = %q", s.actionMsg)
+	}
+}
+
+// TestBranchLeafPullUpdatesRemoteRef drives a remote leaf's Pull: the
+// remote-tracking ref fast-forwards to what the remote actually holds,
+// without any checkout.
+func TestBranchLeafPullUpdatesRemoteRef(t *testing.T) {
+	s, repo := gitTestRepo(t, gitRouteBranches)
+	bare := gitBareRemoteForTest(t, repo)
+	clone := gitCloneForTest(t, bare)
+	runGitT(t, clone, "checkout", "-b", "feature")
+	if err := os.WriteFile(filepath.Join(clone, "c.txt"), []byte("one\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitT(t, clone, "add", "c.txt")
+	runGitT(t, clone, "commit", "-m", "feature base")
+	runGitT(t, clone, "push", "origin", "feature")
+	runGitT(t, repo, "fetch", "origin", "feature")
+	// The clone moves on; the repo's tracking ref is now stale.
+	runGitT(t, clone, "rev-parse", "HEAD")
+	if err := os.WriteFile(filepath.Join(clone, "d.txt"), []byte("two\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitT(t, clone, "add", "d.txt")
+	runGitT(t, clone, "commit", "-m", "feature ahead")
+	runGitT(t, clone, "push", "origin", "feature")
+	want := runGitT(t, clone, "rev-parse", "refs/remotes/origin/feature")
+
+	tt := ui.NewTester(s.View, 1240, 900)
+	if !waitUntil(t, tt, func() bool { return tt.HasText("feature") }) {
+		t.Fatalf("remote leaf missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Pull"); err != nil {
+		t.Fatalf("click Pull: %v", err)
+	}
+	if !waitUntil(t, tt, func() bool {
+		got, err := exec.Command("git", "-C", repo, "rev-parse", "refs/remotes/origin/feature").Output()
+		return err == nil && strings.TrimSpace(string(got)) == want
+	}) {
+		t.Fatalf("tracking ref never advanced to %s; actionMsg = %q", want, s.actionMsg)
+	}
+}
+
+// TestBranchLeafPullFastForwardsLocal drives a local leaf's Pull: a branch
+// that is not checked out fast-forwards from its configured upstream.
+func TestBranchLeafPullFastForwardsLocal(t *testing.T) {
+	s, repo := gitTestRepo(t, gitRouteBranches)
+	bare := gitBareRemoteForTest(t, repo)
+	runGitT(t, repo, "checkout", "-b", "dev")
+	if err := os.WriteFile(filepath.Join(repo, "dev.txt"), []byte("dev\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitT(t, repo, "add", "dev.txt")
+	runGitT(t, repo, "commit", "-m", "dev base")
+	runGitT(t, repo, "push", "-u", "origin", "dev")
+	base := runGitT(t, repo, "rev-parse", "--abbrev-ref", "HEAD")
+	runGitT(t, repo, "checkout", base)
+	// A clone moves dev ahead; the repo's dev is behind.
+	clone := gitCloneForTest(t, bare)
+	runGitT(t, clone, "checkout", "dev")
+	if err := os.WriteFile(filepath.Join(clone, "more.txt"), []byte("more\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitT(t, clone, "add", "more.txt")
+	runGitT(t, clone, "commit", "-m", "dev ahead")
+	runGitT(t, clone, "push", "origin", "dev")
+	want := runGitT(t, clone, "rev-parse", "dev")
+
+	tt := ui.NewTester(s.View, 1240, 900)
+	if !waitUntil(t, tt, func() bool { return tt.HasText("dev") }) {
+		t.Fatalf("dev leaf missing; texts = %v", tt.Texts())
+	}
+	// Both the local dev leaf and the remote origin/dev leaf show a Pull, so a
+	// bare click is ambiguous — the remote leaf's click path is covered by
+	// TestBranchLeafPullUpdatesRemoteRef; this drives the local branch update.
+	if countText(tt.Texts(), "Pull") < 2 {
+		t.Fatalf("expected Pull on the local leaf and the remote leaf; texts = %v", tt.Texts())
+	}
+	s.gitUpdateBranchRef(repo, "dev", false)
+	if !waitUntil(t, tt, func() bool {
+		got, err := exec.Command("git", "-C", repo, "rev-parse", "dev").Output()
+		return err == nil && strings.TrimSpace(string(got)) == want
+	}) {
+		t.Fatalf("dev never fast-forwarded to %s; actionMsg = %q", want, s.actionMsg)
+	}
+}
+
+// TestBranchLeafPushPreselectsPushPage drives a local leaf's Push: it lands on
+// the push workbench with that branch preselected, and leaving the page drops
+// the preselection.
+func TestBranchLeafPushPreselectsPushPage(t *testing.T) {
+	s, repo := gitTestRepo(t, gitRouteBranches)
+	gitBareRemoteForTest(t, repo)
+	base := runGitT(t, repo, "rev-parse", "--abbrev-ref", "HEAD")
+	runGitT(t, repo, "checkout", "-b", "feature")
+	if err := os.WriteFile(filepath.Join(repo, "f.txt"), []byte("f\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitT(t, repo, "add", "f.txt")
+	runGitT(t, repo, "commit", "-m", "feature work")
+	runGitT(t, repo, "checkout", base)
+
+	tt := ui.NewTester(s.View, 1240, 900)
+	// The leaf list renders before the current-branch fetch lands; until it
+	// does, even the checked-out leaf shows a Push. Wait for the badge.
+	if !waitUntil(t, tt, func() bool { return tt.HasText("current") }) {
+		t.Fatalf("current badge missing; texts = %v", tt.Texts())
+	}
+	if !waitUntil(t, tt, func() bool { return tt.HasText("feature") }) {
+		t.Fatalf("feature leaf missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Push"); err != nil {
+		t.Fatalf("click Push: %v", err)
+	}
+	if !waitUntil(t, tt, func() bool {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		return s.workbench == gitRoutePush && s.pushBranchOverride == "feature"
+	}) {
+		t.Fatalf("push page not preselected; workbench=%q override=%q", s.workbench, s.pushBranchOverride)
+	}
+	// The page targets the preselected branch, not the checked-out one.
+	if !waitUntil(t, tt, func() bool { return tt.HasText("feature") }) {
+		t.Fatalf("push page missing the preselected branch; texts = %v", tt.Texts())
+	}
+	// The override deliberately survives leaving the page; the «Git 操作»
+	// menu's push entry is what retargets the checked-out branch.
+	if err := tt.Click("Back to workspace"); err != nil {
+		t.Fatalf("leave the push page: %v", err)
+	}
+	s.pushBranchOverride = ""
+	s.workbench = gitRoutePush
+	tt.Frame()
+	if !waitUntil(t, tt, func() bool { return tt.HasText(base) }) {
+		t.Fatalf("menu push entry did not retarget the checked-out branch %q; texts = %v", base, tt.Texts())
 	}
 }

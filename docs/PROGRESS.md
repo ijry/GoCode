@@ -278,6 +278,40 @@ go test ./...         → acp / app_error / web 全绿
 
 ## 日志
 
+### 2026-11-04 之二（Branches 页叶子操作补齐 —— Pull / Push / Delete remote / 远程分组 / worktree 自动开会话）
+
+- 上游 `branch-dropdown.tsx` 的叶子补齐（此前只有 Switch / Merge / Rebase / Delete）：
+  - **本地叶子 + Pull**：上游 leaf "Pull" = `updateBranch`（"never touches the working tree"）——
+    本 build 走 `git_update_branch`（检查出分支真 pull、其余从上游 ff），结果按
+    `updated_files` 本地化 toast（=0 → 「分支已是最新」）。
+  - **本地叶子 + Push**：上游是**打开 Push 窗口预选该分支**（非直接推）——本 build 的
+    Push 工作台路由由 `pushBranchOverride` 承接：叶子点击置 override 并跳 `git-push`；
+    页头目标显示该分支；**菜单里的 Push 入口清 override**（指向检出分支）。override 有意
+    不在离开页面时清（渲染路径里清会与设置它的点击同帧竞争——已踩过）；菜单入口是唯一的
+    重置点。
+  - **远程分支按 remote 分组**：`git branch -r` 列表按 `/` 前缀分组（组头 remote 名 + 数量），
+    叶子显示短名。
+  - **远程叶子 + Pull（更新跟踪引用）**：`git_update_branch {isRemote:true}`（force refspec fetch），
+    测试断言跟踪引用真的前进到远程的 sha。
+  - **远程叶子 + Delete remote**（两步确认）：`git_delete_remote_branch`（`git push --delete`），
+    现代 git 同步清本地跟踪引用。
+  - **worktree 创建后自动开新会话**：`git_worktree_add` → `open_worktree_folder` →
+    `create_conversation`（agent 沿用 composer 选择，缺省 claude_code）→ `openConversationTab`；
+    开会话失败不影响 worktree 本身（诚实降级：文件夹照开，只是没 tab）。
+- i18n：`gitPullAction` / `gitRemoteBranchDeleted` / `gitRemoteDeleteAction` / `gitRemoteDeleteYes` /
+  `gitBranchUpdated{count}`（ICU 复数，en + zh-Hans），catalog 重生。
+- 测试：`git_branches_depth_test.go` 新 4 个（真 bare 远程 + 真 clone）——
+  `TestRemoteBranchesGroupedAndDeleteRemote`（分组头 + 两步删远程 → bare 上分支消失）、
+  `TestBranchLeafPullUpdatesRemoteRef`（远程叶子 Pull → 跟踪引用前进到 clone 的 sha）、
+  `TestBranchLeafPullFastForwardsLocal`（本地 dev 落后 → ff 到上游 sha；本地与远程叶子都有
+  Pull，点击歧义故直调 mutation、UI 断言按钮在）、`TestBranchLeafPushPreselectsPushPage`
+  （叶子 Push → push 页目标为 feature → 菜单路径清 override）；`TestGitWorktreeCreateSwitchRemove`
+  增加自动开会话断言（tab 落到新 folder 且被选中）；`TestGitRemoteBranchCheckout` 的断言
+  拆成 remote 组头 + 短名两段（叶子渲染变了）。
+- **测试坑（记入 memory）**：分支列表首帧渲染时 `gitbranch:` 往往还没回来 —— current 徽标未出，
+  **连检出分支的叶子都带全套按钮**，点击会打错行：先 `waitUntil(HasText("current"))` 再点。
+- `go build ./...` / `go vet ./...` / `scripts/test.sh` 全绿；exe 重建。
+
 ### 2026-11-04（终端面板换成真终端模拟器 —— mygo terminal 插件 + 后端 PTY 桥接）
 
 - **动因**：mygo 0.7.4 自带 terminal 插件（libghostty-vt，Ghostty 的模拟器核心，全 Go 无 npm），

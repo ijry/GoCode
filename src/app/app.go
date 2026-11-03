@@ -248,17 +248,18 @@ type Shell struct {
 	// changesDiscardArmed is the bulk discard's first click (it is destructive).
 	changesDiscardArmed bool
 	// Git-operation pages (git_ops.go): each page's own form state.
-	stashMsg          string                       // Stash page: message for the new stash
-	stashKeepIndex    bool                         // Stash page: --keep-index
-	stashClearConfirm bool                         // Stash page: Clear awaiting a second click
-	pushRemote        string                       // Push page: selected remote
-	pushRunning       bool                         // Push page: a push is in flight
-	pushPageBranch    string                       // Push page: root+branch the per-page state was seeded for
-	pushPageKey       string                       // Push page: log cache key the selection belongs to
-	pushSelCommit     string                       // Push page: expanded/previewed commit (full hash)
-	pushSelFile       string                       // Push page: previewed file of that commit
-	pushOpen          map[string]bool              // Push page: expanded commit hashes
-	pushDiffs         map[string]*editor.DiffState // Push page: per (commit,file) diff state
+	stashMsg           string                       // Stash page: message for the new stash
+	stashKeepIndex     bool                         // Stash page: --keep-index
+	stashClearConfirm  bool                         // Stash page: Clear awaiting a second click
+	pushRemote         string                       // Push page: selected remote
+	pushRunning        bool                         // Push page: a push is in flight
+	pushBranchOverride string                       // Push page: branch a leaf's Push preselected ("" = checked-out branch)
+	pushPageBranch     string                       // Push page: root+branch the per-page state was seeded for
+	pushPageKey        string                       // Push page: log cache key the selection belongs to
+	pushSelCommit      string                       // Push page: expanded/previewed commit (full hash)
+	pushSelFile        string                       // Push page: previewed file of that commit
+	pushOpen           map[string]bool              // Push page: expanded commit hashes
+	pushDiffs          map[string]*editor.DiffState // Push page: per (commit,file) diff state
 	// Commit page (git_ops.go): per-file selection and the HEAD↔worktree preview.
 	commitSelRoot   string
 	commitSelSeeded bool
@@ -270,16 +271,17 @@ type Shell struct {
 	mergeBranch     string // Merge page: selected branch to merge
 	// Branches page (git_ops.go): the create forms, delete confirmations and the
 	// prefix-grouped branch tree's collapsed groups.
-	branchNewName        string          // Branches page: new-branch name input
-	branchDeleteConfirm  string          // Branches page: branch awaiting a second delete click
-	branchCollapsed      map[string]bool // Branches page: collapsed branch-tree group keys
-	worktreeBranchName   string          // Branches page: new-worktree branch input
-	worktreePath         string          // Branches page: new-worktree path input
-	worktreeSeedRoot     string          // folder whose worktree path was last suggested
-	worktreeRemove       string          // worktree branch awaiting a second remove click
-	worktreeRemoveBranch bool            // ... and whether that removal also deletes the branch
-	worktreeForce        string          // worktree branch whose force removal is confirmed
-	worktreeForceBranch  bool            // ... and whether force removal also deletes the branch
+	branchNewName             string          // Branches page: new-branch name input
+	branchDeleteConfirm       string          // Branches page: branch awaiting a second delete click
+	branchCollapsed           map[string]bool // Branches page: collapsed branch-tree group keys
+	remoteBranchDeleteConfirm string          // Branches page: remote branch awaiting delete-remote confirm
+	worktreeBranchName        string          // Branches page: new-worktree branch input
+	worktreePath              string          // Branches page: new-worktree path input
+	worktreeSeedRoot          string          // folder whose worktree path was last suggested
+	worktreeRemove            string          // worktree branch awaiting a second remove click
+	worktreeRemoveBranch      bool            // ... and whether that removal also deletes the branch
+	worktreeForce             string          // worktree branch whose force removal is confirmed
+	worktreeForceBranch       bool            // ... and whether force removal also deletes the branch
 	// Commands (folder_commands.go): the folder-command CRUD + terminal run.
 	cmdNewName  string // new-command form: name
 	cmdNewCmd   string // new-command form: command

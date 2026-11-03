@@ -124,6 +124,9 @@ func (s *Shell) gitMenuItems(m *ui.Menu, c *ui.Context) {
 		s.workbench = gitRouteCommit
 	}
 	if m.Item(cat(c).GitPushTitle()).Chosen() {
+		// The menu targets the checked-out branch; a leaf's Push preselects
+		// its own branch instead.
+		s.pushBranchOverride = ""
 		s.workbench = gitRoutePush
 	}
 	if m.Item(cat(c).GitMergeTitle()).Chosen() {
@@ -794,7 +797,12 @@ func pushLogKey(root, branch, remote string) string {
 // them, and Push.
 func (s *Shell) viewGitPushPage(c *ui.Context, root string) {
 	t := c.Theme()
-	branch := decodeString(s.ensure("gitbranch:"+root, "get_git_branch", map[string]any{"path": root}))
+	// A branch leaf's Push lands here with the branch preselected
+	// (pushBranchOverride); without it the page targets the checked-out branch.
+	branch := s.pushBranchOverride
+	if branch == "" {
+		branch = decodeString(s.ensure("gitbranch:"+root, "get_git_branch", map[string]any{"path": root}))
+	}
 	if branch == "" {
 		loadingState(c, "")
 		return
@@ -1331,19 +1339,63 @@ func (s *Shell) viewGitBranchesPage(c *ui.Context, root string) {
 	if len(br.remote) > 0 {
 		ui.Divider(c)
 		ui.Text(c, cat(c).GitRemoteBranches(len(br.remote))).FontSize(12).Bold()
-		ui.Column(c).Gap(1).MaxWidth(720).Children(func() {
-			for _, rb := range br.remote {
-				ui.Row(c.Key("gbr-" + rb)).PaddingX(8).PaddingY(5).Gap(8).AlignItems(ui.Center).Children(func() {
-					ui.Icon(c, iconBranch).Width(12).Height(12).TextColor(t.TextMuted)
-					ui.Text(c, rb).Grow(1).MaxLines(1).TextColor(t.Text)
-					if ui.Button(c.Key("gbr-co-"+rb), cat(c).GitCheckoutRemoteAction()).Clicked() {
-						s.gitCheckoutRemote(root, rb)
+		// Grouped by remote (upstream groups the remote list the same way); a
+		// leaf's Pull refreshes its remote-tracking ref, Checkout checks it out
+		// in the root working tree as a tracking branch, and Delete remote
+		// removes it on the server (two-step confirm).
+		byRemote := map[string][]string{}
+		order := []string{}
+		for _, rb := range br.remote {
+			remote, _, _ := strings.Cut(rb, "/")
+			if _, seen := byRemote[remote]; !seen {
+				order = append(order, remote)
+			}
+			byRemote[remote] = append(byRemote[remote], rb)
+		}
+		ui.Column(c).Gap(4).MaxWidth(720).Children(func() {
+			for _, remote := range order {
+				branches := byRemote[remote]
+				ui.Row(c.Key("gbrgrp-" + remote)).PaddingX(8).PaddingY(3).Gap(6).AlignItems(ui.Center).Children(func() {
+					ui.Text(c, remote).FontSize(11).Bold().TextColor(t.TextMuted)
+					ui.Text(c, "("+itoa("", len(branches))+")").FontSize(10).TextColor(t.TextMuted)
+				})
+				ui.Column(c).Gap(1).Children(func() {
+					for _, rb := range branches {
+						s.viewRemoteBranchRow(c, root, remote, rb)
 					}
 				})
 			}
 		})
 	}
 	s.viewActionOrError(c)
+}
+
+// viewRemoteBranchRow renders one remote branch under its remote group: the
+// short name, then Pull (refresh the tracking ref), Checkout (as a tracking
+// branch of the root working tree) and the two-step Delete remote.
+func (s *Shell) viewRemoteBranchRow(c *ui.Context, root, remote, full string) {
+	t := c.Theme()
+	ui.Row(c.Key("gbr-" + full)).PaddingX(8).PaddingY(5).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Icon(c, iconBranch).Width(12).Height(12).TextColor(t.TextMuted)
+		ui.Text(c, strings.TrimPrefix(full, remote+"/")).Grow(1).MaxLines(1).TextColor(t.Text)
+		if ui.Button(c.Key("gbr-up-"+full), cat(c).GitPullAction()).Clicked() {
+			s.gitUpdateBranchRef(root, full, true)
+		}
+		if ui.Button(c.Key("gbr-co-"+full), cat(c).GitCheckoutRemoteAction()).Clicked() {
+			s.gitCheckoutRemote(root, full)
+		}
+		if s.remoteBranchDeleteConfirm == full {
+			if ui.Button(c.Key("gbr-del-yes-"+full), cat(c).GitRemoteDeleteYes()).Clicked() {
+				s.gitDeleteRemoteBranch(root, remote, strings.TrimPrefix(full, remote+"/"))
+				s.remoteBranchDeleteConfirm = ""
+			}
+			if ui.Button(c.Key("gbr-del-no-"+full), cat(c).ActionCancel()).Clicked() {
+				s.remoteBranchDeleteConfirm = ""
+			}
+		} else if ui.Button(c.Key("gbr-del-"+full), cat(c).GitRemoteDeleteAction()).Clicked() {
+			s.remoteBranchDeleteConfirm = full
+		}
+	})
 }
 
 // viewWorktreeCreateForm renders the new-worktree form (upstream's worktree
@@ -1507,6 +1559,16 @@ func (s *Shell) viewLocalBranchRow(c *ui.Context, root, branch, label string, de
 		}
 		if ui.Button(c.Key("gb-rb-"+branch), cat(c).GitRebaseAction()).Clicked() {
 			s.gitRebase(root, branch)
+		}
+		// Upstream's leaf row: pull updates the branch without touching the
+		// workspace (a checked-out one takes a real pull), push opens the push
+		// workbench preselected for this branch.
+		if ui.Button(c.Key("gb-pull-"+branch), cat(c).GitPullAction()).Clicked() {
+			s.gitUpdateBranchRef(root, branch, false)
+		}
+		if ui.Button(c.Key("gb-push-"+branch), cat(c).GitPushAction()).Clicked() {
+			s.pushBranchOverride = branch
+			s.workbench = gitRoutePush
 		}
 		if heldByWorktree {
 			return
@@ -1803,6 +1865,40 @@ func (s *Shell) gitCheckoutRemote(root, remoteBranch string) {
 		catMsg("switched"), "git_checkout", map[string]any{"path": root, "branchName": local})
 }
 
+// gitUpdateBranchRef refreshes one branch without disturbing the workspace —
+// upstream's leaf "Pull" (runLeafAction → updateBranch, "never touches the
+// working tree"). git_update_branch fetches a remote-tracking ref by force
+// refspec, gives a checked-out local branch a real pull, and fast-forwards any
+// other local branch from its configured upstream.
+func (s *Shell) gitUpdateBranchRef(root, branch string, isRemote bool) {
+	svc := s.svc
+	go func() {
+		raw, err := s.B.raw("git_update_branch", map[string]any{
+			"path": root, "branch": branch, "isRemote": isRemote,
+		})
+		s.mu.Lock()
+		if err != nil {
+			s.actionMsg = "update branch: " + err.Error()
+		} else {
+			var res map[string]any
+			_ = json.Unmarshal(raw, &res)
+			// Package-level accessor: the outcome lands from a goroutine,
+			// where no *ui.Context carries a frame's language (see catMsg).
+			s.actionMsg = locales.GitBranchUpdated(intOf(res["updated_files"]))
+		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
+}
+
+// gitDeleteRemoteBranch removes one branch on its remote (git push --delete);
+// modern git also drops the local remote-tracking ref, so the branch list
+// refetches without it.
+func (s *Shell) gitDeleteRemoteBranch(root, remote, branch string) {
+	s.gitWrite([]string{"allbranches:" + root}, catMsg("remote branch deleted"),
+		"git_delete_remote_branch", map[string]any{"path": root, "remote": remote, "branch": branch})
+}
+
 // gitWorktreeAdd creates a worktree on a new branch (git_worktree_add), then
 // registers the checkout as a workspace folder and selects it — upstream's
 // openWorktreeFolder + fresh conversation so the new tree is reachable.
@@ -1832,6 +1928,24 @@ func (s *Shell) gitWorktreeAdd(root, branch, path string) {
 				}
 			}
 		}
+		// Upstream opens a fresh conversation in the new checkout so the tree
+		// is reachable the moment the folder opens; failure to create one is
+		// not a worktree failure — the folder still opens, just without a tab.
+		agent := s.newAgent
+		if agent == "" {
+			agent = "claude_code"
+		}
+		newConv := ""
+		if err == nil && newFolder != "" {
+			if craw, cerr := s.B.raw("create_conversation", map[string]any{
+				"folderId": numOrString(newFolder), "agentType": agent,
+			}); cerr == nil {
+				var id float64
+				if json.Unmarshal(craw, &id) == nil && id != 0 {
+					newConv = fmt.Sprintf("%v", int64(id))
+				}
+			}
+		}
 		s.mu.Lock()
 		if err != nil {
 			s.actionMsg = "worktree add: " + err.Error()
@@ -1840,14 +1954,21 @@ func (s *Shell) gitWorktreeAdd(root, branch, path string) {
 			s.worktreeSeedRoot = ""
 			if newFolder != "" {
 				s.selectedFolder = newFolder
-				s.selectedConv = ""
 				s.workbench = ""
+				delete(s.cache, "convs:"+newFolder)
+				if newConv == "" {
+					s.selectedConv = ""
+				}
 			}
 		}
 		delete(s.cache, "folders")
 		delete(s.cache, "allbranches:"+root)
 		delete(s.cache, "gitbranch:"+root)
 		s.mu.Unlock()
+		// Outside the lock: the tab strip takes s.mu itself.
+		if err == nil && newFolder != "" && newConv != "" {
+			s.openConversationTab(newConv, newFolder, agent, "")
+		}
 		svc.Invalidate()
 	}()
 }
@@ -2012,6 +2133,8 @@ func catMsg(key string) string {
 		return locales.GitWorktreeSwitched()
 	case "worktree force needed":
 		return locales.GitWorktreeForceNeeded()
+	case "remote branch deleted":
+		return locales.GitRemoteBranchDeleted()
 	default:
 		return key
 	}
