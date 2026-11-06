@@ -689,8 +689,10 @@
     提交信息历史 / AI 生成 —— **上游均没有**（commit-dialog 只做整文件 stage + Add to VCS；
     push-workspace 无进度流），不是缺口，从「仍省略」除名。
   - **相对时间与尺寸标注已补（2026-11-06）**：提交卡（aux Commits / Push 页）用 `relTime`
-    紧凑相对值，绝对日期挂 tooltip；图片 diff 侧标题带解码后像素尺寸。仍省略：ImageDiffView
-    的滑块对比模式。
+    紧凑相对值，绝对日期挂 tooltip；图片 diff 侧标题带解码后像素尺寸与字节大小。
+  - **Swipe 对比已补（2026-11-07）**：两侧齐全时 Split/Swipe 切换，两版本叠放同一盒、
+    按住拖动分割条（HEAD 裁剪在左）。aux Commits 详情补完整消息体 + Copy（2026-11-07，
+    上游 GitLogCommitMessage/CommitCopyButton 对应物）。
   - **Canvas region 成员内联渲染 + detach（2026-11-07）**：region 卡内渲染成员会话 chips
     （标题取自 `all-convs`，✕ = `canvas_detach_member` 移出为散卡，超 4 折叠为计数）。
   - **Choose 按钮接真对话框（2026-11-07，生产 bug）**：`hostOpenFiles` 生产从未赋值——

@@ -281,6 +281,22 @@ go test ./...         → acp / app_error / web 全绿
 
 ## 日志
 
+### 2026-11-07 之二（git log 深化：完整消息体 + 复制；图片对比 swipe 模式 + 字节标注）
+
+- **aux Commits 详情区补完整消息体**（上游 GitLogCommitMessage + CommitCopyButton 的对应物）：
+  选中提交的完整 message（多行 Wrap）在文件列表上方成块展示，块头一行主题 + Copy 按钮
+  （写剪贴板 + toast）。修了解包 bug：`gitlog:` 缓存是对象，entries 要 asObj→asListVal。
+- **图片对比 swipe 模式**（上游 ImageDiffView 的两态 parity）：两侧齐全时头部出
+  Split / Swipe 切换——swipe 把两版本叠放在同一盒内，HEAD 侧被裁剪到分割条左侧，
+  按住盒内任意处拖动即移动分割条（moveSwipeTo 语义；盒尺寸取上一帧 `Bounds()`，
+  首帧用缺省尺寸一帧内收敛）。字节标注：两侧标题带 `formatFileSize`（B/KB/MB，
+  base64 DecodedLen 推算）。缺侧时强制并排（upstream effectiveMode）。
+- i18n：`gitImageSplit` / `gitImageSwipe`（en + zh-Hans），catalog 重生；新增 iconCopy。
+- 测试：`TestCommitImageDiff` 扩展（尺寸 + 字节标注、Swipe ⇄ Split 往返）、
+  `TestCommitDetailShowsMessageAndCopy`（完整消息体渲染 + Copy toast）。
+- `go build ./...` / `go vet ./...` / `scripts/test.sh` 全绿（app 172s、handlers 152s）；exe 重建。
+
+
 ### 2026-11-07（收尾：Choose 按钮接真对话框、多文件上传、批量链接、region 成员/detach）
 
 既定任务审计的最后四项：
