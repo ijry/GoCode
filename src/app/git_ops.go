@@ -205,8 +205,8 @@ func (s *Shell) viewGitCommitPage(c *ui.Context, root string) {
 		})
 	}
 
-	ui.Row(c.Key("gc-body")).Grow(1).FillWidth().Gap(14).Children(func() {
-		ui.Column(c.Key("gc-left")).Width(420).FillHeight().Gap(6).Children(func() {
+	ui.Row(c.Key("gc-body")).Grow(1).FillWidth().Children(func() {
+		ui.Column(c.Key("gc-left")).Width(s.gitListWidth).FillHeight().Gap(6).Children(func() {
 			sel := s.commitSelCount(files)
 			all := sel == len(files)
 			ui.Row(c.Key("gc-sel-head")).Gap(8).AlignItems(ui.Center).Children(func() {
@@ -274,6 +274,9 @@ func (s *Shell) viewGitCommitPage(c *ui.Context, root string) {
 			})
 			s.viewActionOrError(c)
 		})
+		s.dragDivider(c, "gc-div", true, func(dx, dy float32) {
+			s.gitListWidth = min(max(s.gitListWidth+dx, 240), 900)
+		}, func() { s.saveLayoutSoon() })
 		ui.Column(c.Key("gc-diff")).Grow(1).FillHeight().Gap(6).Children(func() {
 			s.viewCommitFileDiff(c, root, files)
 		})
@@ -549,6 +552,9 @@ func (s *Shell) viewCommitFileRow(c *ui.Context, root string, n *gitTreeNode, le
 	deleted := strings.HasPrefix(n.status, "D")
 	untracked := n.status == "??"
 	row := ui.Row(c.Key("gcf-"+n.path)).Padding(3, 6, 3, left).Gap(6).AlignItems(ui.Center)
+	if row.Hovered() {
+		row.Background(t.SurfaceHover)
+	}
 	row.Children(func() {
 		box := ui.CheckboxBase(c.Key("gcf-sel-"+n.path), &checked).Width(15).Height(15).
 			Radius(3).Border(1, t.Border)
@@ -1238,8 +1244,8 @@ func (s *Shell) viewGitPushPage(c *ui.Context, root string) {
 		}
 	}
 
-	ui.Row(c.Key("gp-body")).Grow(1).FillWidth().Gap(14).Children(func() {
-		ui.Column(c.Key("gp-left")).Width(420).FillHeight().Gap(6).Children(func() {
+	ui.Row(c.Key("gp-body")).Grow(1).FillWidth().Children(func() {
+		ui.Column(c.Key("gp-left")).Width(s.gitListWidth).FillHeight().Gap(6).Children(func() {
 			ui.Scroll(c.Key("gp-list")).Grow(1).Children(func() {
 				if logObj == nil {
 					loadingState(c, "")
@@ -1279,6 +1285,9 @@ func (s *Shell) viewGitPushPage(c *ui.Context, root string) {
 			}
 			s.viewActionOrError(c)
 		})
+		s.dragDivider(c, "gp-div", true, func(dx, dy float32) {
+			s.gitListWidth = min(max(s.gitListWidth+dx, 240), 900)
+		}, func() { s.saveLayoutSoon() })
 		ui.Column(c.Key("gp-diff")).Grow(1).FillHeight().Gap(6).Children(func() {
 			s.viewPushFileDiff(c, root)
 		})

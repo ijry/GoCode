@@ -82,11 +82,10 @@ func TestConversationTabsHydrateAndSwitch(t *testing.T) {
 	s, _, first, second := tabsShellForTest(t)
 	tt := ui.NewTester(s.View, 1240, 820)
 
-	// Both tabs render, decorated with their live titles.
-	for _, want := range []string{"Fix the parser", "Refactor auth"} {
-		if !tt.HasText(want) {
-			t.Fatalf("tab strip missing %q; texts = %v", want, tt.Texts())
-		}
+	// Both tabs render, decorated with their live titles (hydration is an
+	// async ensure; pump instead of assuming the first frame).
+	if !waitUntil(t, tt, func() bool { return tt.HasText("Fix the parser") && tt.HasText("Refactor auth") }) {
+		t.Fatalf("tab strip missing; texts = %v", tt.Texts())
 	}
 	if s.selectedConv != first {
 		t.Fatalf("selectedConv = %q, want the active tab %q", s.selectedConv, first)

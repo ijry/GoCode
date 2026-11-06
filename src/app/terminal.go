@@ -265,22 +265,30 @@ func (s *Shell) terminalEnded(id string) {
 // viewTerminalPanel renders the bottom panel. Collapsed, it is a single strip
 // that reopens the panel; expanded, that strip becomes upstream's tab bar
 // (tabs + new + hide) with the active tab's emulator below it.
+// viewTerminalPanel is the collapsed strip beneath the workspace (the open
+// panel lives in the SplitVertical's second pane instead).
 func (s *Shell) viewTerminalPanel(c *ui.Context) {
 	t := c.Theme()
 	s.termInputFocused = false
 	panel := ui.Column(c.Key("term-panel")).FillWidth().Background(t.Surface)
 	panel.Children(func() {
-		if s.termOpen {
-			s.viewTerminalTabBar(c)
-		} else {
-			s.viewTerminalCollapsedBar(c)
-		}
-		if s.termOpen {
-			ui.Divider(c)
-			ui.Column(c.Key("term-body")).FillWidth().Height(240).Children(func() {
-				s.viewTerminalBody(c)
-			})
-		}
+		s.viewTerminalCollapsedBar(c)
+	})
+	s.termHovered = panel.Hovered()
+}
+
+// viewTerminalPanelOpen is the open terminal as the bottom pane of the
+// workspace's SplitVertical: the tab bar on top, the emulator filling the rest.
+func (s *Shell) viewTerminalPanelOpen(c *ui.Context) {
+	t := c.Theme()
+	s.termInputFocused = false
+	panel := ui.Column(c.Key("term-panel")).Fill().Background(t.Surface)
+	panel.Children(func() {
+		s.viewTerminalTabBar(c)
+		ui.Divider(c)
+		ui.Column(c.Key("term-body")).Fill().Children(func() {
+			s.viewTerminalBody(c)
+		})
 	})
 	s.termHovered = panel.Hovered()
 }

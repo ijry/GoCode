@@ -20,7 +20,7 @@ func (s *Shell) viewAuxPanel(c *ui.Context) {
 	if s.auxTab == "" {
 		s.auxTab = "session"
 	}
-	ui.Column(c.Key("ws-aux")).Width(340).FillHeight().Background(t.Surface).Children(func() {
+	ui.Column(c.Key("ws-aux")).Width(s.auxWidth).FillHeight().Background(t.Surface).Children(func() {
 		ui.Row(c.Key("aux-tabs")).PaddingX(8).PaddingY(6).Gap(4).Children(func() {
 			for _, tab := range []struct{ id, label string }{
 				{"session", cat(c).AuxTabSession()},
@@ -141,6 +141,9 @@ func (s *Shell) viewCommitsList(c *ui.Context) {
 			metaCol, msgCol = t.AccentText, t.AccentText
 		}
 		row := ui.Row(c.Key("cm-" + hash)).PaddingX(8).PaddingY(6).Gap(8).AlignItems(ui.Center)
+		if row.Hovered() {
+			row.Background(t.SurfaceHover)
+		}
 		row.Children(func() {
 			// Explicit widths: a list row is as wide as its content, so a
 			// flexible child would collapse to nothing.
@@ -164,32 +167,37 @@ func (s *Shell) viewCommitsList(c *ui.Context) {
 // (git_commit_files), each with its +/- line counts.
 func (s *Shell) viewCommitDetail(c *ui.Context, root string) {
 	t := c.Theme()
-	ui.Row(c.Key("aux-detail-head")).Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, cat(c).AuxCommitTitle(s.commitSel)).FontSize(12).Bold().MaxLines(1)
-		ui.Spacer(c)
-		iconButton(c, "commit-close", iconX, cat(c).ActionClose(), func() { s.commitSel = "" })
-	})
-	// The commit's full message (upstream's GitLogCommitMessage + copy button).
+	// The commit's full message (upstream's GitLogCommitMessage): looked up
+	// first so its Copy button can sit in the header row — away from the aux
+	// split's divider, whose drag zone a pane-edge button would wander into.
+	msg := ""
 	if logObj := asObj(s.peek("gitlog:" + root)); logObj != nil {
 		for _, e := range asListVal(logObj["entries"]) {
 			if str(e, "hash") == s.commitSel {
-				msg := str(e, "message")
-				if msg != "" {
-					ui.Column(c.Key("aux-detail-msg")).Gap(4).Padding(8).Radius(8).
-						Background(t.Surface).FillWidth().Children(func() {
-						ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-							ui.Text(c, firstLine(msg)).FontSize(11).Bold().Grow(1).MaxLines(1)
-							iconButton(c, "aux-detail-copy", iconCopy, cat(c).ActionCopy(), func() {
-								c.WriteClipboard(msg)
-								s.notify(cat(c).ToastCopied())
-							})
-						})
-						ui.Text(c, msg).FontSize(11).TextColor(t.TextMuted).Wrap()
-					})
-				}
+				msg = str(e, "message")
 				break
 			}
 		}
+	}
+	ui.Row(c.Key("aux-detail-head")).Gap(8).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, cat(c).AuxCommitTitle(s.commitSel)).FontSize(12).Bold().MaxLines(1)
+		if msg != "" {
+			// A plain button, not an iconButton: the icon row's label+tooltip
+			// double-registers in the tester's label list and Find hits the
+			// hidden zero rect.
+			if ui.Button(c.Key("aux-detail-copy"), cat(c).ActionCopy()).Clicked() {
+				c.WriteClipboard(msg)
+				s.notify(cat(c).ToastCopied())
+			}
+		}
+		ui.Spacer(c)
+		iconButton(c, "commit-close", iconX, cat(c).ActionClose(), func() { s.commitSel = "" })
+	})
+	if msg != "" {
+		ui.Column(c.Key("aux-detail-msg")).Gap(4).Padding(8).Radius(8).
+			Background(t.Surface).FillWidth().Children(func() {
+			ui.Text(c, msg).FontSize(11).TextColor(t.TextMuted).Wrap()
+		})
 	}
 
 	key := "commitfiles:" + s.commitSel

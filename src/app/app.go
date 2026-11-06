@@ -161,43 +161,48 @@ type Shell struct {
 	composer            string
 	composerAttachments []attachmentItem // staged in the composer, uploaded on send
 	hostOpenFiles       func() []string  // Tauri host hook: open OS file dialog, return picked paths
-	newAgent            string
-	toolOpen            map[string]bool // conversation detail: tool card id → expanded
-	copiedCode          map[string]bool // code block key → "Copied" label showing
-	appearanceMode      string          // system | light | dark (from get_appearance_mode)
-	actionMsg           string
-	errorMsg            string // last failed action, shown as a banner ("" = none)
-	errorHint           string // actionable next step for the error
-	toastQueue          []ui.Toast
-	renaming            bool
-	renameText          string
-	skillsAgent         string                       // Settings → Skills: selected agent wire type
-	skillsScope         string                       // "global" | "project"
-	qmEditor            *quickMsgEditor              // Settings → Quick Messages: open create/edit form
-	qmErr               string                       // Settings → Quick Messages: validation error
-	qmConfirm           string                       // Settings → Quick Messages: id awaiting delete confirm
-	workbench           string                       // "" (conversations) | automations | tasks | forge | canvas | files | …
-	autoSel             string                       // Automations: selected automation id ("" = first row)
-	autoEditor          *automationEditor            // Automations: open create/edit form (nil = closed)
-	autoConfirm         string                       // Automations: id awaiting delete confirmation ("" = none)
-	taskSel             string                       // To-dos: selected task id ("" = board)
-	taskEditor          *taskEditor                  // To-dos: open create/edit form (nil = closed)
-	taskConfirm         string                       // To-dos: id awaiting delete confirmation ("" = none)
-	taskShowCanceled    bool                         // To-dos: show canceled cards in the Done column
-	taskShowArchived    bool                         // To-dos: show archived cards
-	canvasSel           string                       // Canvas: open board id ("" = board list)
-	canvasEditor        *canvasEditor                // Canvas: new/rename board form (nil = closed)
-	canvasConfirm       string                       // Canvas: board id awaiting delete confirmation ("" = none)
-	canvasSearch        string                       // Canvas: board search box
-	canvasZoom          float32                      // Canvas: board surface zoom (0 = 100%)
-	canvasPan           ui.Point                     // Canvas: board surface pan, in world DIPs
-	canvasDrag          map[string]canvasDragEntry   // Canvas: in-flight node drags, by node id
-	canvasResize        map[string]canvasResizeEntry // Canvas: in-flight node resizes, by node id
-	canvasNoteSeq       int                          // Canvas: stagger offset for new notes
-	canvasSelNodes      map[string]bool              // Canvas: selected node ids
-	canvasBand          *canvasBand                  // Canvas: in-flight marquee band (world DIPs)
-	canvasPanMode       bool                         // Canvas: background drag pans instead of marqueeing
-	canvasKeyDelete     bool                         // Canvas: Delete/Backspace landed on the focused surface
+	// Resizable layout (ui.Split), persisted to ~/.gocode/layout.json.
+	sidebarWidth     float32 // sidebar ↔ main
+	auxWidth         float32 // main ↔ aux panel
+	mainPaneHeight   float32 // main content above the open terminal panel
+	gitListWidth     float32 // commit/push pages' list ↔ diff
+	newAgent         string
+	toolOpen         map[string]bool // conversation detail: tool card id → expanded
+	copiedCode       map[string]bool // code block key → "Copied" label showing
+	appearanceMode   string          // system | light | dark (from get_appearance_mode)
+	actionMsg        string
+	errorMsg         string // last failed action, shown as a banner ("" = none)
+	errorHint        string // actionable next step for the error
+	toastQueue       []ui.Toast
+	renaming         bool
+	renameText       string
+	skillsAgent      string                       // Settings → Skills: selected agent wire type
+	skillsScope      string                       // "global" | "project"
+	qmEditor         *quickMsgEditor              // Settings → Quick Messages: open create/edit form
+	qmErr            string                       // Settings → Quick Messages: validation error
+	qmConfirm        string                       // Settings → Quick Messages: id awaiting delete confirm
+	workbench        string                       // "" (conversations) | automations | tasks | forge | canvas | files | …
+	autoSel          string                       // Automations: selected automation id ("" = first row)
+	autoEditor       *automationEditor            // Automations: open create/edit form (nil = closed)
+	autoConfirm      string                       // Automations: id awaiting delete confirmation ("" = none)
+	taskSel          string                       // To-dos: selected task id ("" = board)
+	taskEditor       *taskEditor                  // To-dos: open create/edit form (nil = closed)
+	taskConfirm      string                       // To-dos: id awaiting delete confirmation ("" = none)
+	taskShowCanceled bool                         // To-dos: show canceled cards in the Done column
+	taskShowArchived bool                         // To-dos: show archived cards
+	canvasSel        string                       // Canvas: open board id ("" = board list)
+	canvasEditor     *canvasEditor                // Canvas: new/rename board form (nil = closed)
+	canvasConfirm    string                       // Canvas: board id awaiting delete confirmation ("" = none)
+	canvasSearch     string                       // Canvas: board search box
+	canvasZoom       float32                      // Canvas: board surface zoom (0 = 100%)
+	canvasPan        ui.Point                     // Canvas: board surface pan, in world DIPs
+	canvasDrag       map[string]canvasDragEntry   // Canvas: in-flight node drags, by node id
+	canvasResize     map[string]canvasResizeEntry // Canvas: in-flight node resizes, by node id
+	canvasNoteSeq    int                          // Canvas: stagger offset for new notes
+	canvasSelNodes   map[string]bool              // Canvas: selected node ids
+	canvasBand       *canvasBand                  // Canvas: in-flight marquee band (world DIPs)
+	canvasPanMode    bool                         // Canvas: background drag pans instead of marqueeing
+	canvasKeyDelete  bool                         // Canvas: Delete/Backspace landed on the focused surface
 	// Conversation history paging (conversation.go): the accumulated turns,
 	// oldest first, plus how many older turns the backend still holds.
 	convTurnsConv    string // conversation the accumulated page belongs to
@@ -501,7 +506,7 @@ func (s *Shell) pickPaths(title string, directory, multiple bool, done func(path
 }
 
 func New(b *Backend) *Shell {
-	return &Shell{
+	s := &Shell{
 		B:                b,
 		section:          "workspace",
 		settingsPage:     "general",
@@ -537,6 +542,102 @@ func New(b *Backend) *Shell {
 		servers:      loadServers(),
 		activeServer: localServerID,
 		shortcuts:    loadShortcuts(),
+	}
+	s.sidebarWidth, s.auxWidth, s.mainPaneHeight, s.gitListWidth = 290, 340, 240, 420
+	s.loadLayout()
+	return s
+}
+
+// layoutFile is ~/.gocode/layout.json (honoring GOCODE_DATA_DIR): the user's
+// resizable panel sizes, saved on drag and restored on boot.
+func layoutFile() string {
+	dir := os.Getenv("GOCODE_DATA_DIR")
+	if dir == "" {
+		home, _ := os.UserHomeDir()
+		dir = filepath.Join(home, ".gocode")
+	}
+	return filepath.Join(dir, "layout.json")
+}
+
+// loadLayout restores the saved panel sizes over the defaults.
+func (s *Shell) loadLayout() {
+	raw, err := os.ReadFile(layoutFile())
+	if err != nil {
+		return
+	}
+	var l struct {
+		SidebarWidth   float32 `json:"sidebarWidth"`
+		AuxWidth       float32 `json:"auxWidth"`
+		MainPaneHeight float32 `json:"mainPaneHeight"`
+		GitListWidth   float32 `json:"gitListWidth"`
+	}
+	if json.Unmarshal(raw, &l) != nil {
+		return
+	}
+	if l.SidebarWidth >= 160 {
+		s.sidebarWidth = l.SidebarWidth
+	}
+	if l.AuxWidth >= 220 {
+		s.auxWidth = l.AuxWidth
+	}
+	if l.MainPaneHeight >= 120 {
+		s.mainPaneHeight = l.MainPaneHeight
+	}
+	if l.GitListWidth >= 240 {
+		s.gitListWidth = l.GitListWidth
+	}
+}
+
+// dragDivider renders a thin resizable divider between two panes: dragging it
+// feeds the accumulated movement to move (dx for vertical dividers, dy for
+// horizontal ones), and releasing runs settle (the layout save). Hovering
+// tints it, the way upstream's resize handles read.
+func (s *Shell) dragDivider(c *ui.Context, key string, vertical bool, move func(dx, dy float32), settle func()) {
+	t := c.Theme()
+	div := ui.Box(c.Key(key)).Background(t.Border)
+	if vertical {
+		div.Width(3).FillHeight()
+	} else {
+		div.FillWidth().Height(3)
+	}
+	if div.Hovered() || div.Pressed() {
+		div.Background(t.Accent)
+	}
+	if dx, dy, ok := div.Dragged(); ok {
+		move(dx, dy)
+	}
+	if _, _, ended := div.DragEnded(); ended {
+		settle()
+	}
+}
+
+var layoutSaveTimer *time.Timer
+
+// saveLayoutSoon persists the panel sizes after a drag settles, coalescing
+// the per-frame Changed ticks into one write.
+func (s *Shell) saveLayoutSoon() {
+	layoutSaveMu.Lock()
+	defer layoutSaveMu.Unlock()
+	if layoutSaveTimer != nil {
+		layoutSaveTimer.Stop()
+	}
+	layoutSaveTimer = time.AfterFunc(600*time.Millisecond, s.saveLayout)
+}
+
+var layoutSaveMu sync.Mutex
+
+// saveLayout persists the panel sizes (called after a drag settles).
+func (s *Shell) saveLayout() {
+	l := struct {
+		SidebarWidth   float32 `json:"sidebarWidth"`
+		AuxWidth       float32 `json:"auxWidth"`
+		MainPaneHeight float32 `json:"mainPaneHeight"`
+		GitListWidth   float32 `json:"gitListWidth"`
+	}{s.sidebarWidth, s.auxWidth, s.mainPaneHeight, s.gitListWidth}
+	raw, _ := json.Marshal(l)
+	dir := filepath.Dir(layoutFile())
+	if err := os.MkdirAll(dir, 0o755); err == nil {
+		_ = os.WriteFile(layoutFile(), raw, 0o600)
 	}
 }
 

@@ -281,6 +281,25 @@ go test ./...         → acp / app_error / web 全绿
 
 ## 日志
 
+### 2026-11-07 之三（手感层：可拖拽布局、悬停反馈、骨架加载）
+
+回答「界面交互是不是差很多」：流程层已对齐，手感层补齐三块——
+- **可拖拽布局**：侧栏宽度、aux 面板宽度、终端面板高度、Commit/Push 页列表宽度全部可拖
+  （`dragDivider`：3px 分隔条，悬停/按下变 accent 色，Dragged 累计 + 夹取范围，
+  DragEnded 落 `~/.gocode/layout.json`，600ms 合并写，启动恢复）。发现并放弃 mygo
+  `ui.Split`：**headless Tester 里 Split 面板吞子元素点击**（composer/主区大面积测试挂），
+  手拖分隔条与 canvas 同款 Dragged 模式，点击行为无恙。
+- **悬停反馈**：侧栏行（sideRow 一处覆盖全部侧栏行）、aux Commits 行、Commit 页文件行
+  悬停染 SurfaceHover。
+- **骨架加载**：loadingState 缺省态从一行文字换成三条脉动骨架（`AnimateTo("pulse")` +
+  `Opacity`，c.Now() 相位驱动），首条挂 LoadingLabel 的 a11y label（读屏 + 测试兼得）。
+- 测试：布局相关的既有测试全绿（tabs 水合加 waitUntil 泵）；`TestSharedStates` 兼容
+  骨架（a11y label 即 Loading 文本）。
+- `go build ./...` / `go vet ./...` / `scripts/test.sh` 全绿（app 181s、handlers 143s）；
+  exe 重建。src-go/web 的 TestAttachForwardsLiveEvents 全量负载下偶发、单跑恒过
+  （WS attach 时序 flake，与本批无关，未触碰该包）。
+
+
 ### 2026-11-07 之二（git log 深化：完整消息体 + 复制；图片对比 swipe 模式 + 字节标注）
 
 - **aux Commits 详情区补完整消息体**（上游 GitLogCommitMessage + CommitCopyButton 的对应物）：

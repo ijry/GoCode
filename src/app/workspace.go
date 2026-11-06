@@ -24,123 +24,132 @@ func (s *Shell) viewWorkspace(c *ui.Context) {
 	// collapsible terminal panel sits beneath it (upstream's terminal is a
 	// bottom bar shared by every conversation tab, not a main-area tab).
 	ui.Column(c.Key("ws-root")).Fill().Children(func() {
+		// Resizable layout: the sidebar's width, the aux panel's width and the
+		// terminal panel's height each drag on a thin divider (persisted to
+		// ~/.gocode/layout.json). toggle_sidebar (⌘B) / toggle_aux_panel (⌘E)
+		// still hide the sides; the terminal's chevron collapses it.
 		ui.Row(c.Key("ws-cols")).Grow(1).Children(func() {
-			// One Surface sidebar: a fixed nav block on top, then a segmented
-			// switcher (Recent | Pinned | Folders) over a single scrolling list —
-			// NOT the vertical stacking of all three (which scrolls too long).
-			// toggle_sidebar (⌘B) hides it; the same chord brings it back.
 			if !s.sidebarHidden {
-				ui.Column(c.Key("ws-side")).Width(290).FillHeight().Background(t.Surface).Children(func() {
-					// Fixed nav block: New chat (primary action) + the route rows
-					// upstream's sidebar carries — and only those. import-sessions /
-					// project-boot open as SEPARATE windows upstream, never as sidebar
-					// rows, so they live on the bottom chrome in this single-window
-					// build instead.
-					ui.Column(c.Key("ws-nav")).PaddingX(10).PaddingY(10).Gap(2).Children(func() {
-						s.navRow(c, "nav-newchat", iconNewChat, cat(c).ActionNewChat(), false, func() {
-							s.workbench = ""
-							s.createChatConversation(c.Locale())
-						})
-						s.navRow(c, "nav-autom", iconAutomations, cat(c).NavAutomations(), s.workbench == "automations", func() {
-							s.workbench = "automations"
-						})
-						s.navRow(c, "nav-tasks", iconTasks, cat(c).NavTodos(), s.workbench == "tasks", func() {
-							s.workbench = "tasks"
-						})
-						s.navRow(c, "nav-forge", iconForge, cat(c).NavRepositories(), s.workbench == "forge", func() {
-							s.workbench = "forge"
-						})
-						s.navRow(c, "nav-canvas", iconCanvas, cat(c).NavCanvas(), s.workbench == "canvas", func() {
-							s.workbench = "canvas"
-						})
-						s.navRow(c, "nav-usage", iconUsage, cat(c).NavUsage(), s.workbench == "token-usage", func() {
-							s.workbench = "token-usage"
-						})
-						s.navRow(c, "nav-browser", iconBrowser, cat(c).NavBrowser(), s.workbench == "browser", func() {
-							s.workbench = "browser"
-						})
-					})
-					ui.Divider(c)
-					ui.Column(c.Key("ws-convs")).Grow(1).Padding(12).Gap(8).Children(func() {
-						// Conversation search: client-side title filter over the cached
-						// list (UI_GAPS P1-6). Shown for the conversation tabs only —
-						// the Folders tab has no titles to search.
-						if s.sidebarTab != "folders" {
-							ui.Row(c.Key("ws-search-row")).Gap(6).AlignItems(ui.Center).Children(func() {
-								ui.Icon(c, iconSearch).Width(14).Height(14).TextColor(t.TextMuted)
-								ui.TextInput(c.Key("ws-search"), &s.sidebarSearch).Grow(1).Placeholder(cat(c).SidebarSearchPlaceholder())
-								if s.sidebarSearch != "" {
-									iconButton(c, "ws-search-clear", iconX, cat(c).SidebarClearSearch(), func() {
-										s.sidebarSearch = ""
-									})
-								}
-							})
-						}
-						s.sidebarSegmented(c)
-						// Only the selected section's list renders — one scroll region,
-						// so no vertical pile-up of pinned + recent + folders.
-						ui.Scroll(c).Grow(1).Children(func() {
-							switch s.sidebarTab {
-							case "folders":
-								s.foldersList(c, folders)
-							case "pinned":
-								s.convList(c, "pinned")
-							default:
-								s.convList(c, "recent")
-							}
-						})
-						if s.sidebarTab == "folders" {
-							ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-								if ui.Button(c.Key("ws-open"), cat(c).SidebarOpenFolder()).Clicked() {
-									s.openFolder(c.Locale())
-								}
-								if ui.Button(c.Key("ws-clone"), cat(c).CloneShort()).Clicked() {
-									s.workbench = "clone"
-								}
-								iconButton(c, "ws-reload", iconRefresh, cat(c).SidebarReloadFolders(), func() {
-									s.invalidate("folders")
-								})
-							})
-						} else {
-							s.viewNewConversation(c)
-						}
-					})
+				ui.Column(c.Key("ws-side")).Width(s.sidebarWidth).FillHeight().Background(t.Surface).Children(func() {
+					s.viewSidebarContent(c, folders)
 				})
-				ui.Divider(c)
+				s.dragDivider(c, "ws-side-div", true, func(dx, dy float32) {
+					s.sidebarWidth = min(max(s.sidebarWidth+dx, 180), 560)
+				}, func() { s.saveLayoutSoon() })
 			}
-			// Main area: a full-page workbench route, or the conversation detail
-			// beside the aux panel's detail pane (a file preview, a diff, a commit).
 			ui.Column(c.Key("ws-detail")).Grow(1).FillHeight().Padding(20).Gap(10).Children(func() {
 				if s.workbench != "" {
 					s.viewWorkbenchRoute(c, s.workbench)
 					return
 				}
-				ui.Row(c).Grow(1).Children(func() {
-					// A detail opened from the aux panel (a file preview, a diff, a
-					// commit) takes the main area; otherwise the conversation shows.
-					if s.auxDetailOpen() {
-						ui.Column(c.Key("aux-detail")).Grow(1).FillHeight().Padding(12).Gap(6).Children(func() {
-							s.viewAuxDetail(c)
-						})
-						return
-					}
-					ui.Column(c.Key("ws-main")).Grow(1).FillHeight().Children(func() {
-						s.viewDetailTabs(c)
+				if s.auxDetailOpen() {
+					ui.Column(c.Key("aux-detail")).Grow(1).FillHeight().Padding(12).Gap(6).Children(func() {
+						s.viewAuxDetail(c)
 					})
+					return
+				}
+				ui.Column(c.Key("ws-main")).Grow(1).FillHeight().Children(func() {
+					s.viewDetailTabs(c)
 				})
 			})
-			// The right-hand aux panel (upstream's AuxPanel), hidden on a full-page
-			// workbench route and when toggle_aux_panel (⌘E) collapses it.
 			if s.workbench == "" && !s.auxHidden {
-				ui.Divider(c)
+				s.dragDivider(c, "ws-aux-div", true, func(dx, dy float32) {
+					s.auxWidth = min(max(s.auxWidth-dx, 240), 720)
+				}, func() { s.saveLayoutSoon() })
 				s.viewAuxPanel(c)
 			}
 		})
-		// Bottom collapsible terminal panel, shared across conversation tabs.
-		// Always present (its header toggles the body), matching upstream's
-		// bottom terminal bar.
-		s.viewTerminalPanel(c)
+		if s.termOpen {
+			s.dragDivider(c, "ws-term-div", false, func(dx, dy float32) {
+				s.mainPaneHeight = min(max(s.mainPaneHeight-dy, 140), 640)
+			}, func() { s.saveLayoutSoon() })
+			s.viewTerminalPanelOpen(c)
+		} else {
+			s.viewTerminalPanel(c)
+		}
 	})
+}
+
+// viewSidebarContent renders the sidebar's body (nav block + segment switcher
+// + the selected section's list), inside the resizable Split pane.
+func (s *Shell) viewSidebarContent(c *ui.Context, folders []map[string]any) {
+	t := c.Theme()
+	{
+		// Fixed nav block: New chat (primary action) + the route rows
+		// upstream's sidebar carries — and only those. import-sessions /
+		// project-boot open as SEPARATE windows upstream, never as sidebar
+		// rows, so they live on the bottom chrome in this single-window
+		// build instead.
+		ui.Column(c.Key("ws-nav")).PaddingX(10).PaddingY(10).Gap(2).Children(func() {
+			s.navRow(c, "nav-newchat", iconNewChat, cat(c).ActionNewChat(), false, func() {
+				s.workbench = ""
+				s.createChatConversation(c.Locale())
+			})
+			s.navRow(c, "nav-autom", iconAutomations, cat(c).NavAutomations(), s.workbench == "automations", func() {
+				s.workbench = "automations"
+			})
+			s.navRow(c, "nav-tasks", iconTasks, cat(c).NavTodos(), s.workbench == "tasks", func() {
+				s.workbench = "tasks"
+			})
+			s.navRow(c, "nav-forge", iconForge, cat(c).NavRepositories(), s.workbench == "forge", func() {
+				s.workbench = "forge"
+			})
+			s.navRow(c, "nav-canvas", iconCanvas, cat(c).NavCanvas(), s.workbench == "canvas", func() {
+				s.workbench = "canvas"
+			})
+			s.navRow(c, "nav-usage", iconUsage, cat(c).NavUsage(), s.workbench == "token-usage", func() {
+				s.workbench = "token-usage"
+			})
+			s.navRow(c, "nav-browser", iconBrowser, cat(c).NavBrowser(), s.workbench == "browser", func() {
+				s.workbench = "browser"
+			})
+		})
+		ui.Divider(c)
+		ui.Column(c.Key("ws-convs")).Grow(1).Padding(12).Gap(8).Children(func() {
+			// Conversation search: client-side title filter over the cached
+			// list (UI_GAPS P1-6). Shown for the conversation tabs only —
+			// the Folders tab has no titles to search.
+			if s.sidebarTab != "folders" {
+				ui.Row(c.Key("ws-search-row")).Gap(6).AlignItems(ui.Center).Children(func() {
+					ui.Icon(c, iconSearch).Width(14).Height(14).TextColor(t.TextMuted)
+					ui.TextInput(c.Key("ws-search"), &s.sidebarSearch).Grow(1).Placeholder(cat(c).SidebarSearchPlaceholder())
+					if s.sidebarSearch != "" {
+						iconButton(c, "ws-search-clear", iconX, cat(c).SidebarClearSearch(), func() {
+							s.sidebarSearch = ""
+						})
+					}
+				})
+			}
+			s.sidebarSegmented(c)
+			// Only the selected section's list renders — one scroll region,
+			// so no vertical pile-up of pinned + recent + folders.
+			ui.Scroll(c).Grow(1).Children(func() {
+				switch s.sidebarTab {
+				case "folders":
+					s.foldersList(c, folders)
+				case "pinned":
+					s.convList(c, "pinned")
+				default:
+					s.convList(c, "recent")
+				}
+			})
+			if s.sidebarTab == "folders" {
+				ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
+					if ui.Button(c.Key("ws-open"), cat(c).SidebarOpenFolder()).Clicked() {
+						s.openFolder(c.Locale())
+					}
+					if ui.Button(c.Key("ws-clone"), cat(c).CloneShort()).Clicked() {
+						s.workbench = "clone"
+					}
+					iconButton(c, "ws-reload", iconRefresh, cat(c).SidebarReloadFolders(), func() {
+						s.invalidate("folders")
+					})
+				})
+			} else {
+				s.viewNewConversation(c)
+			}
+		})
+	}
 }
 
 // sidebarSegmented is the Recent | Pinned | Folders switcher — the single-window
@@ -409,6 +418,8 @@ func (s *Shell) sideRow(c *ui.Context, key string, icon *ui.SVG, title, subtitle
 	row := ui.Row(c.Key(key)).PaddingX(8).PaddingY(5).Gap(8).Radius(6).AlignItems(ui.Center)
 	if selected {
 		row.Background(t.SurfacePressed) // subtle gray selection, upstream-style
+	} else if row.Hovered() {
+		row.Background(t.SurfaceHover) // hover feedback, upstream-style
 	}
 	row.Children(func() {
 		if icon != nil {

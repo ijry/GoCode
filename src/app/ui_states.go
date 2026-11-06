@@ -6,15 +6,36 @@ package app
 // (and, when the backend gave one, the actionable hint stored for its key),
 // which the ad-hoc "backend error: …" text never did.
 
-import "github.com/egoist/mygo/ui"
+import (
+	"fmt"
+
+	"github.com/egoist/mygo/ui"
+)
 
 // loadingState is the shared "fetching" placeholder. An empty label means
 // "Loading…".
 func loadingState(c *ui.Context, label string) {
-	if label == "" {
-		label = cat(c).LoadingLabel()
+	t := c.Theme()
+	if label != "" {
+		ui.Text(c, label).FontSize(12).TextColor(t.TextMuted)
+		return
 	}
-	ui.Text(c, label).FontSize(12).TextColor(c.Theme().TextMuted)
+	// Skeleton: three gently pulsing bars instead of a bare "loading" line —
+	// the shape reads as "content is coming" the way upstream's skeletons do.
+	for i := 0; i < 3; i++ {
+		bar := ui.Box(c.Key(fmt.Sprintf("skel-%d", i))).
+			Width(340 - float32(i)*80).Height(12).Radius(6).Background(t.SurfaceHover)
+		if i == 0 {
+			// The skeleton speaks its purpose to assistive technology (and
+			// reads as "Loading…" in the tester's labels).
+			bar.Label(cat(c).LoadingLabel())
+		}
+		target := float32(0.35)
+		if c.Now().UnixMilli()%900 > 450 {
+			target = 0.85
+		}
+		bar.Opacity(bar.AnimateTo("pulse", target, ui.Smooth))
+	}
 }
 
 // emptyState is the shared empty placeholder: an optional glyph, a bold title
