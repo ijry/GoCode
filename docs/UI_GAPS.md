@@ -688,8 +688,11 @@
   - **更正（2026-11-04，核对上游后）**：hunk 级 stage/unstage、force-with-lease、推送进度流、
     提交信息历史 / AI 生成 —— **上游均没有**（commit-dialog 只做整文件 stage + Add to VCS；
     push-workspace 无进度流），不是缺口，从「仍省略」除名。
-  - **仍省略**：提交卡片上的相对时间（这里用 `YYYY-MM-DD`）；图片 diff 无尺寸标注与
-    并排像素对比模式（上游 ImageDiffView 的滑块对比未做）。
+  - **相对时间与尺寸标注已补（2026-11-06）**：提交卡（aux Commits / Push 页）用 `relTime`
+    紧凑相对值，绝对日期挂 tooltip；图片 diff 侧标题带解码后像素尺寸。仍省略：ImageDiffView
+    的滑块对比模式。
+  - **ACP registry 一键添加已接（2026-11-06）**：Custom agents 区「Browse registry」列出公共
+    注册表（supported/installed 标注），Add 一键落成自定义 agent；失败走 errorState + Retry。
 - [x] **分支选择器**（composer 上的 branch picker，上游 `conversation-branch-tag`）。
   **已完成（本次）**：composer 输入框下方的**分支 chip**（`viewBranchChip`）+ **Branches 整页路由**
   （`git-branches`，也从 «Git 操作» 菜单进）。chip 显示当前 checkout 的分支名，点击进 Branches 页；

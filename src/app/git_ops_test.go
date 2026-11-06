@@ -654,4 +654,8 @@ func TestCommitImageDiff(t *testing.T) {
 	if !tt.HasText("HEAD") || !tt.HasText("Working Tree") {
 		t.Errorf("side labels missing; texts = %v", tt.Texts())
 	}
+	// Each side's caption carries the decoded image's pixel size (8×8 above).
+	if !tt.HasText("8×8") {
+		t.Errorf("side captions missing the pixel size; texts = %v", tt.Texts())
+	}
 }

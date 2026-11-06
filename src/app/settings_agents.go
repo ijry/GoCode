@@ -298,11 +298,19 @@ func (s *Shell) viewCustomAgents(c *ui.Context) {
 	ui.Row(c.Key("ca-head")).Gap(8).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, m.SetCustomAgentsTitle()).FontSize(15).Bold()
 		ui.Spacer(c)
+		// The public ACP registry is an open catalog of ACP-speaking agents;
+		// one of its entries can be added as a custom agent in one click.
+		if ui.Button(c.Key("ca-registry"), m.SetRegistryBrowse()).Clicked() {
+			s.caRegistryOpen = !s.caRegistryOpen
+		}
 		iconButton(c, "ca-refresh", iconRefresh, m.ActionRefresh(), func() {
 			s.invalidate("custom-agents")
 		})
 	})
 	ui.Text(c, m.SetCustomAgentsHint()).FontSize(12).TextColor(t.TextMuted).Wrap()
+	if s.caRegistryOpen {
+		s.viewAgentRegistry(c)
+	}
 
 	if s.errFor("custom-agents") != "" {
 		s.errorState(c, "custom-agents", nil)
@@ -377,6 +385,81 @@ func (s *Shell) viewCustomAgentRow(c *ui.Context, key string, ca map[string]any)
 			})
 		}
 	})
+}
+
+// viewAgentRegistry lists the public ACP registry's entries with what this
+// build can do for each: an Add button (one-click custom agent), an Installed
+// badge, or an honest "no build for this machine" when the entry's
+// distributions can't run here. The fetch is a live network call, so its
+// failure shows the standard error state with a retry.
+func (s *Shell) viewAgentRegistry(c *ui.Context) {
+	t := c.Theme()
+	m := cat(c)
+	key := "acp-registry"
+	if e := s.errFor(key); e != "" {
+		s.errorState(c, key, nil)
+		return
+	}
+	catalog := asList(s.ensure(key, "acp_fetch_registry_catalog", nil))
+	if catalog == nil {
+		loadingState(c, "")
+		return
+	}
+	ui.Column(c.Key("ca-registry-panel")).Gap(3).Padding(10).Background(t.Surface).Radius(8).Children(func() {
+		ui.Text(c, m.SetRegistryTitle(len(catalog))).FontSize(12).Bold()
+		for i, entry := range catalog {
+			id := str(entry, "registryId")
+			name := firstNonEmpty(str(entry, "name"), id)
+			kinds := asStringList(entry["distributionKinds"])
+			installed := asBool(entry["installed"])
+			supported := asBool(entry["supported"])
+			ui.Row(c.Key("ca-reg-" + itoa("", i))).PaddingY(3).Gap(8).AlignItems(ui.Center).Children(func() {
+				ui.Column(c).Gap(1).Children(func() {
+					ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
+						ui.Text(c, name).FontSize(12).TextColor(t.Text)
+						ui.Text(c, id).FontSize(10).TextColor(t.TextMuted)
+						if len(kinds) > 0 {
+							ui.Text(c, strings.Join(kinds, "/")).FontSize(10).TextColor(t.TextMuted)
+						}
+					})
+					if d := str(entry, "description"); d != "" {
+						ui.Text(c, d).FontSize(11).TextColor(t.TextMuted).MaxLines(2).Wrap()
+					}
+				})
+				ui.Spacer(c)
+				switch {
+				case installed:
+					ui.Text(c, m.SetRegistryInstalled()).FontSize(10).TextColor(t.Success)
+				case !supported:
+					ui.Text(c, m.SetRegistryUnsupported()).FontSize(10).TextColor(t.TextMuted)
+				default:
+					if ui.PrimaryButton(c.Key("ca-reg-add-"+itoa("", i)), m.SetRegistryAdd()).Clicked() {
+						s.addRegistryAgent(c, id)
+					}
+				}
+			})
+		}
+	})
+}
+
+// addRegistryAgent adds one registry entry as a custom agent and refreshes
+// both the registry's installed badges and the custom list.
+func (s *Shell) addRegistryAgent(c *ui.Context, id string) {
+	svc := s.svc
+	loc := c.Locale()
+	go func() {
+		_, err := s.B.raw("acp_add_registry_agent", map[string]any{"registryId": id})
+		s.mu.Lock()
+		if err != nil {
+			s.notifyErr(locales.In(loc).SetRegistryFailed(err.Error()))
+		} else {
+			s.notify(locales.In(loc).SetRegistryAdded(id))
+			delete(s.cache, "custom-agents")
+			delete(s.cache, "acp-registry")
+		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
 }
 
 // viewCustomAgentEditor renders the add form with inline validation.

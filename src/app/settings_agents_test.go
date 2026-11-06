@@ -300,3 +300,45 @@ func TestCustomAgentEdit(t *testing.T) {
 		t.Fatalf("rename never landed; texts = %v", tt.Texts())
 	}
 }
+
+// TestAgentRegistryBrowse drives the registry browser's honest states: the
+// catalog is a live network fetch, so the panel either lists entries or shows
+// the standard error state with a retry — never a silent blank.
+func TestAgentRegistryBrowse(t *testing.T) {
+	s, _ := agentsShellForTest(t)
+	s.cache["agents"] = json.RawMessage(`[{"agent_type":"claude_code","name":"Claude Code","available":true}]`)
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Browse registry"); err != nil {
+		t.Fatalf("click Browse registry: %v", err)
+	}
+	tt.Frame()
+	// The toggle persists across frames and the panel renders one of its two
+	// honest states; offline machines see the error state with a retry.
+	listed := false
+	failed := false
+	for i := 0; i < 100; i++ {
+		tt.Frame()
+		if tt.HasText("ACP registry") {
+			listed = true
+			break
+		}
+		if s.errFor("acp-registry") != "" {
+			failed = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !listed && !failed {
+		t.Fatalf("registry panel never resolved; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Browse registry"); err != nil {
+		t.Fatalf("hide the registry panel: %v", err)
+	}
+	tt.Frame()
+	s.mu.Lock()
+	open := s.caRegistryOpen
+	s.mu.Unlock()
+	if open {
+		t.Fatalf("registry panel still open after toggling")
+	}
+}

@@ -6730,6 +6730,76 @@ func (msgs Messages) SetEditCustomAgent() string {
 	return Catalog.Format(msgs.locale, "setEditCustomAgent", nil)
 }
 
+// SetRegistryBrowse says "Browse registry"
+// in the language the app shows.
+func SetRegistryBrowse() string { return In(i18n.Locale()).SetRegistryBrowse() }
+
+// SetRegistryBrowse says "Browse registry"
+// in the language of msgs.
+func (msgs Messages) SetRegistryBrowse() string {
+	return Catalog.Format(msgs.locale, "setRegistryBrowse", nil)
+}
+
+// SetRegistryTitle says "{count, plural, one {ACP registry — # entry} other {ACP registry — # entries}}"
+// in the language the app shows.
+func SetRegistryTitle(count int) string { return In(i18n.Locale()).SetRegistryTitle(count) }
+
+// SetRegistryTitle says "{count, plural, one {ACP registry — # entry} other {ACP registry — # entries}}"
+// in the language of msgs.
+func (msgs Messages) SetRegistryTitle(count int) string {
+	return Catalog.Format(msgs.locale, "setRegistryTitle", map[string]any{"count": count})
+}
+
+// SetRegistryInstalled says "installed"
+// in the language the app shows.
+func SetRegistryInstalled() string { return In(i18n.Locale()).SetRegistryInstalled() }
+
+// SetRegistryInstalled says "installed"
+// in the language of msgs.
+func (msgs Messages) SetRegistryInstalled() string {
+	return Catalog.Format(msgs.locale, "setRegistryInstalled", nil)
+}
+
+// SetRegistryAdd says "Add"
+// in the language the app shows.
+func SetRegistryAdd() string { return In(i18n.Locale()).SetRegistryAdd() }
+
+// SetRegistryAdd says "Add"
+// in the language of msgs.
+func (msgs Messages) SetRegistryAdd() string {
+	return Catalog.Format(msgs.locale, "setRegistryAdd", nil)
+}
+
+// SetRegistryUnsupported says "no build for this machine"
+// in the language the app shows.
+func SetRegistryUnsupported() string { return In(i18n.Locale()).SetRegistryUnsupported() }
+
+// SetRegistryUnsupported says "no build for this machine"
+// in the language of msgs.
+func (msgs Messages) SetRegistryUnsupported() string {
+	return Catalog.Format(msgs.locale, "setRegistryUnsupported", nil)
+}
+
+// SetRegistryAdded says "added {name}"
+// in the language the app shows.
+func SetRegistryAdded(name string) string { return In(i18n.Locale()).SetRegistryAdded(name) }
+
+// SetRegistryAdded says "added {name}"
+// in the language of msgs.
+func (msgs Messages) SetRegistryAdded(name string) string {
+	return Catalog.Format(msgs.locale, "setRegistryAdded", map[string]any{"name": name})
+}
+
+// SetRegistryFailed says "registry add failed: {message}"
+// in the language the app shows.
+func SetRegistryFailed(message string) string { return In(i18n.Locale()).SetRegistryFailed(message) }
+
+// SetRegistryFailed says "registry add failed: {message}"
+// in the language of msgs.
+func (msgs Messages) SetRegistryFailed(message string) string {
+	return Catalog.Format(msgs.locale, "setRegistryFailed", map[string]any{"message": message})
+}
+
 // SetNoCustomAgents says "No custom agents yet."
 // in the language the app shows.
 func SetNoCustomAgents() string { return In(i18n.Locale()).SetNoCustomAgents() }

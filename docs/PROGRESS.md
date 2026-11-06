@@ -116,7 +116,8 @@
   `launchable=false` 显示 problem。验证：`settings_agents_test.go` 4 个 + 快照
   `settings-agents*.png`；全量 `scripts/test.sh` 绿。
   最小切片：自定义 agent 已支持编辑（2026-11-06：行内 Edit 预填表单、标题切 Edit、保存即
-  按 id upsert——改 id 等于新增副本）；registry 一键添加未接。
+  按 id upsert——改 id 等于新增副本）；registry 一键添加已接（2026-11-06，「Browse registry」
+  面板，见 UI_GAPS 与日志）。
 - [x] **6. Antigravity 登录 3 路由** —— 完成（2026-10-20）：`src-go/acp/antigravity_login.go`
   照上游 `antigravity_login.rs` 移植免浏览器 OAuth：`start` 拉起一次性 agent 子进程、从输出行
   抓取授权链接并生成 handle 槽位（单飞 + generation 守卫 + 5 分钟过期），`finish` 校验粘贴的
@@ -279,6 +280,27 @@ go test ./...         → acp / app_error / web 全绿
 ---
 
 ## 日志
+
+### 2026-11-06 之二（收尾三小项：提交卡相对时间、图片 diff 标注、ACP registry 一键添加）
+
+既定任务审计后剩余的三个可行项一次清完：
+- **提交卡片相对时间**：aux Commits 列表与 Push 页未推送列表的日期从 `YYYY-MM-DD` 换成
+  `relTime` 紧凑相对值（"3d"），绝对日期挂 tooltip（上游 commit 卡的相对时间）。
+- **图片 diff 尺寸标注**：位图解码完成后侧标题带像素尺寸（"HEAD · 8×8"，`Bitmap.Size`）。
+- **自定义 agent 的 ACP registry 浏览/一键添加**：Custom agents 区新增「Browse registry」——
+  拉公共 ACP 注册表（后端 `acp_fetch_registry_catalog` 早已实现，本批只接 UI），逐条
+  名称/id/分发方式/描述 + 状态（Installed 徽标 / 本机无可用构建 / Add 按钮）；
+  Add 走 `acp_add_registry_agent {registryId}` 一键落成自定义 agent，成功刷新
+  `custom-agents` + `acp-registry`（Installed 徽标即时兑现）；拉取是活网络调用，
+  失败走标准 errorState + Retry（诚实面）。`caRegistryOpen` 开关可折叠。
+- i18n：`setRegistryBrowse` / `setRegistryTitle{count}`（复数）/ `setRegistryInstalled` /
+  `setRegistryAdd` / `setRegistryUnsupported` / `setRegistryAdded{name}` /
+  `setRegistryFailed{message}`（en + zh-Hans + meta），catalog 重生。
+- 测试：`TestCommitCardsRelativeTime`（3 天前 → "3d"，无绝对日期泄漏）、
+  `TestCommitImageDiff` 增加尺寸断言（8×8）、`TestAgentRegistryBrowse`（列目录或诚实报错
+  二选一 + 开关可折叠；registry 是活网络，离线/在线都收敛到诚实态）。
+- `go build ./...` / `go vet ./...` / `scripts/test.sh` 全绿（app 183s、handlers 153s）；exe 重建。
+
 
 ### 2026-11-06（打磨集合：usage 过滤搜索、provider agent 下拉、命令排序、自定义 agent 编辑）
 

@@ -33,6 +33,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
@@ -697,7 +698,14 @@ func (s *Shell) viewCommitImageDiff(c *ui.Context, root, file, status string) {
 
 	side := func(key, label, b64 string, present bool) {
 		ui.Column(c.Key(key)).Grow(1).FillHeight().Gap(4).Children(func() {
-			ui.Text(c, label).FontSize(10).TextColor(t.TextMuted)
+			caption := label
+			if bmp := s.commitImageFor(key, b64); bmp != nil {
+				// Annotate the version with its pixel size once decoded.
+				if w, h := bmp.Size(); w > 0 {
+					caption = label + " · " + itoa("", w) + "×" + itoa("", h)
+				}
+			}
+			ui.Text(c, caption).FontSize(10).TextColor(t.TextMuted)
 			switch {
 			case !present:
 				ui.Text(c, cat(c).GitNoImageSide()).FontSize(11).TextColor(t.TextMuted)
@@ -1189,7 +1197,8 @@ func (s *Shell) viewPushCommitRow(c *ui.Context, e map[string]any) {
 			ui.Row(c).Gap(5).AlignItems(ui.Center).Children(func() {
 				ui.Icon(c, iconCloudOff).Width(11).Height(11).TextColor(t.Warning)
 				ui.Text(c, str(e, "author")).FontSize(10).TextColor(t.TextMuted).MaxLines(1)
-				ui.Text(c, shortDate(str(e, "date"))).FontSize(10).TextColor(t.TextMuted)
+				commitDate := ui.Text(c, relTime(str(e, "date"), time.Now())).FontSize(10).TextColor(t.TextMuted)
+				commitDate.Tooltip(shortDate(str(e, "date"))) // absolute date on hover
 				ui.Text(c, str(e, "hash")).FontSize(10).TextColor(t.TextMuted)
 			})
 		})

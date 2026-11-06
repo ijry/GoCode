@@ -272,6 +272,7 @@ type Shell struct {
 	// image previews (side key → bitmap) for image diffs.
 	commitConfirmPath string
 	commitConfirmKind string                // "rollback" | "delete"
+	caRegistryOpen    bool                  // Agents settings: the ACP registry browser is open
 	commitImgs        map[string]*ui.Bitmap // image diff sides, by side key
 	commitImgBusy     map[string]bool       // image sides decoding right now
 	commitImgFailed   map[string]bool       // image sides that failed to decode

@@ -10,6 +10,7 @@ package app
 
 import (
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -146,8 +147,10 @@ func (s *Shell) viewCommitsList(c *ui.Context) {
 			ui.Text(c, hash).FontSize(11).TextColor(metaCol).Width(52)
 			ui.Column(c).Gap(1).Children(func() {
 				ui.Text(c, firstLine(str(e, "message"))).Width(252).MaxLines(1).TextColor(msgCol)
-				ui.Text(c, str(e, "author")+" · "+shortDate(str(e, "date"))).
+				date := str(e, "date")
+				meta := ui.Text(c, str(e, "author")+" · "+relTime(date, time.Now())).
 					FontSize(10).TextColor(metaCol).Width(252).MaxLines(1)
+				meta.Tooltip(shortDate(date)) // the absolute date stays one hover away
 			})
 		})
 	}).Grow(1)

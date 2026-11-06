@@ -7,6 +7,7 @@ package app
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -83,4 +84,29 @@ func TestAuxPanelCommitsKeyboardNav(t *testing.T) {
 		t.Fatalf("detail did not follow the key; texts = %v", tt.Texts())
 	}
 	dumpFrame(t, tt, "aux-commits-list")
+}
+
+// TestCommitCardsRelativeTime shows a commit card's age as a compact relative
+// label (upstream's commit cards) with the absolute date on hover.
+func TestCommitCardsRelativeTime(t *testing.T) {
+	s := New(newBackendForTest(t))
+	s.stream = newStreamForTest()
+	s.selectedFolder = "1"
+	s.auxTab = "commits"
+	s.cache["appearance-mode"] = json.RawMessage(`{"mode":"light"}`)
+	s.cache["folders"] = json.RawMessage(`[{"id":1,"name":"demo","path":"/tmp/demo"}]`)
+	old := time.Now().AddDate(0, 0, -3).UTC().Format(time.RFC3339)
+	s.cache["gitlog:/tmp/demo"] = json.RawMessage(
+		`{"entries":[{"hash":"abc1234","author":"Ada","date":"` + old + `","message":"aged commit","files":[]}]} `)
+	s.cache["commitfiles:abc1234"] = json.RawMessage(`[{"path":"main.go","status":"M","additions":1,"deletions":0}]`)
+
+	tt := ui.NewTester(s.View, 1400, 860)
+	tt.Frame()
+	// relTime floors at days: a three-day-old commit reads "3d", not a date.
+	if !tt.HasText("3d") {
+		t.Fatalf("relative age missing; texts = %v", tt.Texts())
+	}
+	if tt.HasText("2026-") {
+		t.Errorf("absolute date leaked into the card; texts = %v", tt.Texts())
+	}
 }
