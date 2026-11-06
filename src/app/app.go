@@ -274,6 +274,9 @@ type Shell struct {
 	commitConfirmKind string                // "rollback" | "delete"
 	caRegistryOpen    bool                  // Agents settings: the ACP registry browser is open
 	commitImgs        map[string]*ui.Bitmap // image diff sides, by side key
+	commitImgFile     string                // image diff: the file the mode/swipe state belongs to
+	commitImgSwipe    bool                  // image diff: swipe compare (else side by side)
+	commitImgSwipeX   float32               // image diff: swipe divider, percent of the box 0..100
 	commitImgBusy     map[string]bool       // image sides decoding right now
 	commitImgFailed   map[string]bool       // image sides that failed to decode
 	mergeBranch       string                // Merge page: selected branch to merge

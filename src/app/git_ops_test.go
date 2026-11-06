@@ -654,8 +654,27 @@ func TestCommitImageDiff(t *testing.T) {
 	if !tt.HasText("HEAD") || !tt.HasText("Working Tree") {
 		t.Errorf("side labels missing; texts = %v", tt.Texts())
 	}
-	// Each side's caption carries the decoded image's pixel size (8×8 above).
+	// Each side's caption carries the decoded image's pixel size (8×8 above)
+	// and its byte size.
+	if !tt.HasText("8×8") || !tt.HasText("B") {
+		t.Errorf("side captions missing the size annotations; texts = %v", tt.Texts())
+	}
+	// Swipe compare overlays the two versions under a divider.
+	if err := tt.Click("Swipe"); err != nil {
+		t.Fatalf("click Swipe: %v", err)
+	}
+	tt.Frame()
+	s.commitImgSwipeX = 50
+	tt.Frame()
+	if !tt.HasText("HEAD") || !tt.HasText("Working Tree") {
+		t.Errorf("swipe captions missing; texts = %v", tt.Texts())
+	}
+	// Back to split keeps rendering.
+	if err := tt.Click("Split"); err != nil {
+		t.Fatalf("click Split: %v", err)
+	}
+	tt.Frame()
 	if !tt.HasText("8×8") {
-		t.Errorf("side captions missing the pixel size; texts = %v", tt.Texts())
+		t.Errorf("split view lost the captions; texts = %v", tt.Texts())
 	}
 }

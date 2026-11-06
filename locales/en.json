@@ -265,6 +265,8 @@
   "gitCommitDeleted": "deleted {name}",
   "gitAddedToVcs": "added to VCS {name}",
   "gitNoImageSide": "no version on this side",
+  "gitImageSplit": "Split",
+  "gitImageSwipe": "Swipe",
   "gitImageDecoding": "decoding…",
   "gitImageFailed": "could not decode the image",
   "gitUnselectFile": "Unselect {file}",

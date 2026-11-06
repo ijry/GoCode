@@ -1986,6 +1986,26 @@ func (msgs Messages) GitNoImageSide() string {
 	return Catalog.Format(msgs.locale, "gitNoImageSide", nil)
 }
 
+// GitImageSplit says "Split"
+// in the language the app shows.
+func GitImageSplit() string { return In(i18n.Locale()).GitImageSplit() }
+
+// GitImageSplit says "Split"
+// in the language of msgs.
+func (msgs Messages) GitImageSplit() string {
+	return Catalog.Format(msgs.locale, "gitImageSplit", nil)
+}
+
+// GitImageSwipe says "Swipe"
+// in the language the app shows.
+func GitImageSwipe() string { return In(i18n.Locale()).GitImageSwipe() }
+
+// GitImageSwipe says "Swipe"
+// in the language of msgs.
+func (msgs Messages) GitImageSwipe() string {
+	return Catalog.Format(msgs.locale, "gitImageSwipe", nil)
+}
+
 // GitImageDecoding says "decoding…"
 // in the language the app shows.
 func GitImageDecoding() string { return In(i18n.Locale()).GitImageDecoding() }

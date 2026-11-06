@@ -256,6 +256,8 @@
   "gitCommitDeleted": "已删除 {name}",
   "gitAddedToVcs": "已加入版本控制 {name}",
   "gitNoImageSide": "这一侧没有版本",
+  "gitImageSplit": "并排",
+  "gitImageSwipe": "滑动对比",
   "gitImageDecoding": "解码中…",
   "gitImageFailed": "图片无法解码",
   "gitUnselectFile": "取消选择 {file}",

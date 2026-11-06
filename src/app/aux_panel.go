@@ -169,6 +169,29 @@ func (s *Shell) viewCommitDetail(c *ui.Context, root string) {
 		ui.Spacer(c)
 		iconButton(c, "commit-close", iconX, cat(c).ActionClose(), func() { s.commitSel = "" })
 	})
+	// The commit's full message (upstream's GitLogCommitMessage + copy button).
+	if logObj := asObj(s.peek("gitlog:" + root)); logObj != nil {
+		for _, e := range asListVal(logObj["entries"]) {
+			if str(e, "hash") == s.commitSel {
+				msg := str(e, "message")
+				if msg != "" {
+					ui.Column(c.Key("aux-detail-msg")).Gap(4).Padding(8).Radius(8).
+						Background(t.Surface).FillWidth().Children(func() {
+						ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
+							ui.Text(c, firstLine(msg)).FontSize(11).Bold().Grow(1).MaxLines(1)
+							iconButton(c, "aux-detail-copy", iconCopy, cat(c).ActionCopy(), func() {
+								c.WriteClipboard(msg)
+								s.notify(cat(c).ToastCopied())
+							})
+						})
+						ui.Text(c, msg).FontSize(11).TextColor(t.TextMuted).Wrap()
+					})
+				}
+				break
+			}
+		}
+	}
+
 	key := "commitfiles:" + s.commitSel
 	files := asList(s.ensure(key, "git_commit_files", map[string]any{"path": root, "commit": s.commitSel}))
 	if s.errFor(key) != "" {

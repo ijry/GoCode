@@ -695,35 +695,138 @@ func (s *Shell) viewCommitImageDiff(c *ui.Context, root, file, status string) {
 		loadingState(c, "")
 		return
 	}
+	headBytes := 0
+	if headB64 != "" {
+		headBytes = base64.StdEncoding.DecodedLen(len(headB64))
+	}
+	workBytes := 0
+	if workB64 != "" {
+		workBytes = base64.StdEncoding.DecodedLen(len(workB64))
+	}
+	both := headExists && headB64 != "" && workB64 != ""
 
-	side := func(key, label, b64 string, present bool) {
-		ui.Column(c.Key(key)).Grow(1).FillHeight().Gap(4).Children(func() {
-			caption := label
-			if bmp := s.commitImageFor(key, b64); bmp != nil {
-				// Annotate the version with its pixel size once decoded.
-				if w, h := bmp.Size(); w > 0 {
-					caption = label + " · " + itoa("", w) + "×" + itoa("", h)
-				}
+	// Per-file compare state: a new file starts side by side, divider centered.
+	if s.commitImgFile != root+"\x00"+file {
+		s.commitImgFile = root + "\x00" + file
+		s.commitImgSwipe = false
+		s.commitImgSwipeX = 50
+	}
+	// Upstream falls back to side by side unless both versions exist (an
+	// overlay needs two images to wipe between).
+	swipe := s.commitImgSwipe && both
+
+	head := s.commitImageFor("img-head:"+root+":"+file, headB64)
+	work := s.commitImageFor("img-work:"+root+":"+file, workB64)
+	sideCaption := func(label string, bmp *ui.Bitmap, bytes int) string {
+		caption := label
+		if bmp != nil {
+			if w, h := bmp.Size(); w > 0 {
+				caption += " · " + itoa("", w) + "×" + itoa("", h)
 			}
-			ui.Text(c, caption).FontSize(10).TextColor(t.TextMuted)
-			switch {
-			case !present:
-				ui.Text(c, cat(c).GitNoImageSide()).FontSize(11).TextColor(t.TextMuted)
-			default:
-				if bmp := s.commitImageFor(key, b64); bmp != nil {
+		}
+		if bytes > 0 {
+			caption += " · " + imageSizeLabel(bytes)
+		}
+		return caption
+	}
+
+	if swipe && head != nil && work != nil {
+		box := ui.Box(c.Key("gc-swipe")).Grow(1).FillHeight().Clip()
+		bw, bh := float32(560), float32(320)
+		if b := box.Bounds(); b.W > 8 && b.H > 8 {
+			bw, bh = b.W, b.H
+		}
+		box.Children(func() {
+			ui.Image(c, work).Absolute().Left(0).Top(0).Size(bw, bh).Fit(ui.Contain)
+			clipW := bw * s.commitImgSwipeX / 100
+			ui.Box(c.Key("gc-swipe-head")).Absolute().Left(0).Top(0).Width(clipW).Height(bh).
+				Clip().Children(func() {
+				ui.Image(c, head).Absolute().Left(0).Top(0).Size(bw, bh).Fit(ui.Contain)
+			})
+			ui.Box(c.Key("gc-swipe-bar")).Absolute().Left(clipW - 2).Top(0).Width(4).Height(bh).
+				Background(t.Accent)
+		})
+		// Pressing anywhere on the overlay moves the divider there and drags
+		// it (upstream's moveSwipeTo on pointerdown/move).
+		if px, _, over := box.PointerPosition(); over && box.Pressed() && bw > 8 {
+			pct := px / bw * 100
+			s.commitImgSwipeX = min(max(pct, 0), 100)
+		}
+		ui.Row(c.Key("gc-img-caps")).FillWidth().Gap(10).Children(func() {
+			ui.Text(c, sideCaption(cat(c).GitHeadLabel(), head, headBytes)).FontSize(10).TextColor(t.TextMuted)
+			ui.Spacer(c)
+			ui.Text(c, sideCaption(cat(c).GitWorkingTreeLabel(), work, workBytes)).FontSize(10).TextColor(t.TextMuted)
+		})
+	} else {
+		side := func(key, label string, bmp *ui.Bitmap, present, bytes int) {
+			ui.Column(c.Key(key)).Grow(1).FillHeight().Gap(4).Children(func() {
+				caption := label
+				if bytes > 0 {
+					caption += " · " + imageSizeLabel(bytes)
+				}
+				ui.Text(c, caption).FontSize(10).TextColor(t.TextMuted)
+				switch {
+				case present == 0:
+					ui.Text(c, cat(c).GitNoImageSide()).FontSize(11).TextColor(t.TextMuted)
+				case bmp == nil:
+					if s.commitImgFailed[key] {
+						ui.Text(c, cat(c).GitImageFailed()).FontSize(11).TextColor(t.TextMuted)
+					} else {
+						ui.Text(c, cat(c).GitImageDecoding()).FontSize(11).TextColor(t.TextMuted)
+					}
+				default:
 					ui.Image(c, bmp).Fit(ui.Contain).FillWidth().FillHeight()
-				} else if s.commitImgFailed[key] {
-					ui.Text(c, cat(c).GitImageFailed()).FontSize(11).TextColor(t.TextMuted)
-				} else {
-					ui.Text(c, cat(c).GitImageDecoding()).FontSize(11).TextColor(t.TextMuted)
+				}
+			})
+		}
+		headOn := headExists && headB64 != ""
+		workOn := workB64 != ""
+		on := func(b bool) int {
+			if b {
+				return 1
+			}
+			return 0
+		}
+		ui.Row(c.Key("gc-img")).Grow(1).FillWidth().Gap(10).Children(func() {
+			side("img-head:"+root+":"+file, sideCaption(cat(c).GitHeadLabel(), head, headBytes), head, on(headOn), headBytes)
+			side("img-work:"+root+":"+file, sideCaption(cat(c).GitWorkingTreeLabel(), work, workBytes), work, on(workOn), workBytes)
+		})
+	}
+	// Mode toggle: swipe only when both versions exist (upstream's effectiveMode).
+	if both {
+		ui.Row(c.Key("gc-img-mode")).Gap(6).AlignItems(ui.Center).Children(func() {
+			split := ui.Button(c.Key("gc-img-split"), cat(c).GitImageSplit())
+			if !s.commitImgSwipe {
+				split.Background(t.SurfacePressed)
+			}
+			if split.Clicked() {
+				s.commitImgSwipe = false
+			}
+			swp := ui.Button(c.Key("gc-img-swipe"), cat(c).GitImageSwipe())
+			if s.commitImgSwipe {
+				swp.Background(t.SurfacePressed)
+			}
+			if swp.Clicked() {
+				s.commitImgSwipe = true
+				if s.commitImgSwipeX <= 0 || s.commitImgSwipeX >= 100 {
+					s.commitImgSwipeX = 50
 				}
 			}
 		})
 	}
-	ui.Row(c.Key("gc-img")).Grow(1).FillWidth().Gap(10).Children(func() {
-		side("img-head:"+root+":"+file, cat(c).GitHeadLabel(), headB64, headExists && headB64 != "")
-		side("img-work:"+root+":"+file, cat(c).GitWorkingTreeLabel(), workB64, workB64 != "")
-	})
+}
+
+// imageSizeLabel formats a byte count as B / KB / MB (upstream's
+// formatFileSize).
+func imageSizeLabel(n int) string {
+	switch {
+	case n < 1024:
+		return itoa("", n) + " B"
+	case n < 1024*1024:
+		return fmt.Sprintf("%.1f KB", float64(n)/1024)
+	default:
+		return fmt.Sprintf("%.1f MB", float64(n)/(1024*1024))
+	}
 }
 
 // commitImageFor returns the cached bitmap for one diff side, decoding it off

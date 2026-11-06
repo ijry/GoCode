@@ -110,3 +110,31 @@ func TestCommitCardsRelativeTime(t *testing.T) {
 		t.Errorf("absolute date leaked into the card; texts = %v", tt.Texts())
 	}
 }
+
+// TestCommitDetailShowsMessageAndCopy renders the selected commit's full
+// message with a copy affordance (upstream's GitLogCommitMessage +
+// CommitCopyButton); copying toasts.
+func TestCommitDetailShowsMessageAndCopy(t *testing.T) {
+	s := New(newBackendForTest(t))
+	s.stream = newStreamForTest()
+	s.selectedFolder = "1"
+	s.auxTab = "commits"
+	s.commitSel = "abc1234"
+	s.cache["appearance-mode"] = json.RawMessage(`{"mode":"light"}`)
+	s.cache["folders"] = json.RawMessage(`[{"id":1,"name":"demo","path":"/tmp/demo"}]`)
+	s.cache["gitlog:/tmp/demo"] = json.RawMessage(
+		`{"entries":[{"hash":"abc1234","author":"Ada","date":"2026-10-16T10:00:00Z","message":"first commit\n\nlong body\nline three","files":[]}]}`)
+	s.cache["commitfiles:abc1234"] = json.RawMessage(`[{"path":"main.go","status":"M","additions":3,"deletions":1}]`)
+
+	tt := ui.NewTester(s.View, 1400, 860)
+	tt.Frame()
+	if !tt.HasText("long body") {
+		t.Fatalf("full message body missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Copy"); err != nil {
+		t.Fatalf("click Copy: %v", err)
+	}
+	if !waitUntil(t, tt, func() bool { return tt.HasText("copied to clipboard") }) {
+		t.Fatalf("copy toast missing; texts = %v", tt.Texts())
+	}
+}
