@@ -323,15 +323,18 @@ type Shell struct {
 	// Browser panel (browser_panel.go): the address bar.
 	browserURL string
 	// Workspace folders (workspace_folders.go): folder links + upload forms.
-	wfTarget        string      // folder to link
-	wfName          string      // link name (pending preview / optional form name)
-	wfPlan          *wfLinkPlan // preview_folder_links dry-run awaiting confirm (nil = none)
-	wfGitExclude    bool        // keep created links out of git status
-	wfEditID        string      // link id being renamed ("" = none)
-	wfEditName      string      // rename input
-	wfRemoveConfirm string      // link id awaiting a second remove click
-	wfUploadPath    string      // picked local file to upload
-	wfUploadRel     string      // target subpath (optional)
+	wfTarget        string        // folder to link
+	wfName          string        // link name (pending preview / optional form name)
+	wfPlan          *wfLinkPlan   // preview_folder_links dry-run awaiting confirm (nil = none)
+	wfGitExclude    bool          // keep created links out of git status
+	wfEditID        string        // link id being renamed ("" = none)
+	wfEditName      string        // rename input
+	wfRemoveConfirm string        // link id awaiting a second remove click
+	wfUploadPath    string        // picked local file to upload (single-file flow)
+	wfUploadPaths   []string      // multi-file upload queue
+	wfUploadRel     string        // target subpath (optional)
+	wfBatchPaths    []string      // multi-link pending targets
+	wfBatchPlan     []*wfLinkPlan // their dry-run plans
 	// Settings → Agents (settings_agents.go): version probes + custom agents.
 	agentChecking  string            // agent type whose probe is running ("" = idle)
 	agentCheckNote map[string]string // post-check note per agent (not installed, …)
@@ -471,6 +474,29 @@ type Shell struct {
 }
 
 // New builds the root shell.
+// pickPaths opens the OS picker (files, or directories when directory is set)
+// and hands the picked paths to done. Tests inject hostOpenFiles and the call
+// runs synchronously on the frame thread; the real build has no such hook and
+// runs mygo.Dialog on its own goroutine — a dialog must never block a frame —
+// so done mutates Shell state only under s.mu.
+func (s *Shell) pickPaths(title string, directory, multiple bool, done func(paths []string)) {
+	if s.hostOpenFiles != nil {
+		if picked := s.hostOpenFiles(); len(picked) > 0 {
+			done(picked)
+		}
+		return
+	}
+	go func() {
+		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
+			Title: title, Directory: directory, Multiple: multiple,
+		})
+		if err != nil || len(paths) == 0 {
+			return
+		}
+		done(paths)
+	}()
+}
+
 func New(b *Backend) *Shell {
 	return &Shell{
 		B:                b,

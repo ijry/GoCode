@@ -4366,6 +4366,76 @@ func (msgs Messages) WfUploaded(path string) string {
 	return Catalog.Format(msgs.locale, "wfUploaded", map[string]any{"path": path})
 }
 
+// WfUploadMany says "Upload {count} file(s)"
+// in the language the app shows.
+func WfUploadMany(count string) string { return In(i18n.Locale()).WfUploadMany(count) }
+
+// WfUploadMany says "Upload {count} file(s)"
+// in the language of msgs.
+func (msgs Messages) WfUploadMany(count string) string {
+	return Catalog.Format(msgs.locale, "wfUploadMany", map[string]any{"count": count})
+}
+
+// WfAddToBatch says "Add to batch"
+// in the language the app shows.
+func WfAddToBatch() string { return In(i18n.Locale()).WfAddToBatch() }
+
+// WfAddToBatch says "Add to batch"
+// in the language of msgs.
+func (msgs Messages) WfAddToBatch() string {
+	return Catalog.Format(msgs.locale, "wfAddToBatch", nil)
+}
+
+// WfPreviewBatch says "Preview batch"
+// in the language the app shows.
+func WfPreviewBatch() string { return In(i18n.Locale()).WfPreviewBatch() }
+
+// WfPreviewBatch says "Preview batch"
+// in the language of msgs.
+func (msgs Messages) WfPreviewBatch() string {
+	return Catalog.Format(msgs.locale, "wfPreviewBatch", nil)
+}
+
+// WfBatchReady says "Batch plans"
+// in the language the app shows.
+func WfBatchReady() string { return In(i18n.Locale()).WfBatchReady() }
+
+// WfBatchReady says "Batch plans"
+// in the language of msgs.
+func (msgs Messages) WfBatchReady() string {
+	return Catalog.Format(msgs.locale, "wfBatchReady", nil)
+}
+
+// WfBatchLink says "Link {count} folder(s)"
+// in the language the app shows.
+func WfBatchLink(count string) string { return In(i18n.Locale()).WfBatchLink(count) }
+
+// WfBatchLink says "Link {count} folder(s)"
+// in the language of msgs.
+func (msgs Messages) WfBatchLink(count string) string {
+	return Catalog.Format(msgs.locale, "wfBatchLink", map[string]any{"count": count})
+}
+
+// WfBatchLinked says "linked {count} folder(s)"
+// in the language the app shows.
+func WfBatchLinked(count string) string { return In(i18n.Locale()).WfBatchLinked(count) }
+
+// WfBatchLinked says "linked {count} folder(s)"
+// in the language of msgs.
+func (msgs Messages) WfBatchLinked(count string) string {
+	return Catalog.Format(msgs.locale, "wfBatchLinked", map[string]any{"count": count})
+}
+
+// WfUploadedMany says "uploaded {count} file(s)"
+// in the language the app shows.
+func WfUploadedMany(count string) string { return In(i18n.Locale()).WfUploadedMany(count) }
+
+// WfUploadedMany says "uploaded {count} file(s)"
+// in the language of msgs.
+func (msgs Messages) WfUploadedMany(count string) string {
+	return Catalog.Format(msgs.locale, "wfUploadedMany", map[string]any{"count": count})
+}
+
 // WfUploadNoFile says "Choose a file to upload."
 // in the language the app shows.
 func WfUploadNoFile() string { return In(i18n.Locale()).WfUploadNoFile() }
@@ -9194,6 +9264,16 @@ func CvRegionMembers(count int) string { return In(i18n.Locale()).CvRegionMember
 // in the language of msgs.
 func (msgs Messages) CvRegionMembers(count int) string {
 	return Catalog.Format(msgs.locale, "cvRegionMembers", map[string]any{"count": count})
+}
+
+// CvDetach says "Remove from region"
+// in the language the app shows.
+func CvDetach() string { return In(i18n.Locale()).CvDetach() }
+
+// CvDetach says "Remove from region"
+// in the language of msgs.
+func (msgs Messages) CvDetach() string {
+	return Catalog.Format(msgs.locale, "cvDetach", nil)
 }
 
 // CvCreateFailed says "create failed: {message}"

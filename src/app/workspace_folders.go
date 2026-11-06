@@ -20,6 +20,7 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -80,11 +81,11 @@ func (s *Shell) viewWorkspaceFolders(c *ui.Context) {
 		ui.Row(c.Key("wf-add-r1")).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.TextInput(c.Key("wf-target"), &s.wfTarget).Placeholder(cat(c).WfTarget()).Grow(1)
 			if ui.Button(c.Key("wf-choose"), cat(c).WfChoose()).Clicked() {
-				if s.hostOpenFiles != nil {
-					if picked := s.hostOpenFiles(); len(picked) > 0 {
-						s.wfTarget = picked[0]
-					}
-				}
+				s.pickPaths(cat(c).WfChoose(), true, false, func(picked []string) {
+					s.mu.Lock()
+					s.wfTarget = picked[0]
+					s.mu.Unlock()
+				})
 			}
 		})
 		ui.Row(c.Key("wf-add-r2")).Gap(8).AlignItems(ui.Center).Children(func() {
@@ -96,13 +97,47 @@ func (s *Shell) viewWorkspaceFolders(c *ui.Context) {
 			if btn.Clicked() {
 				s.previewFolderLink(c)
 			}
+			// Batch mode: stack several targets, then dry-run them in one call
+			// (the backend dedupes names across the batch).
+			if ui.Button(c.Key("wf-add-batch"), cat(c).WfAddToBatch()).Clicked() {
+				if t := strings.TrimSpace(s.wfTarget); t != "" {
+					s.wfBatchPaths = append(s.wfBatchPaths, t)
+					s.wfTarget = ""
+				}
+			}
+			if len(s.wfBatchPaths) > 0 && s.wfBatchPlan == nil {
+				if ui.Button(c.Key("wf-batch-preview"), cat(c).WfPreviewBatch()).Clicked() {
+					s.previewFolderLinksBatch(c)
+				}
+			}
 		})
+		// Pending targets as removable chips.
+		for i, p := range s.wfBatchPaths {
+			chip := ui.Row(c.Key(fmt.Sprintf("wf-batch-chip-%d", i))).Padding(2, 8, 2, 8).
+				Radius(6).Gap(5).AlignItems(ui.Center).Background(t.SurfaceHover)
+			chip.Children(func() {
+				ui.Text(c, p).FontSize(11).MaxLines(1)
+				x := ui.Row(c.Key(fmt.Sprintf("wf-batch-x-%d", i))).Width(14).Height(14).
+					AlignItems(ui.Center).Justify(ui.Center).Label(cat(c).ActionDelete())
+				x.Children(func() {
+					ui.Icon(c, iconX).Width(9).Height(9).TextColor(t.TextMuted)
+				})
+				if x.Clicked() {
+					s.mu.Lock()
+					s.wfBatchPaths = append(s.wfBatchPaths[:i:i], s.wfBatchPaths[i+1:]...)
+					s.mu.Unlock()
+				}
+			})
+		}
 	})
 
 	// Dry-run result: a usable plan waits for confirmation; a rejection keeps
-	// the reason visible until dismissed.
+	// the reason visible until dismissed. The batch's plans list in one card.
 	if s.wfPlan != nil {
 		s.viewFolderLinkPlan(c, root)
+	}
+	if len(s.wfBatchPlan) > 0 {
+		s.viewFolderLinkBatchPlan(c, root)
 	}
 
 	// Link list.
@@ -121,29 +156,51 @@ func (s *Shell) viewWorkspaceFolders(c *ui.Context) {
 		})
 	}
 
-	// Upload section.
+	// Upload section: a multi-select picker queues files; one file keeps the
+	// optional relative subpath, several land under their base names.
 	ui.Divider(c)
 	ui.Text(c, cat(c).WfUpload()).Bold()
 	ui.Row(c.Key("wf-up-r1")).Gap(8).AlignItems(ui.Center).Children(func() {
-		shown := s.wfUploadPath
-		if shown == "" {
-			shown = "—"
-		}
-		ui.Text(c, shown).FontSize(12).TextColor(t.TextMuted).Grow(1).MaxLines(1)
 		if ui.Button(c.Key("wf-up-pick"), cat(c).WfUploadPick()).Clicked() {
-			if s.hostOpenFiles != nil {
-				if picked := s.hostOpenFiles(); len(picked) > 0 {
-					s.wfUploadPath = picked[0]
+			s.pickPaths(cat(c).WfUploadPick(), false, true, func(picked []string) {
+				s.mu.Lock()
+				s.wfUploadPaths = append(s.wfUploadPaths, picked...)
+				s.mu.Unlock()
+			})
+		}
+		for i, p := range s.wfUploadPaths {
+			chip := ui.Row(c.Key(fmt.Sprintf("wf-up-chip-%d", i))).Padding(2, 8, 2, 8).
+				Radius(6).Gap(5).AlignItems(ui.Center).Background(t.SurfaceHover)
+			chip.Children(func() {
+				ui.Text(c, filepath.Base(p)).FontSize(11).MaxLines(1)
+				x := ui.Row(c.Key(fmt.Sprintf("wf-up-x-%d", i))).Width(14).Height(14).
+					AlignItems(ui.Center).Justify(ui.Center).Label(cat(c).ActionDelete())
+				x.Children(func() {
+					ui.Icon(c, iconX).Width(9).Height(9).TextColor(t.TextMuted)
+				})
+				if x.Clicked() {
+					s.mu.Lock()
+					s.wfUploadPaths = append(s.wfUploadPaths[:i:i], s.wfUploadPaths[i+1:]...)
+					s.mu.Unlock()
 				}
-			}
+			})
 		}
 	})
 	ui.Row(c.Key("wf-up-r2")).Gap(8).AlignItems(ui.Center).Children(func() {
-		ui.TextInput(c.Key("wf-up-rel"), &s.wfUploadRel).Placeholder(cat(c).WfUploadRel()).Grow(1)
+		n := len(s.wfUploadPaths)
+		if n == 0 && strings.TrimSpace(s.wfUploadPath) != "" {
+			n = 1 // the single-file flow (tests, and a pick that predates the queue)
+		}
+		if n == 1 {
+			ui.TextInput(c.Key("wf-up-rel"), &s.wfUploadRel).Placeholder(cat(c).WfUploadRel()).Grow(1)
+		}
 		btn := ui.PrimaryButton(c.Key("wf-up-go"), cat(c).WfUploadAction())
-		btn.Disabled(strings.TrimSpace(s.wfUploadPath) == "")
+		if n > 1 {
+			btn.Label(cat(c).WfUploadMany(itoa("", n)))
+		}
+		btn.Disabled(n == 0)
 		if btn.Clicked() {
-			s.uploadWorkspaceFile(c, root)
+			s.uploadWorkspaceFiles(c, root)
 		}
 	})
 
@@ -451,6 +508,166 @@ func (s *Shell) removeFolderLink(c *ui.Context, id string) {
 }
 
 // uploadWorkspaceFile uploads the picked local file into the workspace root.
+func (s *Shell) uploadWorkspaceFiles(c *ui.Context, root string) {
+	loc := c.Locale()
+	paths := append([]string(nil), s.wfUploadPaths...)
+	if len(paths) == 0 && strings.TrimSpace(s.wfUploadPath) != "" {
+		paths = []string{strings.TrimSpace(s.wfUploadPath)}
+	}
+	if len(paths) == 0 {
+		s.mu.Lock()
+		s.errorMsg = locales.In(loc).WfUploadNoFile()
+		s.mu.Unlock()
+		return
+	}
+	rel := strings.TrimSpace(s.wfUploadRel)
+	svc := s.svc
+	go func() {
+		var firstErr error
+		var lastPath string
+		ok := 0
+		for i, path := range paths {
+			fields := map[string]string{"root_path": root}
+			if len(paths) == 1 && rel != "" {
+				fields["relative_path"] = rel
+			}
+			raw, err := s.B.upload("upload_workspace_file", fields, "file", path)
+			if err != nil {
+				if firstErr == nil {
+					firstErr = err
+				}
+				continue
+			}
+			ok++
+			lastPath = path
+			if i == len(paths)-1 {
+				var res map[string]any
+				_ = json.Unmarshal(raw, &res)
+			}
+		}
+		s.mu.Lock()
+		if firstErr != nil {
+			s.errorMsg = firstErr.Error()
+		} else {
+			s.errorMsg = ""
+			if ok == 1 {
+				s.actionMsg = locales.In(loc).WfUploaded(lastPath)
+			} else {
+				s.actionMsg = locales.In(loc).WfUploadedMany(itoa("", ok))
+			}
+			s.wfUploadPaths = nil
+			s.wfUploadRel = ""
+		}
+		s.mu.Unlock()
+		s.refreshWorkspaceTree(root)
+		svc.Invalidate()
+	}()
+}
+
+// previewFolderLinksBatch dry-runs every pending target in one call.
+func (s *Shell) previewFolderLinksBatch(c *ui.Context) {
+	fid := numOrString(s.selectedFolder)
+	paths := append([]string(nil), s.wfBatchPaths...)
+	if len(paths) == 0 {
+		return
+	}
+	svc := s.svc
+	go func() {
+		raw, err := s.B.raw("preview_folder_links", map[string]any{
+			"folderId": fid, "paths": paths,
+		})
+		s.mu.Lock()
+		if err != nil {
+			s.errorMsg = err.Error()
+		} else {
+			s.errorMsg = ""
+			s.wfBatchPlan = nil
+			for _, p := range asList(raw) {
+				s.wfBatchPlan = append(s.wfBatchPlan, wfPlanFrom(p))
+			}
+		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
+}
+
+// viewFolderLinkBatchPlan lists the batch's dry-run plans: each target with
+// its assigned name or its rejection, and one confirm that links every valid
+// plan in a single create_folder_links call.
+func (s *Shell) viewFolderLinkBatchPlan(c *ui.Context, root string) {
+	t := c.Theme()
+	valid := 0
+	ui.Column(c.Key("wf-batch-plan")).Gap(4).FillWidth().Padding(10).Radius(8).
+		Background(t.Surface).Children(func() {
+		ui.Text(c, cat(c).WfBatchReady()).FontSize(12).Bold()
+		for _, p := range s.wfBatchPlan {
+			if p.rejection == "" {
+				valid++
+			}
+			ui.Row(c.Key("wf-bp-" + p.targetPath)).Gap(6).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, p.targetPath).FontSize(11).Grow(1).MaxLines(1).TextColor(t.Text)
+				if p.rejection != "" {
+					ui.Text(c, p.rejection).FontSize(11).TextColor(t.Warning).MaxLines(1)
+				} else {
+					ui.Text(c, p.name).FontSize(11).TextColor(t.Success)
+				}
+			})
+		}
+		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+			btn := ui.PrimaryButton(c.Key("wf-bp-go"), cat(c).WfBatchLink(itoa("", valid)))
+			btn.Disabled(valid == 0)
+			if btn.Clicked() {
+				s.linkFolderLinksBatch(c, root)
+			}
+			if ui.Button(c.Key("wf-bp-clear"), cat(c).ActionCancel()).Clicked() {
+				s.wfBatchPaths, s.wfBatchPlan = nil, nil
+			}
+		})
+	})
+}
+
+// linkFolderLinksBatch creates every valid plan in one call (invalid ones are
+// skipped; the backend deduped their names at preview time).
+func (s *Shell) linkFolderLinksBatch(c *ui.Context, root string) {
+	loc := c.Locale()
+	fid := numOrString(s.selectedFolder)
+	items := []any{}
+	for _, p := range s.wfBatchPlan {
+		if p.rejection == "" {
+			items = append(items, map[string]any{"path": p.targetPath, "name": p.name})
+		}
+	}
+	if len(items) == 0 {
+		return
+	}
+	svc := s.svc
+	go func() {
+		_, err := s.B.raw("create_folder_links", map[string]any{
+			"folderId": fid, "items": items, "gitExclude": s.wfGitExclude,
+		})
+		s.mu.Lock()
+		if err != nil {
+			s.errorMsg = err.Error()
+		} else {
+			s.errorMsg = ""
+			s.actionMsg = locales.In(loc).WfBatchLinked(itoa("", len(items)))
+			s.wfBatchPaths, s.wfBatchPlan = nil, nil
+		}
+		s.refreshWorkspaceTree(root)
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
+}
+
+// refreshWorkspaceTree drops the folder-link and file-tree caches a link or
+// upload mutation touched. Call with s.mu held.
+func (s *Shell) refreshWorkspaceTree(root string) {
+	delete(s.cache, "folder-links:"+s.selectedFolder)
+	delete(s.cache, "ft:"+root)
+}
+
+// uploadWorkspaceFile is the single-file upload (kept for the tests that set
+// wfUploadPath directly).
 func (s *Shell) uploadWorkspaceFile(c *ui.Context, root string) {
 	loc := c.Locale()
 	path := strings.TrimSpace(s.wfUploadPath)

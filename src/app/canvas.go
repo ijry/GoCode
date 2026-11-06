@@ -480,12 +480,11 @@ func (s *Shell) canvasNodeCard(c *ui.Context, n map[string]any, bases map[string
 			})
 		})
 		ui.Text(c, label).FontSize(12).TextColor(t.Text).MaxLines(3).Wrap()
-		// A region card names how many conversations it holds; its members
-		// render inside it upstream, which this build's cards do not.
+		// A region card renders its member conversations inside (upstream does
+		// too): a title chip per member with a detach ✕ that drops it back on
+		// the board beside the region. Long regions cap at four chips.
 		if kind == "custom" {
-			if ids, ok := n["member_ids"].([]any); ok && len(ids) > 0 {
-				ui.Text(c, m.CvRegionMembers(len(ids))).FontSize(11).TextColor(t.TextMuted)
-			}
+			s.viewRegionMembers(c, n, baseX, baseY, ew, eh)
 		}
 	})
 	// Drag first: the release frame of a drag also reports Clicked, and a
@@ -554,6 +553,78 @@ func (s *Shell) canvasNodeCard(c *ui.Context, n map[string]any, bases map[string
 			s.commitCanvasResize(c)
 		}
 	}
+}
+
+// viewRegionMembers renders a region's member conversations as detachable
+// chips inside the region card. Titles resolve from the app-wide conversation
+// list (the tab strip keeps it warm); unknown ids fall back to themselves.
+func (s *Shell) viewRegionMembers(c *ui.Context, n map[string]any, baseX, baseY, ew, eh float32) {
+	t := c.Theme()
+	m := cat(c)
+	ids, ok := n["member_ids"].([]any)
+	if !ok || len(ids) == 0 {
+		return
+	}
+	regionID := fmt.Sprintf("%v", n["id"])
+	byID := map[string]map[string]any{}
+	for _, cv := range asList(s.ensure("all-convs", "list_all_conversations", nil)) {
+		byID[fmt.Sprintf("%v", cv["id"])] = cv
+	}
+	ui.Column(c.Key("cv-region-members-" + regionID)).Absolute().
+		Left(baseX + 10).Top(baseY + 58).Width(ew - 20).Gap(2).Children(func() {
+		shown := ids
+		if len(shown) > 4 {
+			shown = shown[:4]
+		}
+		for _, mid := range shown {
+			ms := fmt.Sprintf("%v", mid)
+			title, agent := ms, ""
+			if cv := byID[ms]; cv != nil {
+				title = firstNonEmpty(str(cv, "title"), ms)
+				agent = str(cv, "agent_type")
+			}
+			ui.Row(c.Key("cv-rm-" + regionID + "-" + ms)).Gap(4).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, title).FontSize(10).TextColor(t.Text).Grow(1).MaxLines(1)
+				if agent != "" {
+					ui.Text(c, agent).FontSize(9).TextColor(t.TextMuted).MaxLines(1)
+				}
+				x := ui.Row(c.Key("cv-rm-x-" + regionID + "-" + ms)).Width(13).Height(13).
+					AlignItems(ui.Center).Justify(ui.Center).Label(m.CvDetach())
+				x.Children(func() {
+					ui.Icon(c, iconX).Width(8).Height(8).TextColor(t.TextMuted)
+				})
+				if x.Clicked() {
+					s.canvasDetachMember(c, regionID, ms, float64(baseX+ew+16), float64(baseY))
+				}
+			})
+		}
+		if len(ids) > len(shown) {
+			ui.Text(c, m.CvRegionMembers(len(ids))).FontSize(10).TextColor(t.TextMuted)
+		}
+	})
+}
+
+// canvasDetachMember moves one conversation out of a region back onto the
+// board (canvas_detach_member's x/y is where its loose card lands).
+func (s *Shell) canvasDetachMember(c *ui.Context, regionID, convID string, x, y float64) {
+	svc := s.svc
+	loc := c.Locale()
+	board := s.canvasSel
+	go func() {
+		_, err := s.B.raw("canvas_detach_member", map[string]any{
+			"regionId": numOrString(regionID), "conversationId": numOrString(convID),
+			"x": x, "y": y,
+		})
+		s.mu.Lock()
+		if err != nil {
+			s.notifyErr(locales.In(loc).CvMoveFailed(err.Error()))
+		}
+		if board != "" {
+			delete(s.cache, "canvas-nodes:"+board)
+		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
 }
 
 // commitCanvasDrag persists every dragged card's new spot in one

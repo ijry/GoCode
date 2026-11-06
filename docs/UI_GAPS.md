@@ -691,6 +691,11 @@
   - **相对时间与尺寸标注已补（2026-11-06）**：提交卡（aux Commits / Push 页）用 `relTime`
     紧凑相对值，绝对日期挂 tooltip；图片 diff 侧标题带解码后像素尺寸。仍省略：ImageDiffView
     的滑块对比模式。
+  - **Canvas region 成员内联渲染 + detach（2026-11-07）**：region 卡内渲染成员会话 chips
+    （标题取自 `all-convs`，✕ = `canvas_detach_member` 移出为散卡，超 4 折叠为计数）。
+  - **Choose 按钮接真对话框（2026-11-07，生产 bug）**：`hostOpenFiles` 生产从未赋值——
+    四处 Choose + 回形针在真实应用全是死按钮；`pickPaths` 统一（测试缝同步、生产
+    `mygo.Dialog.Open` goroutine，done 持锁改状态）。
   - **ACP registry 一键添加已接（2026-11-06）**：Custom agents 区「Browse registry」列出公共
     注册表（supported/installed 标注），Add 一键落成自定义 agent；失败走 errorState + Retry。
 - [x] **分支选择器**（composer 上的 branch picker，上游 `conversation-branch-tag`）。
@@ -895,8 +900,11 @@
     RepairLink 删链接项后重建 / RemoveLink 两步确认 / UploadFile 真 multipart 并验证落盘）；
     `render_test.go` 的 `TestZZRenderWorkspaceFolders` 快照改为「两条链接 + 待确认预览卡」，
     出 `workspace-folders.png`。
-  - **最小切片**：UI 一次预览一个路径（后端 `paths` 支持批量；上游多选树 + pending 列表未做），
-    名称不在客户端校验（后端去重为 `base-2..-99`）；上传只支持单文件、无进度条、无多选。
+  - **最小切片收口（2026-11-07）**：批量预览已接（Add to batch 待定 chips → 一次
+    `preview_folder_links`，计划卡逐条列名/拒绝，一次 create 全建；批内改名由后端去重承担，
+    单路径流程保留改名输入，名称仍不在客户端校验）；上传已多选（队列 chips + 顺序上传 +
+    数量本地化，无逐文件进度条）。Choose 系列按钮已接真 `mygo.Dialog.Open`——此前
+    `hostOpenFiles` 生产从未赋值，四处 Choose + 回形针在真实应用里是死按钮（生产 bug）。
 - [x] **settings → agents 深化**（本次）：`src/app/settings_agents.go`（从 settings.go 拆出），
   内置目录 + 按需版本探测 + 自定义 agent 注册。
   - **内置目录**：`acp_list_agents` → 每行 `name` + `agent_type` + 徽标（已探测 `vX.Y.Z` /

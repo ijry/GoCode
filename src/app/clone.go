@@ -30,11 +30,11 @@ func (s *Shell) viewCloneRepository(c *ui.Context) {
 			if ui.Button(c.Key("clone-choose"), cat(c).CloneChoose()).Clicked() {
 				// The Tauri host hook opens the OS folder dialog; the headless
 				// build leaves it nil, so Choose is a no-op there.
-				if s.hostOpenFiles != nil {
-					if picked := s.hostOpenFiles(); len(picked) > 0 {
-						s.cloneTarget = picked[0]
-					}
-				}
+				s.pickPaths(cat(c).CloneTarget(), true, false, func(picked []string) {
+					s.mu.Lock()
+					s.cloneTarget = picked[0]
+					s.mu.Unlock()
+				})
 			}
 		})
 

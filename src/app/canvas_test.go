@@ -731,14 +731,47 @@ func TestCanvasGroupIntoRegion(t *testing.T) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	// The region is the selection now, and its card names its members.
-	if !waitText(t, tt, "2 members", true) {
-		t.Fatalf("region card missing the member count; texts = %v", tt.Texts())
+	// The region is the selection now, and its card renders the two members
+	// as detachable chips.
+	if !waitUntil(t, tt, func() bool { return countText(tt.Texts(), "Remove from region") == 2 }) {
+		t.Fatalf("region card missing the member chips; texts = %v", tt.Texts())
 	}
 	if !tt.HasText("1 selected") {
 		t.Errorf("region not selected; texts = %v", tt.Texts())
 	}
-	dumpFrame(t, tt, "canvas-region")
+	// Detach one member: it returns to the board as a loose conversation card
+	// beside the region, and the region holds one member.
+	if err := tt.Click("Remove from region"); err != nil {
+		t.Fatalf("detach a member: %v", err)
+	}
+	deadline = time.Now().Add(3 * time.Second)
+	for {
+		nodes := canvasNodesOf(t, b, boardID)
+		if len(nodes) == 2 {
+			for _, n := range nodes {
+				if fmt.Sprintf("%v", n["kind"]) == "conversation" {
+					if members := canvasRegionMembers(nodes); len(members) == 1 {
+						return
+					}
+				}
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("detach did not apply: %v", nodes)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+// canvasRegionMembers returns the first custom node's member ids.
+func canvasRegionMembers(nodes []map[string]any) []any {
+	for _, n := range nodes {
+		if fmt.Sprintf("%v", n["kind"]) == "custom" {
+			ids, _ := n["member_ids"].([]any)
+			return ids
+		}
+	}
+	return nil
 }
 
 // canvasNodesOf lists a board's nodes from the backend.

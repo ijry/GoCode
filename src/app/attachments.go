@@ -205,21 +205,16 @@ func (s *Shell) addAttachment(path string) {
 	s.mu.Unlock()
 }
 
-// pickAttachment opens the host file dialog (when the real build registers one)
-// and stages every path it returns. The test/headless build leaves hostOpenFiles
-// nil, so the paperclip is a no-op there; staging is exercised programmatically.
+// pickAttachment opens the OS file picker (multi-select) and stages every
+// path it returns. Headless tests inject hostOpenFiles; the real build runs
+// mygo.Dialog on a goroutine (addAttachment takes s.mu itself).
 func (s *Shell) pickAttachment() {
-	if s.hostOpenFiles == nil {
-		return
-	}
-	paths := s.hostOpenFiles()
-	if len(paths) == 0 {
-		return
-	}
-	for _, p := range paths {
-		s.addAttachment(p)
-	}
-	s.svc.Invalidate()
+	s.pickPaths("Attach files", false, true, func(paths []string) {
+		for _, p := range paths {
+			s.addAttachment(p)
+		}
+		s.svc.Invalidate()
+	})
 }
 
 // attachmentsToRaw projects staged items into the wire shape the local

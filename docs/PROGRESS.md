@@ -281,6 +281,32 @@ go test ./...         → acp / app_error / web 全绿
 
 ## 日志
 
+### 2026-11-07（收尾：Choose 按钮接真对话框、多文件上传、批量链接、region 成员/detach）
+
+既定任务审计的最后四项：
+- **Choose/回形针接真对话框（生产 bug 修复）**：`hostOpenFiles` 钩子生产环境从未赋值——
+  四处 Choose 与 composer 回形针在真实应用里全是死按钮（测试缝没接生产实现）。
+  新增 `pickPaths(title, directory, multiple, done)`：测试注入 hostOpenFiles 时同步走缝，
+  生产走 `mygo.Dialog.Open`（自带 goroutine，对话框永不阻塞帧），done 回调统一持锁改状态。
+  接入五处：链接目标、上传选择、clone 目标、project-boot 目标、附件回形针（多选）。
+- **多文件上传**：上传选择改为多选队列（chips 可移除）；一个文件保留可选相对子路径，
+  多个按 basename 落盘，按钮显示「Upload n file(s)」，顺序上传、结果按数量本地化，
+  成功清队列并失效 `ft:<root>`。
+- **批量链接预览**：Add-link 行新增「Add to batch」（目标入待定 chips）+「Preview batch」
+  一次 `preview_folder_links {paths:[…]}`——计划卡逐条列目标 → 分配名（后端批量去重）或拒绝
+  原因；「Link n folder(s)」一次 `create_folder_links` 全建（无效项跳过）。
+- **Canvas region 成员内联渲染 + detach**：region 卡内渲染成员会话 chips（标题取自
+  `all-convs`，agent 类型副标，未知 id 回退自身），每 chip ✕ = `canvas_detach_member`
+  （member 回到 region 旁的散卡，x/y = region 右侧）；超 4 个折叠为成员计数。后端契约
+  早已实现，本批只接 UI。
+- i18n：`wfUploadMany{count}` / `wfUploadedMany{count}` / `wfAddToBatch` / `wfPreviewBatch` /
+  `wfBatchReady` / `wfBatchLink{count}` / `wfBatchLinked{count}` / `cvDetach`（en + zh-Hans +
+  meta），catalog 重生。
+- 测试：`TestWorkspaceUploadFile` 保持（单文件流兼容）、`TestCanvasGroupIntoRegion` 扩展
+  detach 断言（member 回散卡、region 剩 1 成员）。
+- `go build ./...` / `go vet ./...` / `scripts/test.sh` 全绿（app 273s、handlers 214s）；exe 重建。
+
+
 ### 2026-11-06 之二（收尾三小项：提交卡相对时间、图片 diff 标注、ACP registry 一键添加）
 
 既定任务审计后剩余的三个可行项一次清完：

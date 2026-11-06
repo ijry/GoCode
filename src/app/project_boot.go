@@ -89,12 +89,11 @@ func (s *Shell) pbTargetDirField(c *ui.Context) {
 			ui.Text(c, firstNonEmpty(s.pbTargetDir, "—")).FontSize(12).
 				TextColor(c.Theme().TextMuted).Grow(1).MaxLines(1)
 			if ui.Button(c.Key("pb-choose"), cat(c).PbChooseDir()).Clicked() {
-				// The Tauri host opens a folder dialog; nil in headless runs.
-				if s.hostOpenFiles != nil {
-					if picked := s.hostOpenFiles(); len(picked) > 0 {
-						s.pbTargetDir = picked[0]
-					}
-				}
+				s.pickPaths(cat(c).PbChooseDir(), true, false, func(picked []string) {
+					s.mu.Lock()
+					s.pbTargetDir = picked[0]
+					s.mu.Unlock()
+				})
 			}
 		})
 	})
