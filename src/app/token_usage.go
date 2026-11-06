@@ -503,7 +503,8 @@ func (s *Shell) viewUsageFilters(c *ui.Context, facets map[string]any) {
 
 // usageMultiFilter is one dimension's button + checklist popover. The button
 // names the selection ("Folder: proj +1") the way upstream's pill does; the
-// popover stays open across checks so several values can be picked at once.
+// popover stays open across checks so several values can be picked at once,
+// and a search box narrows the checklist like upstream's searchable one.
 func (s *Shell) usageMultiFilter(c *ui.Context, kind, label string, options []usageMultiOption, sel *[]string) {
 	t := c.Theme()
 	name := label
@@ -516,17 +517,29 @@ func (s *Shell) usageMultiFilter(c *ui.Context, kind, label string, options []us
 		open = !open
 		if open {
 			s.usageFilterOpen = kind
+			s.usageFilterQuery = ""
 		} else if s.usageFilterOpen == kind {
 			s.usageFilterOpen = ""
 		}
 	}
 	ui.Popover(c, btn, &open, func() {
 		ui.Column(c.Key("usage-pop-" + kind)).Width(220).Padding(10).Gap(6).Children(func() {
-			if len(options) == 0 {
+			ui.TextInput(c.Key("usage-filter-search-"+kind), &s.usageFilterQuery).
+				Placeholder(cat(c).UsageSearchPlaceholder())
+			shown := options
+			if q := strings.ToLower(strings.TrimSpace(s.usageFilterQuery)); q != "" {
+				shown = nil
+				for _, opt := range options {
+					if strings.Contains(strings.ToLower(opt.label), q) {
+						shown = append(shown, opt)
+					}
+				}
+			}
+			if len(shown) == 0 {
 				ui.Text(c, cat(c).UsageNoMatches()).FontSize(12).TextColor(t.TextMuted)
 				return
 			}
-			for i, opt := range options {
+			for i, opt := range shown {
 				on := containsString(*sel, opt.value)
 				cb := ui.Checkbox(c.Key(fmt.Sprintf("usage-opt-%s-%d", kind, i)), &on, opt.label)
 				if cb.Changed() {

@@ -766,8 +766,9 @@
   - **坑**：`asListVal()` 只吃**已解码**的 `any`，对 `ensure()` 返回的 `json.RawMessage`
     永远返回 nil——必须用 `asList(raw)`（`json.Unmarshal`）。最初用错导致列表恒空、
     「命令建好却不显示」。
-  - **最小切片**：`reorder_folder_commands` 未接拖拽/上下移 UI（列表按 `sort_order` 只读排序，
-    新建自然追加）；命令无独立图标；`Run` 复用单一 `termID`（多命令并发跑会覆盖同一个 PTY）。
+  - **最小切片**：`reorder_folder_commands` 已接上下移按钮（2026-11-06；整表 id 序 POST，
+    拖拽不做——原生按钮即够；列表按 `sort_order` 排序，新建自然追加）。命令无独立图标；
+    `Run` 在底部终端面板的新标签里跑（真模拟器批次后已不共享单一 PTY）。
 - [x] **remote-manage 远程管理页**（本次）：git 路由 `git-remotes`（`src/app/git_remotes.go`），
   入口是 aux Changes/Commits 头的 «Git 操作» 菜单里的 `Remotes`。
   - 列表：`git_list_remotes` → 每行 `name`（粗体）+ `url`（muted）+ `Fetch` / `Set URL` / `Remove`。
@@ -826,7 +827,8 @@
     键盘聚焦触发）→ `Mon 09:00 — 500 tokens`；补齐上游的星期栏（Mon..Sun）、稀疏小时刻度
     （00/06/12/18）、`Less…More` 图例，以及 `Tokens by local weekday and hour. Densest around 09:00.`
     提示行（`usagePeakHour` 复刻上游 peakHour）。
-  - **最小切片**：sync 是后端 no-op；多选清单无搜索框（上游有 search/filter；当前 facets 数量有限）。
+  - **最小切片**：sync 是后端 no-op。多选清单搜索框已补齐（2026-11-06，上游 parity）：
+    popover 顶部搜索输入按子串过滤选项，过滤下勾选照常生效，重开即清空查询。
 - [x] **settings → model-providers 页**（本次）：`src/app/model_providers.go`，settings 子导航
   新增 `Model providers`（Agents 之后），接 `list/create/update/delete_model_provider`
   （纯存储 CRUD，不碰上游的 provider 连接逻辑）。
@@ -841,7 +843,8 @@
   - **测试**：`model_providers_test.go` 4 个（Empty / Create / Edit 改名 / Delete 两步确认，
     全走真后端 CRUD）；`render_test.go` 加 `TestZZRenderModelProviders` 出 `model-providers.png`。
   - **最小切片**：未做「测试连接 / 拉取模型列表」（上游 provider 逻辑明确不复刻）；
-    agent type 是自由文本而非从 `acp_list_agents` 拉的下拉；无排序/启用开关。
+    agent type 已是下拉（2026-11-06）：选项来自 `acp_list_agents`，表单现存值不在清单时附加
+    其后（存量自由文本值仍可选）；无排序/启用开关。
 - [x] **browser 面板**（本次）：workbench 路由 `browser`（`src/app/browser_panel.go`），
   入口是左侧导航 `Browser`（Usage 之后）。
   - **地址栏**：`Address` 输入 + `Open in browser`（`c.OpenURL` 拉起系统浏览器，

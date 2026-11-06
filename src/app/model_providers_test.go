@@ -115,3 +115,25 @@ func TestModelProvidersDelete(t *testing.T) {
 		t.Fatalf("deleted provider row never left; texts = %v", tt.Texts())
 	}
 }
+
+// TestAgentTypeOptions builds the picker's list from the registry, appending a
+// stored value that is not in the list exactly once.
+func TestAgentTypeOptions(t *testing.T) {
+	s, _ := mpShellForTest(t)
+	s.cache["agents"] = json.RawMessage(`[
+		{"agent_type":"claude_code","name":"Claude Code","available":true},
+		{"agent_type":"codex","name":"Codex","available":false}
+	]`)
+	got := s.agentTypeOptions("")
+	if len(got) != 2 || got[0] != "claude_code" || got[1] != "codex" {
+		t.Fatalf("options = %v, want the registry's two", got)
+	}
+	got = s.agentTypeOptions("legacy-agent")
+	if len(got) != 3 || got[2] != "legacy-agent" {
+		t.Fatalf("options = %v, want the registry plus legacy-agent", got)
+	}
+	got = s.agentTypeOptions("codex")
+	if len(got) != 2 {
+		t.Fatalf("existing option duplicated: %v", got)
+	}
+}

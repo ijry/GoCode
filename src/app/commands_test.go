@@ -6,8 +6,10 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -136,5 +138,49 @@ func TestCommandsBootstrap(t *testing.T) {
 	}
 	if !waitUntil(t, tt, func() bool { return tt.HasText("Imported 3 scripts") }) {
 		t.Fatalf("bootstrap result never appeared; texts = %v", tt.Texts())
+	}
+}
+
+// TestCommandsReorder drives a row's Move up: the new order persists through
+// reorder_folder_commands (only the non-first row carries the button, so the
+// click is unambiguous with two rows).
+func TestCommandsReorder(t *testing.T) {
+	dir := t.TempDir()
+	s := commandsShellForTest(t, dir)
+	tt := ui.NewTester(s.View, 1240, 820)
+	settleCommands(t, s, tt)
+	for _, c := range [][2]string{{"first", "echo one"}, {"second", "echo two"}} {
+		s.cmdNewName, s.cmdNewCmd = c[0], c[1]
+		tt.Frame()
+		if err := tt.Click("Create"); err != nil {
+			t.Fatalf("click Create: %v", err)
+		}
+		if !waitUntil(t, tt, func() bool { return tt.HasText(c[0]) }) {
+			t.Fatalf("created command %q never appeared; texts = %v", c[0], tt.Texts())
+		}
+	}
+	order := func() string {
+		raw, err := s.B.raw("list_folder_commands", map[string]any{"folderId": numOrString(s.selectedFolder)})
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		names := []string{}
+		for _, m := range asList(raw) {
+			names = append(names, fmt.Sprintf("%v", m["name"]))
+		}
+		return strings.Join(names, ",")
+	}
+	if got := order(); got != "first,second" {
+		t.Fatalf("initial order = %q, want first,second", got)
+	}
+	if err := tt.Click("Move up"); err != nil {
+		t.Fatalf("click Move up: %v", err)
+	}
+	if !waitUntil(t, tt, func() bool { return order() == "second,first" }) {
+		t.Fatalf("reorder did not persist; order = %q actionMsg = %q", order(), s.actionMsg)
+	}
+	// The swapped row now sits first and has no Move up of its own.
+	if !waitUntil(t, tt, func() bool { return countText(tt.Texts(), "Move up") == 1 }) {
+		t.Fatalf("move buttons wrong after reorder; texts = %v", tt.Texts())
 	}
 }

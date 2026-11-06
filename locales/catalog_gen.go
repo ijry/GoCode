@@ -3420,6 +3420,16 @@ func (msgs Messages) UsageNoMatches() string {
 	return Catalog.Format(msgs.locale, "usageNoMatches", nil)
 }
 
+// UsageSearchPlaceholder says "Search"
+// in the language the app shows.
+func UsageSearchPlaceholder() string { return In(i18n.Locale()).UsageSearchPlaceholder() }
+
+// UsageSearchPlaceholder says "Search"
+// in the language of msgs.
+func (msgs Messages) UsageSearchPlaceholder() string {
+	return Catalog.Format(msgs.locale, "usageSearchPlaceholder", nil)
+}
+
 // UsageHeatmapHint says "Tokens by local weekday and hour."
 // in the language the app shows.
 func UsageHeatmapHint() string { return In(i18n.Locale()).UsageHeatmapHint() }
@@ -6708,6 +6718,16 @@ func SetAddCustomAgent() string { return In(i18n.Locale()).SetAddCustomAgent() }
 // in the language of msgs.
 func (msgs Messages) SetAddCustomAgent() string {
 	return Catalog.Format(msgs.locale, "setAddCustomAgent", nil)
+}
+
+// SetEditCustomAgent says "Edit custom agent"
+// in the language the app shows.
+func SetEditCustomAgent() string { return In(i18n.Locale()).SetEditCustomAgent() }
+
+// SetEditCustomAgent says "Edit custom agent"
+// in the language of msgs.
+func (msgs Messages) SetEditCustomAgent() string {
+	return Catalog.Format(msgs.locale, "setEditCustomAgent", nil)
 }
 
 // SetNoCustomAgents says "No custom agents yet."
@@ -11782,6 +11802,38 @@ func CommandsDelete() string { return In(i18n.Locale()).CommandsDelete() }
 // in the language of msgs.
 func (msgs Messages) CommandsDelete() string {
 	return Catalog.Format(msgs.locale, "commandsDelete", nil)
+}
+
+// CommandsMoveUp says "Move up"
+// in the language the app shows.
+func CommandsMoveUp() string { return In(i18n.Locale()).CommandsMoveUp() }
+
+// CommandsMoveUp says "Move up"
+// in the language of msgs.
+func (msgs Messages) CommandsMoveUp() string {
+	return Catalog.Format(msgs.locale, "commandsMoveUp", nil)
+}
+
+// CommandsMoveDown says "Move down"
+// in the language the app shows.
+func CommandsMoveDown() string { return In(i18n.Locale()).CommandsMoveDown() }
+
+// CommandsMoveDown says "Move down"
+// in the language of msgs.
+func (msgs Messages) CommandsMoveDown() string {
+	return Catalog.Format(msgs.locale, "commandsMoveDown", nil)
+}
+
+// CommandsReorderFailed says "reorder failed: {message}"
+// in the language the app shows.
+func CommandsReorderFailed(message string) string {
+	return In(i18n.Locale()).CommandsReorderFailed(message)
+}
+
+// CommandsReorderFailed says "reorder failed: {message}"
+// in the language of msgs.
+func (msgs Messages) CommandsReorderFailed(message string) string {
+	return Catalog.Format(msgs.locale, "commandsReorderFailed", map[string]any{"message": message})
 }
 
 // CommandsRun says "Run"

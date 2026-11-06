@@ -283,3 +283,46 @@ func TestTokenUsageHeatmapTooltip(t *testing.T) {
 		t.Errorf("tooltip does not carry the cell value; texts = %v", tt.Texts())
 	}
 }
+
+// TestUsageFilterSearch narrows an open checklist with its search box
+// (upstream's searchable filter) and clears the query with the selection.
+func TestUsageFilterSearch(t *testing.T) {
+	s := usageShellForTest(t, usageReportFixture)
+	s.cache["usage-facets"] = json.RawMessage(usageFacetsRichFixture)
+	tt := ui.NewTester(s.View, 1240, 820)
+	if err := tt.Click("Folder"); err != nil {
+		t.Fatalf("open Folder filter: %v", err)
+	}
+	tt.Frame()
+	s.usageFilterQuery = "alp"
+	tt.Frame()
+	if !tt.HasText("alpha") {
+		t.Fatalf("match missing; texts = %v", tt.Texts())
+	}
+	if tt.HasText("beta") {
+		t.Fatalf("non-match stayed; texts = %v", tt.Texts())
+	}
+	// Picking through the narrowed list still joins the selection.
+	if err := tt.Click("alpha"); err != nil {
+		t.Fatalf("check alpha: %v", err)
+	}
+	tt.Frame()
+	if !reflect.DeepEqual(s.usageFolders, []string{"1"}) {
+		t.Fatalf("usageFolders = %v, want [1]", s.usageFolders)
+	}
+	// Reopening the filter starts a fresh query. The open state's button is
+	// named by the selection, so close through the state and click that name.
+	s.usageFilterOpen = ""
+	s.usageFilterQuery = ""
+	tt.Frame()
+	if err := tt.Click("Folder: alpha"); err != nil {
+		t.Fatalf("reopen Folder filter: %v", err)
+	}
+	tt.Frame()
+	if s.usageFilterQuery != "" {
+		t.Fatalf("query survived reopening: %q", s.usageFilterQuery)
+	}
+	if !tt.HasText("beta") {
+		t.Fatalf("unfiltered list missing beta; texts = %v", tt.Texts())
+	}
+}

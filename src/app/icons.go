@@ -43,6 +43,7 @@ var (
 	iconSend     = mustIcon(`<svg viewBox="0 0 24 24"><path d="M12 19V5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><path d="M6 11l6-6 6 6" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)
 	iconStop     = mustIcon(`<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="black"/></svg>`)
 	iconAlert    = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><path d="M12 8v5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.1" fill="black"/></svg>`)
+	iconPencil   = mustIcon(`<svg viewBox="0 0 24 24"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z" fill="none" stroke="black" stroke-width="2" stroke-linejoin="round"/><line x1="14.5" y1="7" x2="17" y2="9.5" stroke="black" stroke-width="2"/></svg>`)
 	iconInfo     = mustIcon(`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="black" stroke-width="2"/><path d="M12 11v5" fill="none" stroke="black" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.1" fill="black"/></svg>`)
 	// Attachment affordances in the composer and message bubbles.
 	iconPaperclip = mustIcon(`<svg viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`)

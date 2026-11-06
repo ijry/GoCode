@@ -261,3 +261,42 @@ func TestSettingsAgentsInstallSurface(t *testing.T) {
 	}
 	dumpFrame(t, tt, "settings-agents-install")
 }
+
+// TestCustomAgentEdit prefills the editor from a saved agent and upserts the
+// changed name through the same save route.
+func TestCustomAgentEdit(t *testing.T) {
+	s, b := agentsShellForTest(t)
+	s.cache["agents"] = json.RawMessage(`[{"agent_type":"claude_code","name":"Claude Code","available":true}]`)
+	if _, err := b.raw("acp_save_custom_agent", map[string]any{"params": map[string]any{
+		"registry_id": "team-agent", "name": "Team Agent", "description": "ours",
+		"distribution_kind": "npx",
+		"spec":              map[string]any{"npx": map[string]any{"package": "@scope/team"}},
+	}}); err != nil {
+		t.Fatalf("save custom agent: %v", err)
+	}
+	s.invalidate("custom-agents")
+	tt := ui.NewTester(s.View, 1240, 820)
+	if !waitUntil(t, tt, func() bool { return tt.HasText("Team Agent") }) {
+		t.Fatalf("saved agent missing; texts = %v", tt.Texts())
+	}
+	if err := tt.Click("Edit"); err != nil {
+		t.Fatalf("click Edit: %v", err)
+	}
+	tt.Frame()
+	e := s.caEditor
+	if e == nil || !e.editing || e.registryID != "team-agent" || e.name != "Team Agent" ||
+		e.pkg != "@scope/team" || e.distribution != "npx" || e.description != "ours" {
+		t.Fatalf("form not prefilled: %+v", e)
+	}
+	if !tt.HasText("Edit custom agent") {
+		t.Fatalf("editor title still says Add; texts = %v", tt.Texts())
+	}
+	e.name = "Team Agent 2"
+	tt.Frame()
+	if err := tt.Click("Save agent"); err != nil {
+		t.Fatalf("click Save agent: %v", err)
+	}
+	if !waitUntil(t, tt, func() bool { return tt.HasText("Team Agent 2") }) {
+		t.Fatalf("rename never landed; texts = %v", tt.Texts())
+	}
+}

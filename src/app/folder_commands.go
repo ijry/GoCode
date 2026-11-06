@@ -65,12 +65,12 @@ func (s *Shell) viewFolderCommands(c *ui.Context) {
 		emptyState(c, iconInfo, cat(c).CommandsEmpty(), "")
 	} else {
 		ui.Column(c.Key("cmd-list")).Gap(8).FillWidth().Children(func() {
-			for _, m := range cmds {
+			for i, m := range cmds {
 				key := fmt.Sprint(intOf(m["id"]))
 				if s.cmdEditID == key {
 					s.viewCommandEditRow(c, key, m)
 				} else {
-					s.viewCommandRow(c, key, m)
+					s.viewCommandRow(c, key, m, i > 0, i < len(cmds)-1)
 				}
 			}
 		})
@@ -78,8 +78,10 @@ func (s *Shell) viewFolderCommands(c *ui.Context) {
 	s.viewActionOrError(c)
 }
 
-// viewCommandRow renders one command: name + command + Run / Edit / Delete.
-func (s *Shell) viewCommandRow(c *ui.Context, key string, m map[string]any) {
+// viewCommandRow renders one command: name + command + Run / Edit / Up / Down /
+// Delete. Up/Down persist the new order through reorder_folder_commands (the
+// list sorts by sort_order), matching upstream's reorder.
+func (s *Shell) viewCommandRow(c *ui.Context, key string, m map[string]any, canUp, canDown bool) {
 	t := c.Theme()
 	ui.Row(c.Key("cmd-row-" + key)).Gap(10).AlignItems(ui.Center).PaddingY(6).Children(func() {
 		ui.Column(c.Key("cmd-meta-" + key)).Gap(2).Grow(1).Children(func() {
@@ -89,6 +91,16 @@ func (s *Shell) viewCommandRow(c *ui.Context, key string, m map[string]any) {
 		// Run streams the command into the bottom terminal panel.
 		if ui.Button(c.Key("cmd-run-"+key), cat(c).CommandsRun()).Clicked() {
 			s.runFolderCommand(firstNonEmpty(str(m, "name"), cat(c).CommandsRun()), str(m, "command"))
+		}
+		if canUp {
+			iconButton(c, "cmd-up-"+key, iconChevron, cat(c).CommandsMoveUp(), func() {
+				s.moveFolderCommand(c, key, -1)
+			})
+		}
+		if canDown {
+			iconButton(c, "cmd-down-"+key, iconChevronD, cat(c).CommandsMoveDown(), func() {
+				s.moveFolderCommand(c, key, 1)
+			})
 		}
 		if ui.Button(c.Key("cmd-edit-"+key), cat(c).CommandsEdit()).Clicked() {
 			s.cmdEditID = key
@@ -175,6 +187,46 @@ func (s *Shell) updateFolderCommand(_ *ui.Context, key string) {
 		s.cmdResult = ""
 		if err != nil {
 			s.errorMsg = err.Error()
+		} else {
+			s.errorMsg = ""
+			delete(s.cache, folderCommandKey(fid))
+		}
+		s.mu.Unlock()
+		svc.Invalidate()
+	}()
+}
+
+// moveFolderCommand swaps a command with its neighbour and persists the new
+// order (reorder_folder_commands takes the whole id list).
+func (s *Shell) moveFolderCommand(c *ui.Context, key string, dir int) {
+	list := asList(s.ensure(folderCommandKey(s.selectedFolder), "list_folder_commands", map[string]any{"folderId": numOrString(s.selectedFolder)}))
+	idx := -1
+	for i, m := range list {
+		if fmt.Sprint(intOf(m["id"])) == key {
+			idx = i
+			break
+		}
+	}
+	at := idx + dir
+	if idx < 0 || at < 0 || at >= len(list) {
+		return
+	}
+	list[idx], list[at] = list[at], list[idx]
+	ids := make([]any, 0, len(list))
+	for _, m := range list {
+		ids = append(ids, numOrString(fmt.Sprint(intOf(m["id"]))))
+	}
+	svc := s.svc
+	loc := c.Locale()
+	fid := s.selectedFolder
+	go func() {
+		_, err := s.B.raw("reorder_folder_commands", map[string]any{
+			"folderId": numOrString(fid), "ids": ids,
+		})
+		s.mu.Lock()
+		s.cmdResult = ""
+		if err != nil {
+			s.errorMsg = locales.In(loc).CommandsReorderFailed(err.Error())
 		} else {
 			s.errorMsg = ""
 			delete(s.cache, folderCommandKey(fid))

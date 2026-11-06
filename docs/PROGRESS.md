@@ -115,7 +115,8 @@
   name/package 必填；version ≤128；skills dir 绝对或 `~/…`），删除走两步确认，
   `launchable=false` 显示 problem。验证：`settings_agents_test.go` 4 个 + 快照
   `settings-agents*.png`；全量 `scripts/test.sh` 绿。
-  最小切片：自定义 agent 只能新增/删除（无编辑），registry 一键添加未接。
+  最小切片：自定义 agent 已支持编辑（2026-11-06：行内 Edit 预填表单、标题切 Edit、保存即
+  按 id upsert——改 id 等于新增副本）；registry 一键添加未接。
 - [x] **6. Antigravity 登录 3 路由** —— 完成（2026-10-20）：`src-go/acp/antigravity_login.go`
   照上游 `antigravity_login.rs` 移植免浏览器 OAuth：`start` 拉起一次性 agent 子进程、从输出行
   抓取授权链接并生成 handle 槽位（单飞 + generation 守卫 + 5 分钟过期），`finish` 校验粘贴的
@@ -278,6 +279,30 @@ go test ./...         → acp / app_error / web 全绿
 ---
 
 ## 日志
+
+### 2026-11-06（打磨集合：usage 过滤搜索、provider agent 下拉、命令排序、自定义 agent 编辑）
+
+四个记录在案的小额最小切片一次清完：
+- **Token usage 多选清单搜索框**（上游 `token-usage-filters.tsx` 的 searchable checklist
+  parity）：popover 顶部 `TextInput` 按子串（大小写不敏感）过滤选项；过滤下勾选照常进选择；
+  打开某一维即清空查询；空匹配走既有 UsageNoMatches。
+- **Model providers agent type 下拉**：新建/编辑行的自由文本输入换成 `ui.Select`，选项来自
+  `acp_list_agents`（缓存在 `agents`）；表单现存值不在清单时附加在末尾（存量自由文本仍可选，
+  mygo Select 直接绑值）。
+- **Folder commands 上移/下移**：`reorder_folder_commands {folderId, ids}` 接上下移图标按钮
+  （首行无上移、末行无下移，点击天然无歧义）；整表新序一次 POST，失效 `folder-commands:` 缓存；
+  失败进 errorMsg（错误样式提示）。
+- **自定义 agent 编辑**：行内 Edit（铅笔图标）预填编辑器（registry id / name / description /
+  distribution / package / version / skills dir，package 从 `spec.{kind}.package` 取），
+  标题切「Edit custom agent」，保存走既有 upsert；改 id 会生成副本（后端按 id upsert 的语义，
+  表单原样允许）。
+- i18n：`usageSearchPlaceholder` / `setEditCustomAgent` / `commandsMoveUp` / `commandsMoveDown` /
+  `commandsReorderFailed{message}`（en + zh-Hans + meta），catalog 重生；新增 iconPencil。
+- 测试：`TestUsageFilterSearch`（过滤 + 选择 + 重开清空）、`TestCommandsReorder`（真后端，
+  Move up 后 sort_order 持久、按钮随行位变化）、`TestAgentTypeOptions`（纯函数：清单 + 附加 +
+  不重复）、`TestCustomAgentEdit`（预填断言 + 标题 + 改名 upsert 落库）。
+- `go build ./...` / `go vet ./...` / `scripts/test.sh` 全绿（app 195s、handlers 195s）；exe 重建。
+
 
 ### 2026-11-04 之三（Commit 页右键 + 图片 diff；更正四条误记的「上游缺口」）
 

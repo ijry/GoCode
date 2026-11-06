@@ -33,6 +33,7 @@ type customAgentEditor struct {
 	pkg          string // npm / Python package
 	version      string // optional (backend defaults to "custom")
 	skillsDir    string // optional, absolute or ~/…
+	editing      bool   // prefilled from a saved agent (title says Edit)
 }
 
 // agentPreflight returns the latest preflight verdict per agent type. It is
@@ -348,6 +349,9 @@ func (s *Shell) viewCustomAgentRow(c *ui.Context, key string, ca map[string]any)
 				}
 				ui.Text(c, "v"+version).FontSize(11).TextColor(verColor)
 			}
+			iconButton(c, key+"-edit", iconPencil, m.ActionEdit(), func() {
+				s.startEditCustomAgent(ca)
+			})
 			iconButton(c, key+"-del", iconX, m.SetDeleteNamed(name), func() {
 				s.caDeleteConfirm = id
 			})
@@ -382,7 +386,11 @@ func (s *Shell) viewCustomAgentEditor(c *ui.Context) {
 	e := s.caEditor
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c.Key("ca-form")).Gap(8).Children(func() {
-			ui.Text(c, m.SetAddCustomAgent()).FontSize(18).Bold()
+			title := m.SetAddCustomAgent()
+			if e.editing {
+				title = m.SetEditCustomAgent()
+			}
+			ui.Text(c, title).FontSize(18).Bold()
 			ui.Text(c, m.SetCustomAgentsHint()).FontSize(12).TextColor(t.TextMuted).Wrap()
 
 			ui.Text(c, m.SetCustomAgentId()).FontSize(12).TextColor(t.TextMuted)
@@ -434,6 +442,26 @@ func (s *Shell) viewCustomAgentEditor(c *ui.Context) {
 
 func (s *Shell) startCustomAgent() {
 	s.caEditor = &customAgentEditor{distribution: "npx"}
+	s.caErr = ""
+	s.caDeleteConfirm = ""
+}
+
+// startEditCustomAgent prefills the editor from a saved agent; saving upserts
+// by id, so an edited id would mint a copy rather than move the agent.
+func (s *Shell) startEditCustomAgent(ca map[string]any) {
+	e := &customAgentEditor{
+		registryID:   str(ca, "registryId"),
+		name:         str(ca, "name"),
+		description:  str(ca, "description"),
+		version:      str(ca, "version"),
+		distribution: firstNonEmpty(str(ca, "distributionKind"), "npx"),
+		skillsDir:    str(ca, "skillsDir"),
+		editing:      true,
+	}
+	if spec := asObjVal(ca["spec"]); spec != nil {
+		e.pkg = str(asObjVal(spec[e.distribution]), "package")
+	}
+	s.caEditor = e
 	s.caErr = ""
 	s.caDeleteConfirm = ""
 }

@@ -48,7 +48,7 @@ func (s *Shell) viewSettingsModelProviders(c *ui.Context) {
 		})
 		ui.Row(c.Key("mp-add-r2")).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.TextInput(c.Key("mp-new-key"), &s.mpNewKey).Placeholder(cat(c).MpAPIKey()).Width(200)
-			ui.TextInput(c.Key("mp-new-agent"), &s.mpNewAgent).Placeholder(cat(c).MpAgentType()).Width(140)
+			ui.Select(c.Key("mp-new-agent"), &s.mpNewAgent, s.agentTypeOptions(s.mpNewAgent)).Width(140)
 			ui.TextInput(c.Key("mp-new-model"), &s.mpNewModel).Placeholder(cat(c).MpModel()).Width(160)
 			btn := ui.PrimaryButton(c.Key("mp-create"), cat(c).MpCreate())
 			btn.Disabled(strings.TrimSpace(s.mpNewName) == "" || strings.TrimSpace(s.mpNewURL) == "")
@@ -127,7 +127,7 @@ func (s *Shell) viewModelProviderEdit(c *ui.Context, id string) {
 		})
 		ui.Row(c.Key("mp-edit-r2-" + id)).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.TextInput(c.Key("mp-e-key-"+id), &s.mpEditKey).Placeholder(cat(c).MpAPIKey()).Width(200)
-			ui.TextInput(c.Key("mp-e-agent-"+id), &s.mpEditAgent).Placeholder(cat(c).MpAgentType()).Width(140)
+			ui.Select(c.Key("mp-e-agent-"+id), &s.mpEditAgent, s.agentTypeOptions(s.mpEditAgent)).Width(140)
 			ui.TextInput(c.Key("mp-e-model-"+id), &s.mpEditModel).Placeholder(cat(c).MpModel()).Width(160)
 			if ui.Button(c.Key("mp-save-"+id), cat(c).MpSave()).Clicked() {
 				s.updateModelProvider(c, id)
@@ -206,4 +206,23 @@ func (s *Shell) mpMutation(loc, cmd string, body map[string]any, kind string) {
 		s.mu.Unlock()
 		svc.Invalidate()
 	}()
+}
+
+// agentTypeOptions is the agent-type picker's list: every agent the registry
+// offers, plus the form's current value when it is not one of them (stored
+// providers may name an agent that has since left the list).
+func (s *Shell) agentTypeOptions(current string) []string {
+	out := []string{}
+	seen := map[string]bool{}
+	for _, a := range asList(s.ensure("agents", "acp_list_agents", nil)) {
+		at := str(a, "agent_type")
+		if at != "" && !seen[at] {
+			seen[at] = true
+			out = append(out, at)
+		}
+	}
+	if current != "" && !seen[current] {
+		out = append(out, current)
+	}
+	return out
 }

@@ -307,13 +307,14 @@ type Shell struct {
 	cloneTarget string // target directory
 	cloneResult string // "Cloned to <path>" success line ("" = none)
 	// Token-usage dashboard (token_usage.go): bucket + filter selectors.
-	usageBucket     string   // "day" | "week" | "month"
-	usageRange      string   // "all" | "7d" | "30d" | "90d"
-	usageFolders    []string // selected folder ids (strings); empty = all folders
-	usageAgents     []string // selected agent types; empty = all agents
-	usageModels     []string // selected models; empty = all models
-	usageFilterOpen string   // multi-select popover on screen: "folder" | "agent" | "model" | ""
-	usageCompare    bool     // compare against the previous equal-length period
+	usageBucket      string   // "day" | "week" | "month"
+	usageRange       string   // "all" | "7d" | "30d" | "90d"
+	usageFolders     []string // selected folder ids (strings); empty = all folders
+	usageAgents      []string // selected agent types; empty = all agents
+	usageModels      []string // selected models; empty = all models
+	usageFilterOpen  string   // multi-select popover on screen: "folder" | "agent" | "model" | ""
+	usageFilterQuery string   // the open popover's checklist search box
+	usageCompare     bool     // compare against the previous equal-length period
 	// Model-providers settings page (model_providers.go): create + edit forms.
 	mpNewName, mpNewURL, mpNewKey, mpNewAgent, mpNewModel                string
 	mpEditID, mpEditName, mpEditURL, mpEditKey, mpEditAgent, mpEditModel string
